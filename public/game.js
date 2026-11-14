@@ -45,7 +45,7 @@ const Game = (() => {
       <div class="run">
         <canvas id="runcv"></canvas>
         <div class="run-hud" id="runhud"></div>
-        <button class="run-x" onclick="Game.exit()">✕</button>
+        <button class="run-x" onclick="Game.exit()" aria-label="Yopish">${ic("x")}</button>
         <div class="run-ov" id="runov"></div>
       </div>`;
     cv = root.querySelector("#runcv"); ctx = cv.getContext("2d");
@@ -133,7 +133,7 @@ const Game = (() => {
       o.hit = true; crash(); return;
     }
     objs = objs.filter((o) => o.d > -3 && !(o.hit && KINDS[o.kind].pick));
-    hud.innerHTML = `<span>🏃 ${Math.floor(dist)} m</span><span>🫓 ${coins}</span>`;
+    hud.innerHTML = `<span>${ic("flag")}${Math.floor(dist)} m</span><span>${ic("coin")}${coins}</span>`;
   }
 
   function score() { return Math.floor(dist) + coins * 10; }
@@ -236,12 +236,12 @@ const Game = (() => {
     overlay.className = "run-ov show";
     overlay.innerHTML = `
       <div class="run-card">
-        <div class="run-logo">🏃‍♂️🕌</div>
+        ${chip("gamepad", "lg solid")}
         <h2>Chorsu Run</h2>
         <p>Chorsu bozorida yugur! Damasdan qoch, arava va ko'lmakdan sakra, non va samsa yig'.</p>
-        <div class="run-help"><span>👈 👉<br><small>yo'lak almashtir</small></span><span>👆<br><small>sakra</small></span><span>📴<br><small>internetsiz</small></span></div>
-        <div class="run-best">🏆 Eng yaxshi natijang: <b>${best()}</b></div>
-        <button class="btn-primary" onclick="Game.play()">▶ O'ynash</button>
+        <div class="run-help"><span>${ic("sides")}<small>yo'lak almashtir</small></span><span>${ic("up")}<small>sakra</small></span><span>${ic("offline")}<small>internetsiz</small></span></div>
+        <div class="run-best">${ic("trophy")} Eng yaxshi natijang: <b>${best()}</b></div>
+        <button class="btn-primary" onclick="Game.play()">${ic("play")} O'ynash</button>
       </div>`;
   }
   function play() { reset(); state = "play"; overlay.className = "run-ov"; overlay.innerHTML = ""; haptic("medium"); }
@@ -256,7 +256,7 @@ const Game = (() => {
     overlay.className = "run-ov show";
     overlay.innerHTML = `
       <div class="run-card">
-        <div class="run-logo">💥</div>
+        ${chip("alert", "lg solid")}
         <h2>Bilim bilan davom et!</h2>
         <p>To'g'ri javob ber va yugurishni davom ettir</p>
         <div class="run-q">${q.q}</div>
@@ -284,22 +284,22 @@ const Game = (() => {
     overlay.className = "run-ov show";
     overlay.innerHTML = `
       <div class="run-card">
-        <div class="run-logo">${isBest ? "🏆" : "🏁"}</div>
+        ${chip(isBest ? "trophy" : "flag", "lg solid")}
         <h2>${isBest ? "Yangi rekord!" : "O'yin tugadi"}</h2>
         <div class="run-score">${s}</div>
         <p>${Math.floor(dist)} m yugurding · ${coins} ta non va samsa</p>
         <div class="run-board">
           <b>Haftalik maktablar reytingi</b>
           ${board.slice(0, 7).map((r, i) => `<div class="${r === me ? "me" : ""}"><span>${i + 1}</span><span>${r[1]}<small>${r[0]}</small></span><b>${r[2]}</b></div>`).join("")}
-          <small class="run-prize">🎁 Hafta g'olibi maktabiga: Premium kurslar</small>
+          <small class="run-prize">${ic("gift")} Hafta g'olibi maktabiga: Premium kurslar</small>
         </div>
-        <button class="btn-primary" onclick="Game.play()">↻ Yana o'ynash</button>
+        <button class="btn-primary" onclick="Game.play()">${ic("refresh")} Yana o'ynash</button>
         <button class="btn-ghost" onclick="Game.share(${s})">Do'stlarni chaqirish</button>
       </div>`;
   }
   function share(s) {
     const link = `https://t.me/${BOT}?start=run_${user.id}`;
-    const text = `Chorsu Run'da ${s} ball to'pladim 🏃 Meni yenga olasanmi?`;
+    const text = `Chorsu Run'da ${s} ball to'pladim. Meni yenga olasanmi?`;
     const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
     if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
   }

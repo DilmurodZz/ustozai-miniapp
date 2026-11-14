@@ -1,6 +1,6 @@
 // Offline cache: the app shell and the game work without internet after the first visit.
-const CACHE = "ustozai-v2";
-const FILES = ["./", "index.html", "styles.css", "data.js", "app.js", "game.js"];
+const CACHE = "ustozai-v3";
+const FILES = ["./", "index.html", "styles.css", "data.js", "app.js", "game.js", "logo.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))));
