@@ -254,6 +254,37 @@ const RunWorld = (() => {
     return { g, pivot, body, head, sL, eL, sR, eR, hL, kL, hR, kR, phase: 0, yaw: 0, tilt: 0 };
   }
 
+  // The first runner of the 3D game, kept as it was: a hooded kid with a big round head and a yellow backpack.
+  // Same joints as human(), so every animation drives him.
+  function firstRunner(theme) {
+    const g = new T.Group(), pivot = new T.Group(), body = new T.Group(), head = new T.Group();
+    const HIP0 = 0.93;
+    g.add(pivot); pivot.add(body); pivot.position.y = HIP0;
+    const bone = (k, parent) => { const m = mesh(k.geo(), S.rigMat); parent.add(m); return m; };
+    const pants = "#232B40", skin = "#E7B08A", hair = "#1F1A17", shoe = "#F5F6F8", dark = "#14161C";
+    let k = baker();
+    k.add(cap(0.25, 0.42), theme, [1.14, 1, 0.84], [0, 0.44, 0]).add(G.box, "#FFB020", [0.42, 0.5, 0.2], [0, 0.5, 0.27]).add(G.box, dark, [0.26, 0.2, 0.02], [0, 0.5, 0.375]);
+    bone(k, body);
+    head.position.set(0, 1.0, 0); body.add(head);
+    k = baker();
+    k.add(G.sph, skin, [0.2, 0.215, 0.2], [0, 0, 0]).add(G.half, hair, [0.213, 0.225, 0.213], [0, 0.015, 0.012], [0.42, 0, 0]);
+    for (const x of [-0.075, 0.075]) k.add(G.sph, dark, [0.027, 0.034, 0.02], [x, 0.02, -0.185]);
+    bone(k, head);
+    const limb = (x, y, r1, l1, r2, l2, c, end) => {
+      const a = new T.Group(), b = new T.Group(); a.position.set(x, y, 0); body.add(a);
+      let k = baker(); k.add(cap(r1, l1), c, [1, 1, 1], [0, -(l1 / 2 + r1), 0]); bone(k, a);
+      b.position.y = -(l1 + r1 * 2) + 0.03; a.add(b);
+      k = baker(); k.add(cap(r2, l2), c, [1, 1, 1], [0, -(l2 / 2 + r2), 0]); end(k, -(l2 + r2 * 2)); bone(k, b);
+      return [a, b];
+    };
+    const hand = (k, y) => k.add(G.sph, skin, [0.075, 0.085, 0.075], [0, y + 0.02, 0]);
+    const foot = (k, y) => k.add(G.box, shoe, [0.17, 0.12, 0.34], [0, y + 0.03, -0.06]);
+    const [sL, eL] = limb(-0.37, 0.78, 0.075, 0.2, 0.068, 0.2, theme, hand), [sR, eR] = limb(0.37, 0.78, 0.075, 0.2, 0.068, 0.2, theme, hand);
+    const [hL, kL] = limb(-0.14, 0.02, 0.105, 0.24, 0.088, 0.24, pants, foot), [hR, kR] = limb(0.14, 0.02, 0.105, 0.24, 0.088, 0.24, pants, foot);
+    g.scale.setScalar(0.92);
+    return { g, pivot, body, head, sL, eL, sR, eR, hL, kL, hR, kR, phase: 0, yaw: 0, tilt: 0, hip: HIP0, reach: 1.1 };
+  }
+
   /* ---------- bazaar props ---------- */
   const GOODS = [
     (k) => { for (let j = 0; j < 4; j++) k.add(G.lo, FRUIT[j], [0.34, 0.24, 0.42], [-1.08 + j * 0.72, 1.02, 0.02]); for (const x of [-0.9, 0.9]) k.add(G.box, "#B98A52", [0.8, 0.42, 0.55], [x, 0.21, 1.0]).add(G.lo, FRUIT[x > 0 ? 1 : 3], [0.34, 0.18, 0.22], [x, 0.46, 1.0]); },
@@ -531,7 +562,7 @@ const RunWorld = (() => {
   }
 
   function actors() {
-    S.P = human({ top: S.theme, legs: "#2B3A55", skin: "#E7B08A", hair: "#1F1A17", shoe: "#F5F6F8", bag: "#FFB020", accent: S.theme });
+    S.P = firstRunner(S.theme);
     S.guard = human({ top: "#27364F", legs: "#1F2A3D", skin: "#D9A074", hair: "#1B1B1B", shoe: "#15171B", cap: "#27364F", vest: "#E6F03C" });
     S.guard.g.visible = false; scene.add(S.P.g, S.guard.g);
     // things the runner can hold in the right hand
@@ -715,6 +746,8 @@ const RunWorld = (() => {
     const meshes = (o, fn) => o.traverse((c) => { if (c.isMesh) fn(c); });
     if (m.damas) {
       const proto = fit(m.damas, { len: 3.15, rotY: Math.PI / 2 });      // the model's front faces -X; turn it towards the runner
+      // its dark inner shell lies right under the white roof and showed through in black patches: make it white and keep it behind
+      meshes(proto, (c) => { const mt = c.material; if (mt.name === "material_4") { mt.color.set("#F4F5F7"); mt.polygonOffset = true; mt.polygonOffsetFactor = 2; mt.polygonOffsetUnits = 4; } });
       meshes(proto, (c) => { c.castShadow = true; });
       S.make.damas = () => { const o = proto.clone(); o.add(new T.Mesh(S.lightsDamas, S.headMat)); return o; };
     }
@@ -737,95 +770,6 @@ const RunWorld = (() => {
       S.out.add(e); S.mosque = e;
     }
     if (m.jstreet && !S.tokyo) tokyo(m.jstreet);
-    if (m.kid && !S.boy) {                // the boy model replaces the hand-made runner
-      const r = rigBoy(m.kid, KID), old = S.P;
-      r.g.position.copy(old.g.position); r.g.rotation.copy(old.g.rotation); r.g.visible = old.g.visible;
-      for (const it of [S.can, S.bottle, S.apple]) { r.eR.add(it); it.position.set(0, -0.2, -0.03); }
-      const p = old.g.parent || scene; p.remove(old.g); p.add(r.g);
-      S.P = S.boy = r;
-    }
-  }
-
-  // Joints of the boy model, measured on it (model units: about 1.9 tall, feet at -0.95, facing +Z, standing in an A-pose).
-  // sh/el: shoulder and elbow; armRot/legRot: how far the arms and legs are turned to hang straight down.
-  const KID = { crotch: -0.2, knee: -0.56, hip: [0.1, -0.2], legRot: 0.24, neck: 0.37, sh: [0.2, 0.305], el: [0.37, 0.12], armR: 0.1, armRot: 0.62, pants: [-0.17, -0.8], H: 1.72 };
-
-  // The downloaded boy is a statue. This gives him a skeleton with the same joints as human(), so every animation
-  // in the game drives him: he is turned to face the run, his arms and legs are straightened to hang down, and
-  // each vertex is tied to body, head, arm or leg bones, blended softly around the joints.
-  function rigBoy(src, J) {
-    const H = J.H;
-    src.updateMatrixWorld(true);
-    const pos = [], nor = [], uv = [], idx = [], v = new T.Vector3(), n = new T.Vector3(), nm = new T.Matrix3();
-    let material = null, base = 0;
-    src.traverse((c) => {          // merge the parts into one geometry
-      if (!c.isMesh) return;
-      material = material || c.material;
-      const g = c.geometry, p = g.attributes.position, q = g.attributes.normal, t = g.attributes.uv;
-      nm.getNormalMatrix(c.matrixWorld);
-      for (let i = 0; i < p.count; i++) {
-        v.fromBufferAttribute(p, i).applyMatrix4(c.matrixWorld); pos.push(v.x, v.y, v.z);
-        n.fromBufferAttribute(q, i).applyMatrix3(nm).normalize(); nor.push(n.x, n.y, n.z);
-        uv.push(t.getX(i), t.getY(i));
-      }
-      if (g.index) for (let i = 0; i < g.index.count; i++) idx.push(base + g.index.getX(i)); else for (let i = 0; i < p.count; i++) idx.push(base + i);
-      base += p.count;
-    });
-    let minY = Infinity, maxY = -Infinity;
-    for (let i = 1; i < pos.length; i += 3) { minY = Math.min(minY, pos[i]); maxY = Math.max(maxY, pos[i]); }
-    const sc = H / (maxY - minY), Y = (y) => (y - minY) * sc;
-    const ss = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
-    const turn = (x, y, cx, cy, th) => { const c = Math.cos(th), s2 = Math.sin(th), dx = x - cx, dy = y - cy; return [cx + dx * c - dy * s2, cy + dx * s2 + dy * c]; };
-    const armLen = Math.hypot(J.el[0] - J.sh[0], J.el[1] - J.sh[1]), ax = (J.el[0] - J.sh[0]) / armLen, ay = (J.el[1] - J.sh[1]) / armLen;
-    // bones: 0 pivot, 1 body, 2 head, 3 sL, 4 eL, 5 sR, 6 eR, 7 hL, 8 kL, 9 hR, 10 kR (L = negative x)
-    const N = pos.length / 3, si = new Uint16Array(N * 4), sw = new Float32Array(N * 4), col = new Float32Array(N * 3).fill(1);
-    for (let i = 0; i < N; i++) {
-      let x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2], nx = nor[i * 3], ny = nor[i * 3 + 1], nz = nor[i * 3 + 2];
-      const L = x < 0, sg = L ? -1 : 1, w = [[1, 1]];          // L = the side that ends up at negative x after turning round
-      // distance along and away from the arm's line, from the shoulder
-      const rx = x * sg - J.sh[0], ry = y - J.sh[1], t = rx * ax + ry * ay, d = Math.abs(rx * ay - ry * ax);
-      let rot = 0, cx = 0, cy = 0;
-      if (y > J.neck - 0.05 && Math.abs(x) < 0.3) { const h = ss(J.neck - 0.05, J.neck + 0.03, y); w.splice(0, 1, [1, 1 - h], [2, h]); }
-      else if (t > -0.04 && d < J.armR && y > J.crotch - 0.15 && Math.abs(x) > J.sh[0] - 0.06) {
-        const a = ss(-0.04, 0.05, t), e = ss(armLen - 0.03, armLen + 0.03, t);
-        w.splice(0, 1, [1, 1 - a], [L ? 5 : 3, a * (1 - e)], [L ? 6 : 4, a * e]);
-        rot = -sg * J.armRot * a; cx = sg * J.sh[0]; cy = J.sh[1];
-      } else if (y < J.crotch + 0.04) {
-        const u = ss(J.crotch - 0.04, J.crotch + 0.04, y), k = ss(J.knee - 0.03, J.knee + 0.03, y);
-        w.splice(0, 1, [1, u], [L ? 9 : 7, (1 - u) * k], [L ? 10 : 8, (1 - u) * (1 - k)]);
-        rot = -sg * J.legRot * (1 - u); cx = sg * J.hip[0]; cy = J.hip[1];
-        if (y < J.pants[0] && y > J.pants[1]) col.set([3.1, 0.62, 0.55], i * 3);        // grey jeans become red
-      }
-      if (rot) { [x, y] = turn(x, y, cx, cy, rot); const c = Math.cos(rot), s2 = Math.sin(rot), tx = nx * c - ny * s2; ny = nx * s2 + ny * c; nx = tx; }
-      pos[i * 3] = -x * sc; pos[i * 3 + 1] = Y(y); pos[i * 3 + 2] = -z * sc;              // turn round to face the run (-Z)
-      nor[i * 3] = -nx; nor[i * 3 + 1] = ny; nor[i * 3 + 2] = -nz;
-      w.filter((b) => b[1] > 0.001).slice(0, 4).forEach((b, j) => { si[i * 4 + j] = b[0]; sw[i * 4 + j] = b[1]; });
-    }
-    const geo = new T.BufferGeometry();
-    geo.setAttribute("position", new T.Float32BufferAttribute(pos, 3));
-    geo.setAttribute("normal", new T.Float32BufferAttribute(nor, 3));
-    geo.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
-    geo.setAttribute("color", new T.Float32BufferAttribute(col, 3));
-    geo.setAttribute("skinIndex", new T.Uint16BufferAttribute(si, 4));
-    geo.setAttribute("skinWeight", new T.Float32BufferAttribute(sw, 4));
-    geo.setIndex(idx); geo.computeBoundingSphere();
-    // skeleton in the straightened rest pose (after turning round, model x becomes -x)
-    const bone = (parent, x, y, z = 0) => { const b = new T.Bone(); b.position.set(x, y, z); if (parent) parent.add(b); return b; };
-    const hip = Y(J.crotch), shY = Y(J.sh[1]) - hip;
-    const elbow = (sg) => { const [ex, ey] = turn(sg * J.el[0], J.el[1], sg * J.sh[0], J.sh[1], -sg * J.armRot); return [-(ex - sg * J.sh[0]) * sc, (ey - J.sh[1]) * sc]; };
-    const knee = (sg) => { const [kx, ky] = turn(sg * (J.hip[0] + (J.crotch - J.knee) * Math.tan(J.legRot)), J.knee, sg * J.hip[0], J.hip[1], -sg * J.legRot); return [-(kx - sg * J.hip[0]) * sc, (ky - J.hip[1]) * sc]; };
-    const pivot = bone(null, 0, hip), body = bone(pivot, 0, 0), head = bone(body, 0, Y(J.neck) - hip);
-    const sL = bone(body, -J.sh[0] * sc, shY), eL = bone(sL, ...elbow(1)), sR = bone(body, J.sh[0] * sc, shY), eR = bone(sR, ...elbow(-1));
-    const hL = bone(body, -J.hip[0] * sc, (J.hip[1] - J.crotch) * sc), kL = bone(hL, ...knee(1)), hR = bone(body, J.hip[0] * sc, (J.hip[1] - J.crotch) * sc), kR = bone(hR, ...knee(-1));
-    // a fresh material with only his colour texture (the downloaded materials' extra maps rendered wrongly in the game)
-    // (this model keeps its colours in the glow texture over a black base; used as a normal texture he is lit by the scene)
-    const tex = material.map || material.emissiveMap;
-    material = new T.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 0.22, vertexColors: true, roughness: 0.72, metalness: 0, side: T.DoubleSide });
-    const g = new T.Group(), skin = new T.SkinnedMesh(geo, material);
-    skin.castShadow = true; skin.frustumCulled = false;
-    g.add(skin, pivot); g.updateMatrixWorld(true);
-    skin.bind(new T.Skeleton([pivot, body, head, sL, eL, sR, eR, hL, kL, hR, kR]));
-    return { g, pivot, body, head, sL, eL, sR, eR, hL, kL, hR, kR, phase: 0, yaw: 0, tilt: 0, hip, reach: H - hip };
   }
 
   // Pushes the two sides of a narrow street apart so three lanes fit between them.

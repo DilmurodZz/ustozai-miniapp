@@ -374,3 +374,5 @@ a { color: inherit; text-decoration: none; }
 .run-board div.me { background: var(--p-soft); color: var(--p-text); font-weight: 600; }
 .run-prize { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--muted); margin-top: 8px; font-size: 12px; }
 .run-prize .ic { width: 14px; height: 14px; }
+
+.credit { margin: 14px 4px 4px; font-size: 10px; line-height: 1.4; text-align: center; color: var(--muted, #8a8fa3); opacity: .7; }

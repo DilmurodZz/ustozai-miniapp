@@ -280,7 +280,8 @@ function Profil() {
     <div class="ref-bar">${[0, 1, 2].map((i) => `<span class="${i < invited ? "on" : ""}"></span>`).join("")}</div>
     <button class="btn-primary" onclick="invite('${link}')">${ic("send")} Taklif havolasini yuborish</button>
   </div>
-  ${startParam ? `<p class="note">Kirish manbasi: ${esc(startParam)}</p>` : ""}`;
+  ${startParam ? `<p class="note">Kirish manbasi: ${esc(startParam)}</p>` : ""}
+  <p class="credit">O'yin 3D modellari (CC BY 4.0): own.guest, Nicholas-3D, Dimiter, AFX/CGMotion</p>`;
 }
 window.pickTheme = (k) => { applyTheme(k); haptic("medium"); render(); };
 window.invite = (link) => {

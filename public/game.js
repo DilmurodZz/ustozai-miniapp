@@ -4,8 +4,7 @@
 
 const Game = (() => {
   const LIB = "./lib/three.module.min.js";      // three.js is kept in the app itself so it works offline
-  const MODELS = ["kid", "damas", "tree1", "tree2", "mosque", "jstreet"];
-  const CREDITS = "3D modellar (CC BY 4.0): Chevrolet Damas, own.guest · Daraxtlar, Nicholas-3D · Blue Mosque, Dimiter · Japanese street at night, AFX/CGMotion";
+  const MODELS = ["damas", "tree1", "tree2", "mosque", "jstreet"];
   const C = { SLOT: 10, SLOTS: 20, LOOP: 200, BACK: 50 };     // scenery repeats every LOOP metres, BACK of them behind the runner
   const LANE = 2, FAR = -150, GONE = 14;
   let HIP = 0.83;          // hip height of the current runner
@@ -176,7 +175,7 @@ const Game = (() => {
       m.c = {}; for (const c of COL) m.c[c] = new T.Color(m[c]);
       m.v = { dir: new T.Vector3(...m.dir).normalize(), discDir: new T.Vector3(...m.discDir).normalize() };
     }
-    S = RunWorld.build(T, C); scene = S.scene; camera = S.camera; P = S.P;
+    S = RunWorld.build(T, C); scene = S.scene; camera = S.camera; P = S.P; HIP = P.hip || 0.83;
     tmp = { p: new T.Vector3(), l: new T.Vector3(), a: new T.Vector3(), b: new T.Vector3() };
     for (const f of S.flocks) f.birds.forEach((b, j) => {
       if (f.kind === "sky") { const n = f.birds.length, mid = (n - 1) / 2; b.x = -30 - Math.abs(j - mid) * 1.3 - (n === 5 ? 40 : 0); b.z = (n === 5 ? -78 : -50) + (j - mid) * 1.5; b.y = (n === 5 ? 25 : 17) + rnd(-0.4, 0.4); b.vx = n === 5 ? 4.5 : 6.5; }
@@ -902,7 +901,7 @@ const Game = (() => {
     pauseCard();
   }
   function pauseCard() {
-    card(`${chip("pause", "lg solid")}<h2>Pauza</h2><button class="btn-primary" data-a="go">${ic("play")} Davom etish</button><button class="btn-ghost" data-a="out">Chiqish</button><p class="run-credit">${CREDITS}</p>`,
+    card(`${chip("pause", "lg solid")}<h2>Pauza</h2><button class="btn-primary" data-a="go">${ic("play")} Davom etish</button><button class="btn-ghost" data-a="out">Chiqish</button>`,
       { go: () => { hideCard(); state = prevState; RunAudio.music(true); last = performance.now(); }, out: exit });
   }
   // Telegram's back button pauses a run instead of leaving the game

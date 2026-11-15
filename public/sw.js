@@ -1,8 +1,8 @@
 // Offline cache: the app shell, the 3D library and the models work without internet after the first visit.
-const CACHE = "ustozai-v13";
+const CACHE = "ustozai-v14";
 const FILES = ["./", "index.html", "styles.css", "data.js", "app.js", "game.js", "run-world.js", "run-audio.js", "logo.png",
   "lib/three.module.min.js", "lib/GLTFLoader.js", "lib/BufferGeometryUtils.js", "lib/meshopt_decoder.module.js",
-  "models/kid.glb", "models/damas.glb", "models/tree1.glb", "models/tree2.glb", "models/mosque.glb", "models/jstreet.glb"];
+  "models/damas.glb", "models/tree1.glb", "models/tree2.glb", "models/mosque.glb", "models/jstreet.glb"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))));
