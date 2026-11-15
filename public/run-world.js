@@ -431,7 +431,7 @@ const RunWorld = (() => {
     V.barrier = (() => {
       const k = baker();
       for (const x of [-0.82, 0.82]) k.add(box, "#3A3F4B", [0.09, 0.95, 0.09], [x, 0.475, 0]).add(box, "#3A3F4B", [0.5, 0.07, 0.5], [x, 0.035, 0]).add(lo, "#FFB703", [0.09, 0.09, 0.09], [x, 1.02, 0]);
-      for (const y of [0.78, 0.38]) for (let i = 0; i < 6; i++) k.add(box, i % 2 ? "#FFFFFF" : "#E5383B", [0.31, 0.24, 0.07], [-0.775 + i * 0.31, y, 0]);
+      for (const [r, y] of [[0, 0.79], [1, 0.55], [2, 0.31]]) for (let i = 0; i < 6; i++) k.add(box, (i + r) % 2 ? "#FFFFFF" : "#E5383B", [0.31, 0.24, 0.07], [-0.775 + i * 0.31, y, 0]);
       return k.geo();
     })();
     V.crates = (() => {
@@ -769,7 +769,6 @@ const RunWorld = (() => {
       meshes(e, (c) => { c.material.fog = false; if (!S.mosqueMats.includes(c.material)) { S.mosqueMats.push(c.material); S.tints.push({ m: c.material, k: 0.22 }); } });
       S.out.add(e); S.mosque = e;
     }
-    if (m.jstreet && !S.tokyo) tokyo(m.jstreet);
   }
 
   // Pushes the two sides of a narrow street apart so three lanes fit between them.

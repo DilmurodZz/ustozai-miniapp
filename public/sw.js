@@ -1,16 +1,21 @@
 // Offline cache: the app shell, the 3D library and the models work without internet after the first visit.
-const CACHE = "ustozai-v14";
+const CACHE = "ustozai-v15";
 const FILES = ["./", "index.html", "styles.css", "data.js", "app.js", "game.js", "run-world.js", "run-audio.js", "logo.png",
   "lib/three.module.min.js", "lib/GLTFLoader.js", "lib/BufferGeometryUtils.js", "lib/meshopt_decoder.module.js",
-  "models/damas.glb", "models/tree1.glb", "models/tree2.glb", "models/mosque.glb", "models/jstreet.glb"];
+  "music/track1.m4a", "music/track2.m4a", "music/track3.m4a", "models/damas.glb", "models/tree1.glb", "models/tree2.glb", "models/mosque.glb"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))));
   self.clients.claim();
 });
-// network first (fresh when online), cache as fallback (offline); the big Eiffel model is saved the first time it loads
+// models, music and the 3D library change only with a new version: served straight from the cache (fast start).
+// Everything else: network first (fresh when online), cache as fallback (offline).
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
+  if (/\/(models|music|lib)\//.test(new URL(e.request.url).pathname)) {
+    e.respondWith(caches.match(e.request, { ignoreSearch: true }).then((m) => m || fetch(e.request)));
+    return;
+  }
   e.respondWith(
     fetch(e.request).then((r) => {
       const copy = r.clone();

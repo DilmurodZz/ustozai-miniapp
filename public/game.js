@@ -4,13 +4,13 @@
 
 const Game = (() => {
   const LIB = "./lib/three.module.min.js";      // three.js is kept in the app itself so it works offline
-  const MODELS = ["damas", "tree1", "tree2", "mosque", "jstreet"];
+  const MODELS = ["damas", "tree1", "tree2", "mosque"];
   const C = { SLOT: 10, SLOTS: 20, LOOP: 200, BACK: 50 };     // scenery repeats every LOOP metres, BACK of them behind the runner
   const LANE = 2, FAR = -150, GONE = 14;
   let HIP = 0.83;          // hip height of the current runner
   const CAM_Y = 4.3, CAM_Z = 8.4, GRAV = 26, JUMP = 9.6, ROLL = 0.62, V0 = 15, VMAX = 31;
   // where each level starts and what the arrival banner says (level 1 is the street at the start)
-  const LEVELS = { 2: [1500, "Bozor ichida"], 3: [3000, "Istanbul"], 4: [4500, "Tokio"] };
+  const LEVELS = { 2: [1500, "Bozor ichida"], 3: [3000, "Istanbul"] };
   const HEARTS = 3, STAKE = 25, SLOT_MS = 30 * 60 * 1000;
   const AIR = ["salto", "oldinga", "twist"], GROUND = ["salto", "burilish"];
   const LABEL = { salto: "Orqaga salto", oldinga: "Oldinga salto", twist: "Burama salto", burilish: "360 burilish" };
@@ -42,7 +42,7 @@ const Game = (() => {
   let level = 1, portalOn = false, nextBoost = 300, punch = 0, speedFx = -1;
   let pace = 1, gateObj = null, trans = null, calm = 0;    // slow-down near a gate, the fade through it, the quiet start of a new level
   let dbl = false, ninjaT = 0, ninjaK = 0, flipT = 0, safe = 0, ar = null;     // second jump used, ninja flip timer, no-crash window after a trick, AR view
-  const shown = {}, quality = { n: 0, sum: 0, done: false };
+  const shown = {}, quality = { n: 0, k: 0, sum: 0, done: false };
 
   /* ---------- small helpers ---------- */
   const rnd = (a, b) => a + Math.random() * (b - a);
@@ -144,22 +144,44 @@ const Game = (() => {
   }
 
   async function loadLib() { return import(LIB); }
-  // Loads the 3D models in the background once the run has started; the game never waits for them.
-  async function loadModels() {
+  // Downloads the 3D models once (they are kept between games and cached for offline play).
+  let fetching = null, modelsIn = false;
+  function fetchModels() {
+    if (!fetching) fetching = (async () => {
+      const [{ GLTFLoader }, { MeshoptDecoder }] = await Promise.all([import("./lib/GLTFLoader.js"), import("./lib/meshopt_decoder.module.js")]);
+      const l = new GLTFLoader(); l.setMeshoptDecoder(MeshoptDecoder);
+      const got = {}, scenes = await Promise.all(MODELS.map((n) => l.loadAsync(`models/${n}.glb`).then((g) => g.scene).catch(() => null)));
+      MODELS.forEach((n, i) => { got[n] = scenes[i]; });
+      loaded = got;
+    })().catch(() => { fetching = null; });
+    return fetching;
+  }
+  // Puts the models into the world. Done before the run starts, or later only while the screen is covered
+  // (pause, results, the fade into the next level), so the swap is never seen as a stutter.
+  function applyModels() {
+    if (modelsIn || !loaded || !S.make) return;
+    modelsIn = true;
     try {
-      if (!loaded) {
-        const [{ GLTFLoader }, { MeshoptDecoder }] = await Promise.all([import("./lib/GLTFLoader.js"), import("./lib/meshopt_decoder.module.js")]);
-        const l = new GLTFLoader(); l.setMeshoptDecoder(MeshoptDecoder);
-        loaded = { get: (n) => l.loadAsync(`models/${n}.glb`).then((g) => g.scene).catch(() => null) };
-        const scenes = await Promise.all(MODELS.map(loaded.get));
-        MODELS.forEach((n, i) => { loaded[n] = scenes[i]; });
-      }
-      if (!alive) return;
       RunWorld.useModels(loaded);
-      if (S.P !== P) { P = S.P; HIP = P.hip; }        // the downloaded runner has taken over
       for (const o of pools.damas || []) scene.remove(o);      // vans waiting in the pool are swapped for the new model
       pools.damas = [];
+      prewarm();
     } catch {}
+  }
+  // Draws one of everything once, out of sight of the player, so the phone prepares every shader, texture and
+  // buffer now instead of stalling the first time each thing comes into view.
+  function prewarm() {
+    const temp = [], hidden = [];
+    let i = 0;
+    for (const type of Object.keys(S.make)) {
+      const m = take(type); m.position.set((i % 3 - 1) * 2.5, 0, -14 - Math.floor(i / 3) * 4); i++; temp.push([type, m]);
+    }
+    const show = (o, z) => { if (!o) return; hidden.push([o, o.visible, o.position.z]); o.visible = true; if (z != null) o.position.z = z; };
+    show(S.portal, -30); show(S.torii, -30); show(S.in); show(S.mosque); if (S.guard) show(S.guard.g);
+    try { renderer.compile(scene, camera); renderer.render(scene, camera); } catch {}
+    for (const [o, v, z] of hidden) { o.visible = v; o.position.z = z; }
+    for (const [type, m] of temp) { m.visible = false; (pools[type] || (pools[type] = [])).push(m); }
+    try { renderer.render(scene, camera); } catch {}
   }
   async function init() {
     try { T = T || (await loadLib()); }
@@ -175,7 +197,9 @@ const Game = (() => {
       m.c = {}; for (const c of COL) m.c[c] = new T.Color(m[c]);
       m.v = { dir: new T.Vector3(...m.dir).normalize(), discDir: new T.Vector3(...m.discDir).normalize() };
     }
-    S = RunWorld.build(T, C); scene = S.scene; camera = S.camera; P = S.P; HIP = P.hip || 0.83;
+    if (store.get("run_lowq", false)) { renderer.setPixelRatio(1); renderer.shadowMap.enabled = false; quality.done = true; }   // a slow phone, found in an earlier game
+    S = RunWorld.build(T, C); scene = S.scene; camera = S.camera; P = S.P; HIP = P.hip || 0.83; modelsIn = false;
+    if (!renderer.shadowMap.enabled) S.sun.castShadow = false;
     tmp = { p: new T.Vector3(), l: new T.Vector3(), a: new T.Vector3(), b: new T.Vector3() };
     for (const f of S.flocks) f.birds.forEach((b, j) => {
       if (f.kind === "sky") { const n = f.birds.length, mid = (n - 1) / 2; b.x = -30 - Math.abs(j - mid) * 1.3 - (n === 5 ? 40 : 0); b.z = (n === 5 ? -78 : -50) + (j - mid) * 1.5; b.y = (n === 5 ? 25 : 17) + rnd(-0.4, 0.4); b.vx = n === 5 ? 4.5 : 6.5; }
@@ -186,12 +210,16 @@ const Game = (() => {
     cur = { dir: m.v.dir.clone(), discDir: m.v.discDir.clone() };
     for (const c of COL) cur[c] = m.c[c].clone();
     for (const n of NUM) cur[n] = m[n];
-    quality.done = false; quality.n = quality.sum = 0;
+    if (renderer.shadowMap.enabled) { quality.done = false; quality.n = quality.sum = 0; }
     resize(); window.addEventListener("resize", resize);
     bindInput(); document.addEventListener("visibilitychange", onHide);
+    // wait a moment for the models (instant when cached), then prepare everything before the first frame
+    await Promise.race([fetchModels(), new Promise((r) => setTimeout(r, 2500))]);
+    if (!alive) return;
+    if (loaded) applyModels(); else { prewarm(); fetchModels(); }
     play();
+    last = performance.now();
     raf = requestAnimationFrame(loop);
-    loadModels();
   }
   function resize() {
     if (!renderer) return;
@@ -202,9 +230,11 @@ const Game = (() => {
     baseFov = clamp(T.MathUtils.radToDeg(2 * Math.atan((LANE + 0.85) / (CAM_Z * camera.aspect))), 54, 78);
     camera.fov = baseFov; camera.updateProjectionMatrix();
   }
+  // A slow phone: lower the resolution and refresh shadows less often now (switching shadows off would rebuild every
+  // shader and freeze the run), and start without shadows from the next game on.
   function lowQuality() {
-    quality.low = true;
-    renderer.setPixelRatio(1); renderer.shadowMap.enabled = false; S.sun.castShadow = false;
+    quality.low = true; store.set("run_lowq", true);
+    renderer.setPixelRatio(1); renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
     W = 0; resize();
   }
 
@@ -330,7 +360,7 @@ const Game = (() => {
   }
   function arc(l, z) {     // coins along the path of a jump
     const step = speed * 0.14;
-    for (let i = 0; i < 5; i++) put("coin", l, z + (2 - i) * step, 0.95 + 1.5 * (1 - Math.pow((i - 2) / 2.4, 2)));
+    for (let i = 0; i < 5; i++) put("coin", l, z + (2 - i) * step, 1.5 + 1.2 * (1 - Math.pow((i - 2) / 2.4, 2)));
   }
   function spawnRow(z = FAR) {
     rows++;
@@ -355,6 +385,7 @@ const Game = (() => {
   }
   // would this obstacle hit the runner in their current pose?
   function hits(o) {
+    if (dbl && py - gy > 0.9 && o.kind !== "plat") return false;      // after a ninja jump nothing can stop him
     if (o.kind === "full") return py < (o.def.top || 99);
     if (o.kind === "low") return py < 0.5;
     if (o.kind === "high") return !(rollT > 0 || lowT > 0);
@@ -376,7 +407,7 @@ const Game = (() => {
   function doJump() {
     if (!grounded) {
       if (dbl) { jumpBuf = 0.18; return; }       // remembered, fires on landing
-      dbl = true; vy = JUMP * 0.95; ninjaT = 0.6; ninjaK = (ninjaK + 1) % 4; flipT = 0; jumpAt = time;
+      dbl = true; vy = Math.max(JUMP * 0.95, Math.sqrt(2 * GRAV * Math.max(0, 3.4 - (py - gy)))); ninjaT = 0.6;   // always high enough to clear the tallest stall or banner ninjaK = (ninjaK + 1) % 4; flipT = 0; jumpAt = time;
       sfx("jump", 1.3); buzz("medium"); return;
     }
     const over = gy > 0.3 || objs.some((o) => o.lane === lane && !o.gone && o.kind !== "pick" && o.kind !== "ramp" && o.z < 0 && o.z > -(speed * 0.6 + 2));
@@ -745,10 +776,11 @@ const Game = (() => {
     raf = requestAnimationFrame(loop);
     const raw = Math.min(0.05, (now - last) / 1000), real = (now - last) / 1000; last = now;
     if (root.clientWidth !== W || root.clientHeight !== H) resize();
-    if (state === "play" && !quality.done && !document.hidden) {     // slow phone: drop shadows and resolution
+    if (state === "play" && !quality.done && !document.hidden && ++quality.n > 60) {     // slow phone: lighter graphics
       quality.sum += Math.min(0.1, real);
-      if (++quality.n >= 150) { quality.done = true; if (quality.sum / quality.n > 0.027) lowQuality(); }
+      if (quality.n >= 240) { quality.done = true; if (quality.sum / (quality.n - 60) > 0.027) lowQuality(); }
     }
+    if (quality.low && ++quality.k % 3 === 0) renderer.shadowMap.needsUpdate = true;
     if (!frozen) step(raw);
     renderer.render(scene, camera);
   }
@@ -827,7 +859,7 @@ const Game = (() => {
   function fadeStep(raw) {
     const tr = trans, IN = 0.4, OUT = 1.1;
     tr.t += raw;
-    if (!tr.done && tr.t >= IN) { tr.done = true; enterLevel(tr.n); }
+    if (!tr.done && tr.t >= IN) { tr.done = true; applyModels(); enterLevel(tr.n); }
     const a = tr.t < IN ? tr.t / IN : Math.max(0, 1 - (tr.t - IN) / OUT);
     el.flash.style.transition = "none"; el.flash.style.background = tr.n === 4 ? "#2A2448" : "#FFF3D6"; el.flash.style.opacity = (a * 0.92).toFixed(3);
     if (tr.t > IN + OUT) { trans = null; el.flash.style.opacity = 0; }
@@ -898,7 +930,7 @@ const Game = (() => {
   function pause() {
     if (!["play", "intro", "rest"].includes(state)) return;
     prevState = state; state = "pause"; RunAudio.music(false);
-    pauseCard();
+    pauseCard(); applyModels();
   }
   function pauseCard() {
     card(`${chip("pause", "lg solid")}<h2>Pauza</h2><button class="btn-primary" data-a="go">${ic("play")} Davom etish</button><button class="btn-ghost" data-a="out">Chiqish</button>`,
@@ -961,7 +993,7 @@ const Game = (() => {
     state = "play"; last = performance.now();
   }
   function gameOver() {
-    state = "over"; RunAudio.music(false);
+    state = "over"; RunAudio.music(false); applyModels();
     const s = score(), b = best(), isBest = s > b;
     if (isBest) store.set("run_best", s);
     const me = [store.get("school", "Sening maktabing"), user.first_name || "Sen", Math.max(s, b)];
@@ -1000,7 +1032,7 @@ const Game = (() => {
   const _info = () => ({ state, dist: Math.floor(dist), coins, hearts, speed: Math.round(speed), py: +py.toFixed(2), trick: trick && trick.name, eat: !!eat, level, objs: objs.length, calls: renderer && renderer.info.render.calls });
   const _set = (o) => { if (o.dist != null) { dist = o.dist; nextBoost = Math.ceil(dist / 300) * 300; } if (o.eat != null) nextEat = o.eat; if (o.rest != null) nextRest = o.rest; };
 
-  return { mount, unmount, play, pause, exit, onBack, _sim, _mood, _act: act, _info, _set, _freeze: (f) => { frozen = f; }, _rig: () => ({ P, S, T, camera }) };
+  return { mount, unmount, play, pause, exit, onBack, _sim, _mood, _act: act, _info, _set, _freeze: (f) => { frozen = f; }, _rig: () => ({ P, S, T, camera }), _put: (type, z) => { for (const o of objs) if (o.z < 5 && o.z > -70) { o.gone = true; o.m.visible = false; } spawnIn = Math.max(spawnIn, 70); put(type, lane, z); } };
 })();
 
 const SCHOOL_BOARD = [
