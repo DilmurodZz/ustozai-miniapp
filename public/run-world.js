@@ -745,6 +745,83 @@ const RunWorld = (() => {
       S.out.add(e); S.mosque = e;
     }
     if (m.jstreet && !S.tokyo) tokyo(m.jstreet);
+    if (m.boy && !S.boy) {                // the cute boy replaces the hand-made runner
+      const r = rigBoy(m.boy), old = S.P;
+      r.g.position.copy(old.g.position); r.g.rotation.copy(old.g.rotation); r.g.visible = old.g.visible;
+      for (const it of [S.can, S.bottle, S.apple]) { r.eR.add(it); it.position.set(0, -0.2, -0.03); }
+      const p = old.g.parent || scene; p.remove(old.g); p.add(r.g);
+      S.P = S.boy = r;
+    }
+  }
+
+  // The downloaded boy is a statue in a T-pose. This gives him a skeleton with the same joints as human(),
+  // so every animation in the game drives him: he is turned to face the run, his arms are lowered,
+  // and each vertex is tied to body, head, arm or leg bones, blended softly around the joints.
+  // Joint positions were measured on the model (units: the model is 2 tall, feet at -1).
+  function rigBoy(src, H = 1.75) {
+    const J = { crotch: -0.68, knee: -0.84, hipX: 0.16, armY: -0.17, armTop: -0.02, armBot: -0.33, shX: 0.25, elX: 0.38, neck: -0.05 };
+    src.updateMatrixWorld(true);
+    const pos = [], nor = [], uv = [], idx = [], v = new T.Vector3(), n = new T.Vector3(), nm = new T.Matrix3();
+    let material = null, base = 0;
+    src.traverse((c) => {          // merge the parts into one geometry
+      if (!c.isMesh) return;
+      material = material || c.material;
+      const g = c.geometry, p = g.attributes.position, q = g.attributes.normal, t = g.attributes.uv;
+      nm.getNormalMatrix(c.matrixWorld);
+      for (let i = 0; i < p.count; i++) {
+        v.fromBufferAttribute(p, i).applyMatrix4(c.matrixWorld); pos.push(v.x, v.y, v.z);
+        n.fromBufferAttribute(q, i).applyMatrix3(nm).normalize(); nor.push(n.x, n.y, n.z);
+        uv.push(t.getX(i), t.getY(i));
+      }
+      if (g.index) for (let i = 0; i < g.index.count; i++) idx.push(base + g.index.getX(i)); else for (let i = 0; i < p.count; i++) idx.push(base + i);
+      base += p.count;
+    });
+    let minY = Infinity, maxY = -Infinity;
+    for (let i = 1; i < pos.length; i += 3) { minY = Math.min(minY, pos[i]); maxY = Math.max(maxY, pos[i]); }
+    const sc = H / (maxY - minY), Y = (y) => (y - minY) * sc;
+    const ss = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+    // bones: 0 pivot, 1 body, 2 head, 3 sL, 4 eL, 5 sR, 6 eR, 7 hL, 8 kL, 9 hR, 10 kR (L = negative x)
+    const N = pos.length / 3, si = new Uint16Array(N * 4), sw = new Float32Array(N * 4), TILT = 1.45;
+    for (let i = 0; i < N; i++) {
+      let x = -pos[i * 3], y = pos[i * 3 + 1], z = -pos[i * 3 + 2];          // turn round to face the run (-Z)
+      let nx = -nor[i * 3], ny = nor[i * 3 + 1], nz = -nor[i * 3 + 2];
+      const L = x < 0, ax = Math.abs(x), w = [[1, 1]];                        // [bone, weight]
+      if (y > J.neck - 0.05) { const h = ss(J.neck - 0.05, J.neck + 0.03, y); w.splice(0, 1, [1, 1 - h], [2, h]); }
+      else if (y < J.crotch + 0.04 && ax < 0.4) {
+        const u = ss(J.crotch - 0.04, J.crotch + 0.04, y), k = ss(J.knee - 0.03, J.knee + 0.03, y);
+        w.splice(0, 1, [1, u], [L ? 7 : 9, (1 - u) * k], [L ? 8 : 10, (1 - u) * (1 - k)]);
+      } else if (y < J.armTop && y > J.armBot && ax > J.shX - 0.06) {
+        const a = ss(J.shX - 0.06, J.shX + 0.04, ax), e = ss(J.elX - 0.03, J.elX + 0.03, ax);
+        w.splice(0, 1, [1, 1 - a], [L ? 3 : 5, a * (1 - e)], [L ? 4 : 6, a * e]);
+        const th = (L ? TILT : -TILT) * a, c = Math.cos(th), s2 = Math.sin(th), sx = L ? -J.shX : J.shX;   // lower the arm from the T-pose
+        const dx = x - sx, dy = y - J.armY;
+        x = sx + dx * c - dy * s2; y = J.armY + dx * s2 + dy * c;
+        const tx = nx * c - ny * s2; ny = nx * s2 + ny * c; nx = tx;
+      }
+      pos[i * 3] = x * sc; pos[i * 3 + 1] = Y(y); pos[i * 3 + 2] = z * sc;
+      nor[i * 3] = nx; nor[i * 3 + 1] = ny; nor[i * 3 + 2] = nz;
+      w.filter((b) => b[1] > 0.001).slice(0, 4).forEach((b, j) => { si[i * 4 + j] = b[0]; sw[i * 4 + j] = b[1]; });
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute("position", new T.Float32BufferAttribute(pos, 3));
+    geo.setAttribute("normal", new T.Float32BufferAttribute(nor, 3));
+    geo.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
+    geo.setAttribute("skinIndex", new T.Uint16BufferAttribute(si, 4));
+    geo.setAttribute("skinWeight", new T.Float32BufferAttribute(sw, 4));
+    geo.setIndex(idx); geo.computeBoundingSphere();
+    // skeleton, in the arms-down rest pose
+    const bone = (parent, x, y, z = 0) => { const b = new T.Bone(); b.position.set(x, y, z); if (parent) parent.add(b); return b; };
+    const hip = Y(J.crotch), elbow = (L) => { const th = L ? TILT : -TILT, dx = (L ? -1 : 1) * (J.elX - J.shX); return [dx * Math.cos(th) * sc, dx * Math.sin(th) * sc]; };
+    const pivot = bone(null, 0, hip), body = bone(pivot, 0, 0), head = bone(body, 0, Y(J.neck) - hip);
+    const sL = bone(body, -J.shX * sc, Y(J.armY) - hip), eL = bone(sL, ...elbow(true)), sR = bone(body, J.shX * sc, Y(J.armY) - hip), eR = bone(sR, ...elbow(false));
+    const hL = bone(body, -J.hipX * sc, 0), kL = bone(hL, 0, (J.knee - J.crotch) * sc), hR = bone(body, J.hipX * sc, 0), kR = bone(hR, 0, (J.knee - J.crotch) * sc);
+    // a fresh material with only his colour texture: the model's normal map made him render invisible
+    material = new T.MeshStandardMaterial({ map: material.map, roughness: 0.68, metalness: 0 });
+    const g = new T.Group(), skin = new T.SkinnedMesh(geo, material);
+    skin.castShadow = true; skin.frustumCulled = false;
+    g.add(skin, pivot); g.updateMatrixWorld(true);
+    skin.bind(new T.Skeleton([pivot, body, head, sL, eL, sR, eR, hL, kL, hR, kR]));
+    return { g, pivot, body, head, sL, eL, sR, eR, hL, kL, hR, kR, phase: 0, yaw: 0, tilt: 0, hip };
   }
 
   // Pushes the two sides of a narrow street apart so three lanes fit between them.

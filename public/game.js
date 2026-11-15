@@ -4,10 +4,11 @@
 
 const Game = (() => {
   const LIB = "./lib/three.module.min.js";      // three.js is kept in the app itself so it works offline
-  const MODELS = ["damas", "tree1", "tree2", "mosque", "jstreet"];
-  const CREDITS = "3D modellar (CC BY 4.0): Chevrolet Damas, own.guest · Daraxtlar, Nicholas-3D · Blue Mosque, Dimiter · Japanese street at night, AFX/CGMotion";
+  const MODELS = ["boy", "damas", "tree1", "tree2", "mosque", "jstreet"];
+  const CREDITS = "3D modellar (CC BY 4.0): Cute boy, bakhatstore · Chevrolet Damas, own.guest · Daraxtlar, Nicholas-3D · Blue Mosque, Dimiter · Japanese street at night, AFX/CGMotion";
   const C = { SLOT: 10, SLOTS: 20, LOOP: 200, BACK: 50 };     // scenery repeats every LOOP metres, BACK of them behind the runner
-  const LANE = 2, FAR = -150, GONE = 14, HIP = 0.83;
+  const LANE = 2, FAR = -150, GONE = 14;
+  let HIP = 0.83;          // hip height of the current runner
   const CAM_Y = 4.3, CAM_Z = 8.4, GRAV = 26, JUMP = 9.6, ROLL = 0.62, V0 = 15, VMAX = 38;
   // where each level starts and what the arrival banner says (level 1 is the street at the start)
   const LEVELS = { 2: [1500, "2-bosqich: bozor ichida!"], 3: [3000, "3-bosqich: Istanbul!"], 4: [4500, "4-bosqich: Tokio kechasi!"] };
@@ -155,6 +156,7 @@ const Game = (() => {
       }
       if (!alive) return;
       RunWorld.useModels(loaded);
+      if (S.P !== P) { P = S.P; HIP = P.hip; }        // the downloaded runner has taken over
       for (const o of pools.damas || []) scene.remove(o);      // vans waiting in the pool are swapped for the new model
       pools.damas = [];
     } catch {}
@@ -643,7 +645,7 @@ const Game = (() => {
     const busy = crashT > 0 || trick || rollT > 0 || ninjaT > 0 || flipT > 0;
     if (crashT > 0) {                  // knocked onto the back, legs in the air
       const e = 1 - Math.pow(1 - clamp(crashT / 0.4, 0, 1), 2);
-      fx = 1.4 * e; pivY = HIP - 0.56 * e; pz = 1.1 * e; lean = 0;
+      fx = 1.4 * e; pivY = HIP * (1 - 0.67 * e); pz = 1.1 * e; lean = 0;
       hl = 0.9; hr = 0.5; kl = 0.7; kr = 0.4; sl = 2.7; sr = 2.4; zl = -0.5; zr = 0.5; fl = 0.3; fr = 0.5;
     } else if (trick) {
       const q = clamp(trick.t / trick.dur, 0, 1), e = q * q * (3 - 2 * q), tuck = Math.sin(Math.PI * q), n = trick.name, turn = Math.PI * 2 * e;
@@ -661,7 +663,7 @@ const Game = (() => {
       fx = Math.PI * 2 * (1 - flipT / 0.55); pivY = HIP; lean = -0.2;
       hl = hr = 1.7; kl = kr = 2.0; sl = sr = 2.2; fl = fr = 1.2;
     } else if (rollT > 0) {            // tucked forward somersault
-      fx = -Math.PI * 2 * (1 - rollT / ROLL); pivY = 0.45; lean = -0.5;
+      fx = -Math.PI * 2 * (1 - rollT / ROLL); pivY = HIP * 0.55; lean = -0.5;
       hl = hr = 1.9; kl = kr = 2.2; sl = sr = 1.3; fl = fr = 1.9;
     } else if (menu) {                 // painting the wall, glancing over the shoulder now and then
       hl = hr = 0; kl = kr = 0.05; lean = -0.03; pivY = HIP; sl = 0.1; fl = 0.3;
@@ -978,7 +980,7 @@ const Game = (() => {
   const _info = () => ({ state, dist: Math.floor(dist), coins, hearts, speed: Math.round(speed), py: +py.toFixed(2), trick: trick && trick.name, eat: !!eat, level, objs: objs.length, calls: renderer && renderer.info.render.calls });
   const _set = (o) => { if (o.dist != null) { dist = o.dist; nextBoost = Math.ceil(dist / 300) * 300; } if (o.eat != null) nextEat = o.eat; if (o.rest != null) nextRest = o.rest; };
 
-  return { mount, unmount, play, pause, exit, onBack, _sim, _mood, _act: act, _info, _set, _freeze: (f) => { frozen = f; } };
+  return { mount, unmount, play, pause, exit, onBack, _sim, _mood, _act: act, _info, _set, _freeze: (f) => { frozen = f; }, _rig: () => ({ P, S, T, camera }) };
 })();
 
 const SCHOOL_BOARD = [
