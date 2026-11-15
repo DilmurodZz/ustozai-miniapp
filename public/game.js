@@ -4,8 +4,8 @@
 
 const Game = (() => {
   const LIB = "./lib/three.module.min.js";      // three.js is kept in the app itself so it works offline
-  const MODELS = ["boy", "damas", "tree1", "tree2", "mosque", "jstreet"];
-  const CREDITS = "3D modellar (CC BY 4.0): Cute boy, bakhatstore · Chevrolet Damas, own.guest · Daraxtlar, Nicholas-3D · Blue Mosque, Dimiter · Japanese street at night, AFX/CGMotion";
+  const MODELS = ["kid", "damas", "tree1", "tree2", "mosque", "jstreet"];
+  const CREDITS = "3D modellar (CC BY 4.0): Chevrolet Damas, own.guest · Daraxtlar, Nicholas-3D · Blue Mosque, Dimiter · Japanese street at night, AFX/CGMotion";
   const C = { SLOT: 10, SLOTS: 20, LOOP: 200, BACK: 50 };     // scenery repeats every LOOP metres, BACK of them behind the runner
   const LANE = 2, FAR = -150, GONE = 14;
   let HIP = 0.83;          // hip height of the current runner
@@ -76,7 +76,6 @@ const Game = (() => {
       <div class="run-ov"></div>
       <div class="run-fx"></div>
       <div class="run-hint"></div>
-      <div class="run-arbar"></div>
       <div class="run-top">
         <div class="run-hud"><button class="run-btn" data-k="pause" aria-label="Pauza">${ic("pause")}</button><span class="run-coins">${ic("coin")}<b data-k="coins">0</b></span></div>
         <div class="run-right"><span class="run-hearts"></span><button class="run-btn" data-k="ar" aria-label="AR">${ic("ar")}</button><button class="run-btn" data-k="snd" aria-label="Ovoz"></button><button class="run-btn" data-k="x" aria-label="Yopish">${ic("x")}</button></div>
@@ -84,8 +83,8 @@ const Game = (() => {
     document.body.appendChild(root);
     const q = (s) => root.querySelector(s);
     el = { cv: q(".run-cv"), flash: q(".run-flash"), speed: q(".run-speed"), title: q(".run-title"), ov: q(".run-ov"), fx: q(".run-fx"), hint: q(".run-hint"), coins: q('[data-k="coins"]'), chip: q(".run-coins"), hearts: q(".run-hearts"), snd: q('[data-k="snd"]') };
-    q('[data-k="x"]').onclick = exit; q('[data-k="pause"]').onclick = pause; q('[data-k="ar"]').onclick = arOpen;
-    el.arbar = q(".run-arbar");
+    q('[data-k="x"]').onclick = exit; q('[data-k="pause"]').onclick = pause; q('[data-k="ar"]').onclick = arToggle;
+    el.arBtn = q('[data-k="ar"]');
     muted = store.get("run_mute", false); RunAudio.mute(muted);
     el.snd.onclick = () => { muted = !muted; store.set("run_mute", muted); RunAudio.mute(muted); el.snd.innerHTML = ic(muted ? "mute" : "sound"); };
     el.snd.innerHTML = ic(muted ? "mute" : "sound");
@@ -452,7 +451,6 @@ const Game = (() => {
     // the action fires while the finger is still moving, not when it lifts
     cv.addEventListener("pointermove", (e) => {
       if (e.pointerId !== id) return;
-      if (state === "ar") { ar.yaw += (e.clientX - sx) * 0.012; sx = e.clientX; return; }
       const dx = e.clientX - sx, dy = e.clientY - sy, ax = Math.abs(dx), ay = Math.abs(dy);
       if (Math.max(ax, ay) < (lastDir ? 30 : 14)) return;
       const dir = ax > ay ? (dx > 0 ? "R" : "L") : dy < 0 ? "U" : "D";
@@ -463,9 +461,7 @@ const Game = (() => {
     cv.addEventListener("pointerup", (e) => {
       if (e.pointerId !== id) return; id = null;
       const now = performance.now();
-      if (state === "ar") { if (now - t0 < 260 && Math.hypot(e.clientX - x0, e.clientY - y0) < 14) arFlip(); return; }
       if (lastDir || now - t0 > 260 || Math.hypot(e.clientX - x0, e.clientY - y0) > 14) return;     // not a tap
-      if (state === "ar") { arFlip(); return; }
       if (now - lastTap < 340) { lastTap = 0; doTrick(); } else lastTap = now;
     });
     cv.addEventListener("pointercancel", () => { id = null; });
@@ -516,11 +512,27 @@ const Game = (() => {
     g.g.visible = true; g.g.position.set(guardX, 0, z);
     runPose(g, guardT * 13, true);
   }
+  // A sprint, as keyframes over one stride (8 steps; p = 0: the left foot lands in front).
+  // Hips swing far forward with a high knee, the back leg kicks up behind, both feet leave the ground between steps.
+  const RUN_HIP = [0.55, 0.25, -0.1, -0.45, -0.6, -0.2, 0.55, 0.9], RUN_KNEE = [0.3, 0.55, 0.45, 0.4, 0.9, 1.9, 1.75, 1.0];
+  const loopKey = (k, p) => {        // smooth looping curve through the keys
+    const n = k.length, f = (((p % 1) + 1) % 1) * n, i = Math.floor(f), t = f - i;
+    const a = k[(i - 1 + n) % n], b = k[i], c = k[(i + 1) % n], d = k[(i + 2) % n];
+    return 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t * t * t);
+  };
+  function runCycle(ph) {
+    const p = ph / (Math.PI * 2), hl = loopKey(RUN_HIP, p), hr = loopKey(RUN_HIP, p + 0.5);
+    return {
+      hl, hr, kl: loopKey(RUN_KNEE, p), kr: loopKey(RUN_KNEE, p + 0.5),
+      sl: -hl * 0.85 + 0.1, sr: -hr * 0.85 + 0.1, fl: 1.45 + 0.3 * Math.sin(ph), fr: 1.45 - 0.3 * Math.sin(ph),     // arms pump against the legs
+      lift: 0.07 * (0.5 + 0.5 * Math.cos(4 * Math.PI * (p - 0.47))), twist: 0.08 * Math.sin(ph),                   // highest in the flight phase
+    };
+  }
   function runPose(r, ph, fist) {
-    const s = Math.sin(ph), c = Math.cos(ph + 0.4);
-    r.hL.rotation.x = s * 0.95; r.hR.rotation.x = -s * 0.95; r.kL.rotation.x = -(0.15 + 1.25 * Math.max(0, c)); r.kR.rotation.x = -(0.15 + 1.25 * Math.max(0, -c));
-    r.sL.rotation.x = -s * 0.85; r.eL.rotation.x = 1.3; r.sR.rotation.x = fist ? 2.6 : s * 0.85; r.eR.rotation.x = fist ? 0.6 + Math.sin(ph * 1.7) * 0.4 : 1.3;
-    r.body.rotation.x = -0.16; r.pivot.position.y = HIP + Math.abs(Math.cos(ph)) * 0.05;
+    const rc = runCycle(ph);
+    r.hL.rotation.x = rc.hl; r.hR.rotation.x = rc.hr; r.kL.rotation.x = -rc.kl; r.kR.rotation.x = -rc.kr;
+    r.sL.rotation.x = rc.sl; r.eL.rotation.x = rc.fl; r.sR.rotation.x = fist ? 2.6 : rc.sr; r.eR.rotation.x = fist ? 0.6 + Math.sin(ph * 1.7) * 0.4 : rc.fr;
+    r.body.rotation.x = -0.22; r.pivot.position.y = HIP + rc.lift;
   }
   function scenery(dt, ds, playing) {
     for (const [t, per] of S.scroll) t.offset.y = (t.offset.y + ds / per) % 1;
@@ -622,6 +634,7 @@ const Game = (() => {
     const fx = Math.round((playing ? clamp((speed - 26) / 12, 0, 0.25) + punch * 0.3 : 0) * 50) / 50;   // speed lines, kept faint
     if (fx !== speedFx) { speedFx = fx; el.speed.style.opacity = fx; }
     if (trans) fadeStep(raw);
+    if (ar && ar.on) arApply();
     hud();
   }
   function collide() {
@@ -641,11 +654,11 @@ const Game = (() => {
   function pose(dt) {
     const A = P, k = 1 - Math.exp(-dt * 22), menu = state === "menu", startle = state === "intro" && introT < 0.2;
     A.phase += dt * (state === "play" || state === "intro" ? 6 + speed * 0.4 : 0);
-    const s = Math.sin(A.phase), c = Math.cos(A.phase + 0.4);
     // hips, knees, shoulders, forearms (f); z = arms spread sideways; hy/hx = head turn and tilt
-    let hl = s * 0.95, hr = -s * 0.95, kl = 0.15 + 1.25 * Math.max(0, c), kr = 0.15 + 1.25 * Math.max(0, -c);
-    let sl = -s * 0.85, sr = s * 0.85, fl = 1.3, fr = 1.3, zl = -0.1, zr = 0.1;
-    let lean = -0.16, pivY = HIP + Math.abs(Math.cos(A.phase)) * 0.05, hy = 0, hx = 0, twist = 0, wob = 0, pz = 0;
+    const rc = runCycle(A.phase);
+    let hl = rc.hl, hr = rc.hr, kl = rc.kl, kr = rc.kr;
+    let sl = rc.sl, sr = rc.sr, fl = rc.fl, fr = rc.fr, zl = -0.12, zr = 0.12;
+    let lean = -0.22, pivY = HIP + rc.lift, hy = 0, hx = 0, twist = rc.twist, wob = 0, pz = 0;
     let fx = 0, fyaw = 0, fz = 0;      // whole-body flips: applied directly, not eased
     const busy = crashT > 0 || trick || rollT > 0 || ninjaT > 0 || flipT > 0;
     if (crashT > 0) {                  // knocked onto the back, legs in the air
@@ -668,7 +681,7 @@ const Game = (() => {
       fx = Math.PI * 2 * (1 - flipT / 0.55); pivY = HIP; lean = -0.2;
       hl = hr = 1.7; kl = kr = 2.0; sl = sr = 2.2; fl = fr = 1.2;
     } else if (rollT > 0) {            // tucked forward somersault
-      fx = -Math.PI * 2 * (1 - rollT / ROLL); pivY = HIP * 0.55; lean = -0.5;
+      fx = -Math.PI * 2 * (1 - rollT / ROLL); pivY = HIP * 0.72 + (A.reach || 0.9) * 0.66 * Math.max(0, -Math.cos(fx - 1)); lean = -0.9;   // rises while he is upside down, so his head clears the ground
       hl = hr = 1.9; kl = kr = 2.2; sl = sr = 1.3; fl = fr = 1.9;
     } else if (menu) {                 // painting the wall, glancing over the shoulder now and then
       hl = hr = 0; kl = kr = 0.05; lean = -0.03; pivY = HIP; sl = 0.1; fl = 0.3;
@@ -737,78 +750,45 @@ const Game = (() => {
       quality.sum += Math.min(0.1, real);
       if (++quality.n >= 150) { quality.done = true; if (quality.sum / quality.n > 0.027) lowQuality(); }
     }
-    if (state === "ar") { arStep(raw); renderer.render(ar.scene, ar.cam); return; }
     if (!frozen) step(raw);
     renderer.render(scene, camera);
   }
 
-  /* ---------- AR: the runner on top of the phone's camera picture ---------- */
-  async function arOpen() {
+  /* ---------- AR: the game keeps running, on top of the phone's camera picture ---------- */
+  // The sky, far scenery and grass are hidden so the room shows through; the street, stalls, obstacles and coins stay.
+  async function arToggle() {
+    if (ar && ar.on) return arStop();
     if (!["play", "pause"].includes(state)) return;
-    const back = state === "pause" ? prevState : state;
-    prevState = back; state = "ar"; hideCard(); RunAudio.music(false);
+    if (state === "play") { prevState = "play"; state = "pause"; }          // hold the run while the camera starts
+    hideCard();
     let stream = null;
     try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false }); } catch {}
     if (!alive) { if (stream) stream.getTracks().forEach((t) => t.stop()); return; }
-    if (!stream) { state = "pause"; return arFail(); }
-    if (!ar) {
-      const sc = new T.Scene(), d = new T.DirectionalLight(0xffffff, 2);
-      d.position.set(2, 4, 3); sc.add(new T.HemisphereLight(0xffffff, 0x8a8f99, 2.2), d);
-      const blob = new T.Mesh(new T.CircleGeometry(0.42, 24), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }));
-      blob.rotation.x = -Math.PI / 2; blob.position.y = 0.01; sc.add(blob);
-      ar = { scene: sc, cam: new T.PerspectiveCamera(50, 1, 0.1, 100), blob };
-    }
+    if (!stream) return arFail();
     const v = document.createElement("video");
     v.className = "run-video"; v.setAttribute("playsinline", ""); v.muted = true; v.autoplay = true; v.srcObject = stream;
     root.prepend(v); v.play().catch(() => {});
-    Object.assign(ar, { on: true, stream, video: v, back, yaw: Math.PI, flip: -1, mode: "run" });
-    ar.scene.add(P.g); P.g.position.set(0, 0, 0); P.g.visible = true;
-    S.can.visible = S.bottle.visible = S.apple.visible = false;
-    root.classList.add("ar");
-    el.arbar.innerHTML = `<p>Barmoq bilan aylantiring · bosing: salto</p><div>
-      <button data-m="run">${ic("zap")}Yugurish</button><button data-m="wave">${ic("hand")}Salom</button><button data-m="flip">${ic("sparkles")}Salto</button><button data-m="x" class="x" aria-label="Yopish">${ic("x")}</button></div>`;
-    el.arbar.querySelectorAll("button").forEach((b) => { b.onclick = () => { const m = b.dataset.m; m === "x" ? arClose() : m === "flip" ? arFlip() : (ar.mode = m); }; });
-    buzz("medium");
+    ar = { on: true, stream, video: v };
+    root.classList.add("ar"); el.arBtn.classList.add("on");
+    state = prevState; RunAudio.music(true); last = performance.now();
+    buzz("medium"); pop("AR");
   }
   function arFail() {
     card(`${chip("alert", "lg solid")}<h2>Kamera ochilmadi</h2><p>AR uchun kameraga ruxsat bering. Telegram'ning ba'zi versiyalarida kamera Mini App ichida ishlamaydi.</p><button class="btn-primary" data-a="go">${ic("play")} Davom etish</button>`,
       { go: () => { hideCard(); state = prevState; RunAudio.music(true); last = performance.now(); } });
   }
+  const arHidden = () => [S.skyMesh, S.mtMesh, S.grassMesh, S.stars, S.disc, S.glow, S.landmark, S.mosque, ...S.clouds, ...S.flocks.map((f) => f.mesh)].filter(Boolean);
+  function arApply() {               // runs every frame while AR is on, after the light and weather have been set
+    for (const o of arHidden()) o.visible = false;
+    scene.background = null; scene.fog.near = 900; scene.fog.far = 1000;
+  }
   function arStop() {
     if (!ar || !ar.on) return;
     ar.on = false; ar.stream.getTracks().forEach((t) => t.stop()); ar.video.remove();
-    if (root) { root.classList.remove("ar"); el.arbar.innerHTML = ""; }
-  }
-  function arClose() {
-    arStop();
-    scene.add(P.g); P.pivot.rotation.set(0, 0, 0); P.g.rotation.set(0, 0, 0); P.g.position.set(px, py, 0);
-    state = "pause"; prevState = ar.back; pauseCard();
-  }
-  function arFlip() { if (ar && ar.on && ar.flip < 0) { ar.flip = 0; sfx("trick"); buzz("medium"); } }
-  function arStep(raw) {
-    const A = P; time += raw;
-    ar.cam.aspect = Math.max(1, W) / Math.max(1, H);
-    ar.cam.position.set(0, 1.25, 3.6); ar.cam.lookAt(0, 0.85, 0); ar.cam.updateProjectionMatrix();
-    A.g.rotation.y = ar.yaw;
-    let y = 0, fx = 0;
-    A.head.rotation.set(0, 0, 0);
-    if (ar.flip >= 0) {            // standing back flip
-      ar.flip += raw;
-      const q = Math.min(1, ar.flip / 0.9), e = q * q * (3 - 2 * q), t = Math.sin(Math.PI * q);
-      y = t * 1.1; fx = Math.PI * 2 * e;
-      A.hL.rotation.x = A.hR.rotation.x = 1.6 * t; A.kL.rotation.x = A.kR.rotation.x = -2 * t;
-      A.sL.rotation.set(2.4, 0, -0.3); A.sR.rotation.set(2.4, 0, 0.3); A.eL.rotation.x = A.eR.rotation.x = 0.4 + t;
-      A.pivot.position.y = HIP;
-      if (q >= 1) ar.flip = -1;
-    } else if (ar.mode === "wave") {   // waving with both hands
-      const w = Math.sin(time * 12) * 0.35;
-      A.hL.rotation.x = A.hR.rotation.x = 0; A.kL.rotation.x = A.kR.rotation.x = -0.05;
-      A.sL.rotation.set(0.2, 0, -2.5 - w); A.sR.rotation.set(0.2, 0, 2.5 + w); A.eL.rotation.x = A.eR.rotation.x = 0.4;
-      A.body.rotation.x = 0; A.pivot.position.y = HIP + Math.abs(Math.sin(time * 6)) * 0.03;
-    } else { A.sL.rotation.z = -0.1; A.sR.rotation.z = 0.1; runPose(A, time * 11, false); }
-    A.pivot.rotation.set(fx, 0, 0);
-    A.g.position.set(0, y, 0);
-    ar.blob.scale.setScalar(Math.max(0.4, 1 - y * 0.4));
+    if (!root) return;
+    root.classList.remove("ar"); el.arBtn.classList.remove("on");
+    for (const o of [S.skyMesh, S.mtMesh, S.grassMesh, S.disc, S.glow, ...S.clouds]) if (o) o.visible = true;
+    showWorld(level);                 // puts back the landmark, background and fog of the current place
   }
 
   // every 300 m: a short burst of speed effects so the player feels it getting faster
