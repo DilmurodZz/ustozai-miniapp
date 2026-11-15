@@ -34,9 +34,9 @@ const RunWorld = (() => {
     let top = 0;
     const flat = (geo) => { let g = NI.get(geo); if (!g) { g = geo.index ? geo.toNonIndexed() : geo; NI.set(geo, g); } return g; };
     const api = {
-      add(geo, color, s, p, r) {
+      add(geo, color, s, p, r, order) {
         const g = flat(geo), pa = g.attributes.position, na = g.attributes.normal;
-        eu.set(r ? r[0] : 0, r ? r[1] : 0, r ? r[2] : 0); q.setFromEuler(eu);
+        eu.set(r ? r[0] : 0, r ? r[1] : 0, r ? r[2] : 0, order || "XYZ"); q.setFromEuler(eu);
         m.compose(v.set(p[0], p[1], p[2]), q, sc.set(s[0], s[1], s[2])); nm.getNormalMatrix(m);
         col.set(color);
         for (let i = 0; i < pa.count; i++) {
@@ -630,8 +630,151 @@ const RunWorld = (() => {
     S.out = new T.Group();
     for (const c of [...scene.children]) if (!keep.has(c)) S.out.add(c);
     scene.add(S.out);
-    inside(); entrance(); torii();
+    inside(); entrance(); seaside();
     return S;
+  }
+
+  /* ---------- level 4: the seaside promenade ---------- */
+  // The runner keeps to the promenade (the old street's paving); on the left a sea wall with a white railing drops to
+  // the water, on the right a park with palms. Across the bay and behind the park stands the city (the downloaded model).
+  // The sea is one flat mesh with its own light shader: rolling waves, sky reflection, sun glitter, a foam line.
+  const WATER_FS = `
+    uniform float uTime, uOff, uSun, uLight; uniform vec3 uSky, uHor, uDeep, uShal, uSunDir, uSunCol;
+    varying vec3 vW;
+    vec2 wave(vec2 p, vec2 d, float f, float a, float s) { return d * f * a * cos(dot(p, d) * f + uTime * s); }
+    void main() {
+      vec2 p = vec2(vW.x, vW.z - uOff);
+      vec2 g = wave(p, vec2(0.287, 0.958), 0.55, 0.06, 1.5) + wave(p, vec2(-0.759, 0.651), 0.93, 0.035, 2.0)
+             + wave(p, vec2(0.976, 0.217), 1.7, 0.018, 2.8) + wave(p, vec2(-0.196, -0.981), 3.1, 0.009, 3.6) + wave(p, vec2(0.6, -0.8), 5.3, 0.005, 4.5);
+      vec3 toCam = cameraPosition - vW; float dist = length(toCam); vec3 v = toCam / dist;
+      vec3 n = normalize(mix(normalize(vec3(-g.x, 1.0, -g.y)), vec3(0.0, 1.0, 0.0), smoothstep(80.0, 600.0, dist)));   // calm and glassy far away
+      float fres = 0.03 + 0.97 * pow(1.0 - max(dot(n, v), 0.0), 5.0);
+      vec3 r = reflect(-v, n);
+      vec3 sky = mix(uHor, uSky, pow(clamp(r.y, 0.0, 1.0), 0.55));
+      float near = 1.0 - smoothstep(0.0, 16.0, -9.4 - vW.x);
+      vec3 body = mix(uDeep, uShal, near * 0.75 + 0.25 * clamp(0.5 + 3.0 * n.x, 0.0, 1.0)) * uLight;
+      vec3 col = mix(body, sky, fres);
+      col += uSunCol * pow(max(dot(r, normalize(uSunDir)), 0.0), 260.0) * 4.0 * uSun;                          // the sun's glitter path
+      col += uSunCol * pow(max(dot(r, normalize(uSunDir)), 0.0), 18.0) * 0.18 * uSun;
+      float foam = (1.0 - smoothstep(0.0, 0.9, -9.4 - vW.x)) * (0.6 + 0.4 * sin(p.y * 0.9 + uTime * 2.2));
+      col = mix(col, vec3(0.93, 0.96, 0.97) * (0.4 + 0.6 * uLight), foam * 0.65);
+      col = mix(col, uHor, smoothstep(300.0, 1350.0, dist));
+      gl_FragColor = vec4(col, 1.0);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`;
+  function palmGeo(k, x, z) {
+    const h = rnd(4.4, 6.0), lean = rnd(0.1, 0.25) * (Math.random() < 0.5 ? -1 : 1), n = 7;
+    for (let i = 0; i < n; i++) {
+      const t = i / n, t2 = (i + 1) / n, w = 0.2 - t * 0.07;
+      k.add(G.cyl, i % 2 ? "#8C6D4A" : "#7A5D3E", [w, h / n + 0.06, w], [x + lean * h * (t + t2) * (t + t2) * 0.25, h * (t + 0.5 / n), z], [0, 0, -lean * (t + t2)]);
+    }
+    const tx = x + lean * h, ty = h + 0.05;
+    k.add(G.lo, "#6B4E2E", [0.3, 0.26, 0.3], [tx, ty, z]);
+    for (let i = 0; i < 3; i++) k.add(G.lo, "#5A4326", [0.12, 0.12, 0.12], [tx + Math.cos(i * 2.1) * 0.22, ty - 0.22, z + Math.sin(i * 2.1) * 0.22]);
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2 + rnd(-0.15, 0.15), d = rnd(0.25, 0.75), L = rnd(1.5, 1.95);
+      k.add(G.lo, pick(["#3F9440", "#4FA84A", "#2F7F37", "#5DB552"]), [0.34, 0.05, L], [tx + Math.sin(a) * L * 0.78, ty + 0.1 - Math.sin(d) * L * 0.75, z + Math.cos(a) * L * 0.78], [d, a, 0], "YXZ");
+    }
+  }
+  function bayGeo(L) {               // one 20 m stretch of promenade: sea wall, railing, a bench, a palm row and flower beds
+    const k = baker();
+    k.add(G.box, "#CBBBA0", [0.8, 1.15, L], [-9.8, -0.5, 0]).add(G.box, "#EFE6D3", [0.9, 0.16, L], [-9.65, 0.1, 0]);
+    for (let i = 0; i < L / 2.5; i++) k.add(G.cyl, "#F4F5F7", [0.055, 1.05, 0.055], [-9.5, 0.66, -L / 2 + 1.25 + i * 2.5]).add(G.lo, "#F4F5F7", [0.08, 0.08, 0.08], [-9.5, 1.2, -L / 2 + 1.25 + i * 2.5]);
+    k.add(G.cyl, "#F4F5F7", [0.05, L, 0.05], [-9.5, 1.16, 0], [Math.PI / 2, 0, 0]).add(G.cyl, "#E4E7EC", [0.03, L, 0.03], [-9.5, 0.72, 0], [Math.PI / 2, 0, 0]);
+    // bench facing the sea
+    const bz = rnd(-6, -2);
+    k.add(G.box, "#A8743F", [0.5, 0.07, 1.8], [-8.55, 0.5, bz]).add(G.box, "#A8743F", [0.07, 0.42, 1.8], [-8.28, 0.8, bz], [0, 0, 0.18]);
+    for (const dz of [-0.75, 0.75]) k.add(G.box, "#34424F", [0.5, 0.45, 0.06], [-8.5, 0.27, bz + dz]);
+    // park side: kerb, flower beds, palms
+    k.add(G.box, "#DDD2BC", [0.35, 0.24, L], [9.55, 0.12, 0]);
+    for (let i = 0; i < 2; i++) {
+      const z = -L / 2 + 5 + i * 10;
+      k.add(G.cyl, "#D9CDB6", [1.25, 0.32, 1.25], [11.3, 0.16, z]).add(G.cyl, "#5B3F2A", [1.12, 0.06, 1.12], [11.3, 0.32, z]);
+      for (let j = 0; j < 7; j++) { const a = j * 0.9; k.add(G.lo, pick(["#F25F8B", "#FFD166", "#FF8FAB", "#F9844A", "#C77DFF"]), [0.2, 0.16, 0.2], [11.3 + Math.cos(a) * 0.75, 0.42, z + Math.sin(a) * 0.75]); }
+      palmGeo(k, 11.3, z);
+      k.add(G.ico1, pick(["#4E9A3C", "#5BAA46", "#3F8A33"]), [rnd(0.7, 1.0), rnd(0.55, 0.75), rnd(0.8, 1.1)], [rnd(14, 16), 0.45, z + 4]);
+      palmGeo(k, rnd(17, 24), z + rnd(-3, 3));
+    }
+    return k.geo();
+  }
+  function boatGeo(c) {
+    const k = baker();
+    k.add(G.lo, "#FFFFFF", [0.75, 0.4, 2.3], [0, 0.05, 0]).add(G.box, c, [1.3, 0.12, 3.6], [0, 0.32, 0]).add(G.box, "#F2E6D0", [1.0, 0.08, 2.6], [0, 0.4, 0]);
+    k.add(G.cyl, "#C9CDD3", [0.05, 3.6, 0.05], [0, 2.2, 0.2]).add(G.box, "#FFFFFF", [0.03, 2.9, 1.5], [0, 2.1, -0.6], [0.06, 0, 0]).add(G.box, c, [0.035, 0.5, 1.45], [0, 0.9, -0.62], [0.06, 0, 0]);
+    return k.geo();
+  }
+  function seaside() {
+    const L = 20, N = Math.round(S.C.LOOP / L);
+    const g = new T.Group(); g.visible = false; scene.add(g); S.sea = g; S.seaScn = []; S.boats = []; S.cities = [];
+    S.waterU = {
+      uTime: { value: 0 }, uOff: { value: 0 }, uSun: { value: 1 }, uLight: { value: 1 },
+      uSky: { value: new T.Color("#2E86E8") }, uHor: { value: new T.Color("#CFE9FF") }, uDeep: { value: new T.Color("#0A4A66") }, uShal: { value: new T.Color("#1FA2A8") },
+      uSunDir: { value: new T.Vector3(0.2, 0.33, -1) }, uSunCol: { value: new T.Color("#FFF0D2") },
+    };
+    const wm = new T.ShaderMaterial({ uniforms: S.waterU, fragmentShader: WATER_FS,
+      vertexShader: "varying vec3 vW;\nvoid main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }" });
+    const water = new T.Mesh(new T.PlaneGeometry(1500, 2600), wm);
+    water.rotation.x = -Math.PI / 2; water.position.set(-9.4 - 750, -0.8, -1000); water.frustumCulled = false; g.add(water); S.water = water;
+    // the park lawn on the right (shares the street grass, which follows the weather)
+    const lawn = new T.Mesh(new T.PlaneGeometry(420, 640), S.grassMat); lawn.rotation.x = -Math.PI / 2; lawn.position.set(9.6 + 210, -0.01, -170); lawn.receiveShadow = true; g.add(lawn);
+    const bays = [bayGeo(L), bayGeo(L), bayGeo(L)];
+    for (let i = 0; i < N; i++) {
+      const z = S.C.BACK - i * L - L / 2, bay = new T.Group();
+      const m = mesh(bays[i % 3], S.prop); m.receiveShadow = true; bay.add(m);
+      for (const x of [-8.9, 8.9]) {        // a lamp on each side
+        const lz = x < 0 ? -L / 4 : L / 4, lp = mesh(S.seaLampGeo || (S.seaLampGeo = baker().add(G.cyl, "#2D4A52", [0.07, 4.2, 0.07], [0, 2.1, 0]).add(G.box, "#2D4A52", [0.32, 0.3, 0.32], [0, 0.15, 0]).add(G.cyl, "#2D4A52", [0.18, 0.08, 0.18], [0, 4.25, 0]).geo()), S.prop);
+        const b = new T.Mesh(G.lo, S.lampMat); b.scale.set(0.2, 0.26, 0.2); b.position.y = 4.48; lp.add(b);
+        const gl = new T.Sprite(S.glowMat); gl.scale.set(3.4, 3.4, 1); gl.position.y = 4.45; lp.add(gl);
+        lp.position.set(x, 0, lz); bay.add(lp);
+      }
+      bay.position.z = z; g.add(bay); S.seaScn.push(bay);
+    }
+    // sailboats drifting on the bay
+    const bg = ["#2E6FD8", "#E5383B", "#F4A300", "#0FA3A3"].map(boatGeo);
+    for (let i = 0; i < 7; i++) {
+      const b = mesh(bg[i % 4], S.prop, false), sc = rnd(1.0, 1.6); b.scale.setScalar(sc);
+      b.position.set(-rnd(28, 140), -0.75, -rnd(0, 900)); b.rotation.y = rnd(-0.6, 0.6);
+      b.userData = { ph: rnd(0, 6), v: rnd(0.4, 1.4) }; g.add(b); S.boats.push(b);
+    }
+  }
+  // The city model: one mesh, one atlas texture. Its shader picks each face's tile in the atlas and repeats it
+  // (the _rect attribute), and lights some windows at night.
+  function cityMat(src) {
+    const map = src.map; map.anisotropy = 4;
+    const mat = new T.MeshStandardMaterial({ map, roughness: 0.78, metalness: 0, fog: false });
+    mat.userData.glow = { value: 0 };
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.uGlow = mat.userData.glow;
+      sh.vertexShader = "attribute vec4 _rect;\nvarying vec4 vRect;\nvarying vec2 vUv0;\n" + sh.vertexShader.replace("#include <uv_vertex>", "#include <uv_vertex>\n  vRect = _rect; vUv0 = uv;");
+      sh.fragmentShader = "uniform float uGlow;\nvarying vec4 vRect;\nvarying vec2 vUv0;\n" + sh.fragmentShader
+        .replace("#include <map_fragment>", "vec4 tc = textureGrad(map, vRect.xy + fract(vUv0) * vRect.zw, dFdx(vUv0) * vRect.zw, dFdy(vUv0) * vRect.zw);\n  diffuseColor *= tc;")
+        .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+  float glass = smoothstep(0.08, 0.16, tc.b - tc.r) * (1.0 - smoothstep(0.3, 0.5, dot(tc.rgb, vec3(0.3, 0.59, 0.11))));
+  float lit = step(0.6, fract(sin(dot(floor(vUv0 * vec2(23.0, 37.0)), vec2(12.9898, 78.233))) * 43758.5453));
+  totalEmissiveRadiance += vec3(1.0, 0.78, 0.48) * uGlow * glass * (0.25 + 0.75 * lit) * 0.9;`);
+    };
+    return mat;
+  }
+  function cityIn(src) {
+    let geo = null, m0 = null, mw = null;
+    src.updateMatrixWorld(true);
+    src.traverse((c) => { if (c.isMesh && !geo) { geo = c.geometry; m0 = c.material; mw = c.matrixWorld; } });
+    if (!geo || !geo.attributes._rect) return;
+    geo = geo.clone();
+    for (const n of ["position", "normal"]) {        // compressed as small integers: back to plain floats
+      const a = geo.attributes[n], f = new Float32Array(a.count * 3);
+      for (let i = 0; i < a.count; i++) { f[i * 3] = a.getX(i); f[i * 3 + 1] = a.getY(i); f[i * 3 + 2] = a.getZ(i); }
+      geo.setAttribute(n, new T.BufferAttribute(f, 3));
+    }
+    geo.applyMatrix4(mw); geo.computeBoundingBox();     // the compression keeps the real size in the node's transform
+    const b = geo.boundingBox, sc = 3.2;
+    geo.translate(-(b.min.x + b.max.x) / 2, -b.min.y, -(b.min.z + b.max.z) / 2); geo.scale(sc, sc, sc); geo.computeBoundingSphere();
+    const mat = cityMat(m0); S.cityMat = mat; S.tints.push({ m: mat, k: 0.3 });
+    // a phone held upright sees only a narrow slice to the sides, so the city stands ahead, across the bay
+    for (const [x, rots, z0] of [[-178, [0, Math.PI, Math.PI / 2], -330], [195, [Math.PI, 0, -Math.PI / 2], -560]]) {
+      rots.forEach((r, i) => { const c = new T.Mesh(geo, mat); c.rotation.y = r; c.position.set(x, -0.55, z0 - i * 400); S.sea.add(c); S.cities.push(c); });
+    }
   }
 
   /* ---------- level 2: inside the covered bazaar ---------- */
@@ -763,57 +906,13 @@ const RunWorld = (() => {
       const p = old.parent || scene; p.remove(old); p.add(g); if (i >= 0) S.scn[i] = g;
     }
     if (trees.length) S.frontTreeMeshes = [];
+    if (m.city && !S.cities.length) cityIn(m.city);
     if (m.mosque && !S.mosque) {          // level 3: the Blue Mosque takes the Chorsu dome's place at the end of the road
       const e = fit(m.mosque, { len: 150, rotY: Math.PI / 2 }); e.position.set(0, -4, -250); e.visible = false;
       S.mosqueMats = [];
       meshes(e, (c) => { c.material.fog = false; if (!S.mosqueMats.includes(c.material)) { S.mosqueMats.push(c.material); S.tints.push({ m: c.material, k: 0.22 }); } });
       S.out.add(e); S.mosque = e;
     }
-  }
-
-  // Pushes the two sides of a narrow street apart so three lanes fit between them.
-  // Whatever crosses the middle (the ground, the wires) is stretched to match.
-  function widen(src, scale, gap) {
-    src.updateMatrixWorld(true);
-    const out = new T.Group(), sm = new T.Matrix4().makeScale(scale, scale, scale), box = new T.Box3().setFromObject(src);
-    const cx = (box.min.x + box.max.x) / 2 * scale;
-    src.traverse((c) => {
-      if (!c.isMesh) return;
-      const g = c.geometry.clone(), p = g.attributes.position, f = new Float32Array(p.count * 3);
-      for (let i = 0; i < p.count; i++) { f[i * 3] = p.getX(i); f[i * 3 + 1] = p.getY(i); f[i * 3 + 2] = p.getZ(i); }   // un-quantise first
-      g.setAttribute("position", new T.BufferAttribute(f, 3));
-      g.applyMatrix4(new T.Matrix4().multiplyMatrices(sm, c.matrixWorld));
-      for (let i = 0; i < p.count; i++) { const x = f[i * 3] - cx; f[i * 3] = x + Math.sign(x) * gap * Math.min(1, Math.abs(x) / 0.8); }
-      g.computeBoundingBox(); g.computeBoundingSphere();
-      const n = new T.Mesh(g, c.material); n.receiveShadow = true; out.add(n);
-    });
-    const b = new T.Box3().setFromObject(out);
-    out.position.set(0, -b.min.y, -(b.min.z + b.max.z) / 2);
-    const wrap = new T.Group(); wrap.add(out); wrap.userData.len = b.max.z - b.min.z;
-    return wrap;
-  }
-  // level 4: four copies of the neon Japanese street in a row, every other one turned round for variety
-  function tokyo(src) {
-    const g = new T.Group(); g.visible = false; scene.add(g); S.tokyo = g; S.tkScn = [];
-    const proto = widen(src, 1.5, 2.9), L = proto.userData.len;
-    proto.traverse((c) => { if (c.isMesh && c.material.emissiveMap) { c.material.emissive.set(0xffffff); c.material.emissiveIntensity = 1.7; } });
-    const base = new T.Mesh(G.plane, new T.MeshStandardMaterial({ color: 0x1d1f26, roughness: 0.35, metalness: 0.3 }));
-    base.scale.set(40, 400, 1); base.rotation.x = -Math.PI / 2; base.position.set(0, -0.02, -150); base.receiveShadow = true; g.add(base);
-    for (let i = 0; i < 4; i++) {
-      const c = i ? proto.clone() : proto;
-      if (i % 2) c.rotation.y = Math.PI;
-      c.position.z = 30 - L / 2 - i * L; g.add(c); S.tkScn.push(c);
-    }
-    S.tkLen = L;
-  }
-  // red torii gate in front of the Tokyo street
-  function torii() {
-    const k = baker(), red = "#C8211B", dark = "#1E1A1A";
-    for (const x of [-5.4, 5.4]) k.add(G.cyl, red, [0.42, 9.2, 0.42], [x, 4.6, 0]).add(G.cyl, dark, [0.55, 0.7, 0.55], [x, 0.35, 0]);
-    k.add(G.box, red, [12.6, 0.55, 0.5], [0, 7.3, 0]).add(G.box, red, [13.4, 0.6, 0.8], [0, 8.9, 0]).add(G.box, dark, [14.8, 0.45, 1.0], [0, 9.45, 0], [0, 0, 0]);
-    for (const x of [-1, 1]) k.add(G.box, dark, [1.2, 0.4, 1.0], [x * 7.6, 9.6, 0], [0, 0, x * 0.18]);
-    k.add(G.box, dark, [0.9, 1.6, 0.25], [0, 8.1, 0.05]).add(G.box, "#E8C060", [0.7, 1.35, 0.27], [0, 8.1, 0.06]);
-    const g = new T.Group(); g.add(mesh(k.geo(), S.prop)); g.visible = false; scene.add(g); S.torii = g;
   }
 
   return { build, useModels };

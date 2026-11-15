@@ -4,13 +4,13 @@
 
 const Game = (() => {
   const LIB = "./lib/three.module.min.js";      // three.js is kept in the app itself so it works offline
-  const MODELS = ["damas", "tree1", "tree2", "mosque"];
+  const MODELS = ["damas", "tree1", "tree2", "mosque", "city"];
   const C = { SLOT: 10, SLOTS: 20, LOOP: 200, BACK: 50 };     // scenery repeats every LOOP metres, BACK of them behind the runner
   const LANE = 2, FAR = -150, GONE = 14;
   let HIP = 0.83;          // hip height of the current runner
   const CAM_Y = 4.3, CAM_Z = 8.4, GRAV = 26, JUMP = 9.6, ROLL = 0.62, V0 = 15, VMAX = 31;
   // where each level starts and what the arrival banner says (level 1 is the street at the start)
-  const LEVELS = { 2: [1500, "Bozor ichida"], 3: [3000, "Istanbul"] };
+  const LEVELS = { 2: [1500, "Bozor ichida"], 3: [3000, "Istanbul"], 4: [4500, "Dengiz bo'yi"] };
   const HEARTS = 3, STAKE = 25, SLOT_MS = 30 * 60 * 1000;
   const AIR = ["salto", "oldinga", "twist"], GROUND = ["salto", "burilish"];
   const LABEL = { salto: "Orqaga salto", oldinga: "Oldinga salto", twist: "Burama salto", burilish: "360 burilish" };
@@ -177,7 +177,7 @@ const Game = (() => {
       const m = take(type); m.position.set((i % 3 - 1) * 2.5, 0, -14 - Math.floor(i / 3) * 4); i++; temp.push([type, m]);
     }
     const show = (o, z) => { if (!o) return; hidden.push([o, o.visible, o.position.z]); o.visible = true; if (z != null) o.position.z = z; };
-    show(S.portal, -30); show(S.torii, -30); show(S.in); show(S.mosque); if (S.guard) show(S.guard.g);
+    show(S.portal, -30); show(S.in); show(S.mosque); show(S.sea); if (S.guard) show(S.guard.g);
     try { renderer.compile(scene, camera); renderer.render(scene, camera); } catch {}
     for (const [o, v, z] of hidden) { o.visible = v; o.position.z = z; }
     for (const [type, m] of temp) { m.visible = false; (pools[type] || (pools[type] = [])).push(m); }
@@ -240,7 +240,7 @@ const Game = (() => {
 
   /* ---------- moods, weather, particles, birds ---------- */
   function applyMood(k) {
-    if (level === 2 || (level === 4 && S.tokyo)) return;     // bazaar and Tokyo have their own fixed light, no weather
+    if (level === 2) return;     // the bazaar hall has its own fixed light, no weather
     const m = MOODS[moodIdx];
     for (const c of COL) cur[c].lerp(m.c[c], k);
     for (const n of NUM) cur[n] += (m[n] - cur[n]) * k;
@@ -267,6 +267,11 @@ const Game = (() => {
     S.disc.position.copy(cur.discDir).normalize().multiplyScalar(950); S.glow.position.copy(S.disc.position);
     for (const t of S.tints) { t.base = t.base || t.m.color.clone(); t.m.color.copy(t.base).lerp(cur.fog, t.k); }   // far things take on the haze colour
     if (S.mosqueMats) for (const m of S.mosqueMats) m.emissiveIntensity = 0.04 + cur.lamps * 0.85;   // floodlit at night
+    if (S.waterU) {
+      const u = S.waterU; u.uSky.value.copy(cur.top); u.uHor.value.copy(cur.fog).lerp(cur.bot, 0.5); u.uSunDir.value.copy(cur.discDir);
+      u.uSunCol.value.copy(cur.disc); u.uSun.value = cur.discA * (1 - cur.rain); u.uLight.value = 0.3 + 0.7 * Math.min(1, cur.sun / 2.6) * (1 - 0.3 * cur.rain);
+    }
+    if (S.cityMat) S.cityMat.userData.glow.value = cur.lamps;
     for (const m of S.leafMats) { m.userData.base = m.userData.base || m.color.clone(); m.color.copy(m.userData.base).lerp(S.white, cur.snow * 0.7); }   // snow on the leaves
     const day = cur.stars < 0.5 && cur.rain < 0.5;
     S.flocks[0].mesh.visible = S.flocks[1].mesh.visible = day;
@@ -367,7 +372,7 @@ const Game = (() => {
     let gap = 13 + speed * 0.55 + rnd(0, 5);
     // one obstacle per row, so a single swipe to the side always gets past it
     const L = [0, 1, 2].sort(() => Math.random() - 0.5), r = Math.random();
-    const next = portalOn ? level + 1 : level, inside = next === 2 || next === 4;     // no cars in the bazaar or the narrow Tokyo street
+    const next = portalOn ? level + 1 : level, inside = next === 2 || next === 4;     // no cars in the bazaar or on the promenade
     const low = () => pick(["barrier", "crates", "melons", "teleshka"]), full = () => pick(inside ? ["meat", "cart"] : ["damas", "damas", "cart", "meat"]);
     if (rows < 4) { put(pick(["barrier", "crates", "sedan"]), L[0], z); trail(L[1], z, 5); }
     else if (r < 0.26) { put(low(), L[0], z); r < 0.13 ? arc(L[0], z) : trail(L[1], z, 5); }
@@ -575,8 +580,17 @@ const Game = (() => {
       }
     }
     if (S.in.visible) for (const o of S.inScn) { o.position.z += ds; if (o.position.z > C.BACK) o.position.z -= C.LOOP; }
-    if (S.tokyo && S.tokyo.visible) for (const o of S.tkScn) { o.position.z += ds; if (o.position.z > 30 + S.tkLen / 2) o.position.z -= S.tkLen * S.tkScn.length; }
-    for (const gate of [S.portal, S.torii]) {
+    if (S.sea.visible) {
+      for (const o of S.seaScn) { o.position.z += ds; if (o.position.z > C.BACK) o.position.z -= C.LOOP; }
+      const u = S.waterU; u.uTime.value = time; u.uOff.value = (u.uOff.value + ds) % 6283.2;
+      for (const b of S.boats) {
+        const d = b.userData; b.position.z += ds * 0.55 + d.v * dt * 0.3;
+        if (b.position.z > 60) { b.position.z -= 960; b.position.x = -rnd(28, 140); }
+        b.position.y = -0.75 + Math.sin(time * 1.3 + d.ph) * 0.07; b.rotation.z = Math.sin(time * 1.1 + d.ph) * 0.05; b.rotation.x = Math.sin(time * 0.9 + d.ph * 2) * 0.03;
+      }
+      for (const c of S.cities) { c.position.z += ds * 0.4; if (c.position.z > 200) c.position.z -= 1200; }
+    }
+    for (const gate of [S.portal]) {
       if (!gate.visible) continue;
       gate.position.z += ds;
       if (portalOn && !trans && gate.position.z > CAM_Z - 3) trans = { t: 0, n: level + 1, done: false };     // the camera is about to pass through the gate
@@ -656,8 +670,8 @@ const Game = (() => {
     scenery(dt, ds, playing);
     if (state === "play") collide();
 
-    // Istanbul is always at golden hour; Tokyo without its model falls back to the night street
-    const want = level === 3 ? 1 : level === 4 ? 2 : moodOverride == null ? slotMood() : moodOverride;
+    // Istanbul is always at golden hour
+    const want = level === 3 ? 1 : moodOverride == null ? slotMood() : moodOverride;
     if (want !== moodIdx) { moodIdx = want; if (playing && level === 1) pop(MOODS[want].name); }
     applyMood(1 - Math.exp(-raw * 1.4));
     weather(dt, ds); particles(dt, ds); birds(dt, ds); pose(dt); cam(raw);
@@ -808,7 +822,7 @@ const Game = (() => {
     card(`${chip("alert", "lg solid")}<h2>Kamera ochilmadi</h2><p>AR uchun kameraga ruxsat bering. Telegram'ning ba'zi versiyalarida kamera Mini App ichida ishlamaydi.</p><button class="btn-primary" data-a="go">${ic("play")} Davom etish</button>`,
       { go: () => { hideCard(); state = prevState; RunAudio.music(true); last = performance.now(); } });
   }
-  const arHidden = () => [S.skyMesh, S.mtMesh, S.grassMesh, S.stars, S.disc, S.glow, S.landmark, S.mosque, ...S.clouds, ...S.flocks.map((f) => f.mesh)].filter(Boolean);
+  const arHidden = () => [S.water, ...(S.cities || []), S.skyMesh, S.mtMesh, S.grassMesh, S.stars, S.disc, S.glow, S.landmark, S.mosque, ...S.clouds, ...S.flocks.map((f) => f.mesh)].filter(Boolean);
   function arApply() {               // runs every frame while AR is on, after the light and weather have been set
     for (const o of arHidden()) o.visible = false;
     scene.background = null; scene.fog.near = 900; scene.fog.far = 1000;
@@ -818,7 +832,7 @@ const Game = (() => {
     ar.on = false; ar.stream.getTracks().forEach((t) => t.stop()); ar.video.remove();
     if (!root) return;
     root.classList.remove("ar"); el.arBtn.classList.remove("on");
-    for (const o of [S.skyMesh, S.mtMesh, S.grassMesh, S.disc, S.glow, ...S.clouds]) if (o) o.visible = true;
+    for (const o of [S.water, ...(S.cities || []), S.skyMesh, S.mtMesh, S.grassMesh, S.disc, S.glow, ...S.clouds]) if (o) o.visible = true;
     showWorld(level);                 // puts back the landmark, background and fog of the current place
   }
 
@@ -831,7 +845,7 @@ const Game = (() => {
     portalOn = true;
     for (const o of objs) if (o.z < FAR + 30) o.gone = true;       // keep the gateway clear
     spawnIn = Math.max(spawnIn, 34);
-    const gate = gateObj = level + 1 === 4 ? S.torii : S.portal;   // a red torii for Tokyo, the tiled gate otherwise
+    const gate = gateObj = S.portal;
     gate.position.set(0, 0, FAR); gate.visible = true;
   }
   function setIndoor() {
@@ -841,27 +855,21 @@ const Game = (() => {
     S.sun.color.set("#FFE9C6"); S.sun.intensity = 1.2; S.sun.position.set(6, 40, 10).add(S.sun.target.position);
     S.lamp.color.set("#FFC98A"); S.lamp.intensity = 30; renderer.toneMappingExposure = 1.05;
   }
-  function setTokyo() {
-    const fog = 0x0d1330;
-    scene.fog.color.setHex(fog); scene.fog.near = 14; scene.fog.far = 72; scene.background = new T.Color(fog);
-    S.hemi.color.set("#7A88D8"); S.hemi.groundColor.set("#22202C"); S.hemi.intensity = 0.8;
-    S.sun.color.set("#A9B8FF"); S.sun.intensity = 0.35; S.sun.position.set(-8, 40, 6).add(S.sun.target.position);
-    S.lamp.color.set("#FF9EC4"); S.lamp.intensity = 42; renderer.toneMappingExposure = 1.2;
-  }
-  // which world is shown: the street (levels 1 and 3), the bazaar hall (2) or the Tokyo street (4)
+  // which world is shown: the street (levels 1 and 3), the bazaar hall (2) or the seaside promenade (4)
   function showWorld(n) {
-    const tk = n === 4 && !!S.tokyo;
-    S.out.visible = n === 1 || n === 3 || (n === 4 && !tk); S.in.visible = n === 2; if (S.tokyo) S.tokyo.visible = tk;
-    S.landmark.visible = !(n === 3 && S.mosque); if (S.mosque) S.mosque.visible = n === 3;
-    if (n === 2) setIndoor(); else if (tk) setTokyo(); else { scene.background = null; S.lamp.color.set("#FFD9A0"); }
+    const sea = n === 4;
+    S.out.visible = n !== 2; S.in.visible = n === 2; S.sea.visible = sea;
+    for (const o of S.scn) o.visible = !sea; for (const w of S.walkers) w.g.visible = !sea;    // the street's houses, stalls and people stay behind
+    S.grassMesh.visible = S.mtMesh.visible = !sea;      // open sea to the horizon instead of the mountains
+    S.landmark.visible = !sea && !(n === 3 && S.mosque); if (S.mosque) S.mosque.visible = n === 3;
+    if (n === 2) setIndoor(); else { scene.background = null; S.lamp.color.set("#FFD9A0"); }
   }
-  // Going through a gate: a soft fade to warm light, the new place appears at its brightest point, then fades in.
   function fadeStep(raw) {
     const tr = trans, IN = 0.4, OUT = 1.1;
     tr.t += raw;
     if (!tr.done && tr.t >= IN) { tr.done = true; applyModels(); enterLevel(tr.n); }
     const a = tr.t < IN ? tr.t / IN : Math.max(0, 1 - (tr.t - IN) / OUT);
-    el.flash.style.transition = "none"; el.flash.style.background = tr.n === 4 ? "#2A2448" : "#FFF3D6"; el.flash.style.opacity = (a * 0.92).toFixed(3);
+    el.flash.style.transition = "none"; el.flash.style.background = tr.n === 4 ? "#DFF4FA" : "#FFF3D6"; el.flash.style.opacity = (a * 0.92).toFixed(3);
     if (tr.t > IN + OUT) { trans = null; el.flash.style.opacity = 0; }
   }
   // Arriving: an empty road with a line of coins, the place's name, green fireworks; the obstacles come after a few seconds.
@@ -873,7 +881,7 @@ const Game = (() => {
     coins += 50; bump(); buzz("success");
     el.title.innerHTML = `<small>${n}-bosqich</small><b>${LEVELS[n][1]}</b><span>+50 tanga</span>`;
     el.title.className = "run-title"; void el.title.offsetWidth; el.title.className = "run-title show";
-    fireworks(n === 4 ? ["#4ADE80", "#22D3EE", "#F472B6", "#A3E635"] : ["#22C55E", "#4ADE80", "#A3E635", "#34D399", "#FDE047"]);
+    fireworks(n === 4 ? ["#4ADE80", "#22D3EE", "#38BDF8", "#A3E635", "#FDE047"] : ["#22C55E", "#4ADE80", "#A3E635", "#34D399", "#FDE047"]);
   }
   function fillRoad() {             // the first obstacles of the new level, close enough to arrive soon
     let z = -60;
@@ -895,7 +903,7 @@ const Game = (() => {
   }
   function backToStreet() {
     level = 1; portalOn = false; trans = null; calm = 0; pace = 1;
-    S.portal.visible = S.torii.visible = false; showWorld(1);
+    S.portal.visible = false; showWorld(1);
     el.flash.style.opacity = 0; el.title.className = "run-title";
   }
 

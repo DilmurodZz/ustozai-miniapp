@@ -281,7 +281,7 @@ function Profil() {
     <button class="btn-primary" onclick="invite('${link}')">${ic("send")} Taklif havolasini yuborish</button>
   </div>
   ${startParam ? `<p class="note">Kirish manbasi: ${esc(startParam)}</p>` : ""}
-  <p class="credit">O'yin 3D modellari (CC BY 4.0): own.guest, Nicholas-3D, Dimiter</p>`;
+  <p class="credit">O'yin 3D modellari (CC BY 4.0): own.guest, Nicholas-3D, Dimiter, Tom (trbaker)</p>`;
 }
 window.pickTheme = (k) => { applyTheme(k); haptic("medium"); render(); };
 window.invite = (link) => {
