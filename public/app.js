@@ -98,6 +98,8 @@ const ICONS = {
   sound: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4zM15.5 9a4.2 4.2 0 0 1 0 6M18.2 6.3a8 8 0 0 1 0 11.4"/>',
   mute: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4zM16 9.5l5 5M21 9.5l-5 5"/>',
   down: '<path d="M12 5v14M6 13l6 6 6-6"/>',
+  pause: '<path d="M8.5 5v14M15.5 5v14"/>',
+  tap: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8.5"/>',
 };
 const ic = (name, cls = "") => `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
 // icon inside a soft tinted rounded square
@@ -121,7 +123,7 @@ function renderTabs(route) {
 }
 
 const navbar = (title) => `<div class="navbar"><button class="icon-btn" onclick="goBack()">${ic("back")}</button><h1>${title}</h1><span></span></div>`;
-window.goBack = () => { history.length > 1 ? history.back() : (location.hash = "#/"); };
+window.goBack = () => { if (typeof Game !== "undefined" && gameOn && Game.onBack()) return; history.length > 1 ? history.back() : (location.hash = "#/"); };
 
 /* ---------- screens ---------- */
 function Home() {
@@ -136,7 +138,7 @@ function Home() {
     ${compassSVG}
     <span class="btn-white">Boshlash ${ic("chev")}</span>
   </a>
-  <div class="grid">${tiles.map(([i, l, h]) => `<a class="tile" href="${h}">${chip(i)}${l}</a>`).join("")}</div>
+  <div class="grid">${tiles.map(([i, l, h], n) => `<a class="tile t${n + 1}" href="${h}">${chip(i, "c" + (n + 1))}${l}</a>`).join("")}</div>
   ${res ? `<div class="section-title">Sening natijang</div>
     <a class="list-item" href="#/natija">${chip(PERSONAS[res].icon, "sm")}${PERSONAS[res].name}${ic("chev", "chev")}</a>` : ""}`;
 }
