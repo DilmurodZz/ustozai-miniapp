@@ -100,6 +100,8 @@ const ICONS = {
   down: '<path d="M12 5v14M6 13l6 6 6-6"/>',
   pause: '<path d="M8.5 5v14M15.5 5v14"/>',
   tap: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8.5"/>',
+  ar: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M12 7l4.5 2.5v5L12 17l-4.5-2.5v-5zM12 12v5M12 12l4.5-2.5M12 12 7.5 9.5"/>',
+  hand: '<path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V12M11 11V4.5a1.5 1.5 0 0 1 3 0V12M14 11.5V6a1.5 1.5 0 0 1 3 0v8a7 7 0 0 1-7 7c-2.5 0-4-1.3-5.4-3.4L3 14.5a1.5 1.5 0 0 1 2.5-1.6L8 16"/>',
 };
 const ic = (name, cls = "") => `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
 // icon inside a soft tinted rounded square

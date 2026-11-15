@@ -85,6 +85,7 @@ const RunAudio = (() => {
   let wanted = false;
   return {
     sfx, jingle,
+    wake() { if (!muted) ready(); },
     music(play) { wanted = play; music(play); },
     mute(m) { muted = m; music(!m && wanted); },
   };

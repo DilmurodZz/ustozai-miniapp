@@ -12,8 +12,8 @@ const Game = (() => {
   const LANE = 2, FAR = -150, GONE = 14, HIP = 0.83;
   const CAM_Y = 4.3, CAM_Z = 8.4, GRAV = 26, JUMP = 9.6, ROLL = 0.62, V0 = 15, VMAX = 33;
   const HEARTS = 3, STAKE = 25, SLOT_MS = 30 * 60 * 1000;
-  const AIR = ["salto", "oldinga", "twist"], GROUND = ["charx", "burilish"];
-  const LABEL = { salto: "Orqaga salto", oldinga: "Oldinga salto", twist: "Burama salto", charx: "Charxpalak", burilish: "360 burilish" };
+  const AIR = ["salto", "oldinga", "twist"], GROUND = ["salto", "burilish"];
+  const LABEL = { salto: "Orqaga salto", oldinga: "Oldinga salto", twist: "Burama salto", burilish: "360 burilish" };
 
   // Each mood lasts 30 minutes of real time, then the next one fades in.
   const MOODS = [
@@ -34,10 +34,11 @@ const Game = (() => {
   let invuln = 0, stumbleT = 0, crashT = 0, nmSlow = 0, shake = 0, camX = 0, kick = 0, bolt = 8, ts = 1;
   let laneAt = -9, jumpAt = -9, rollAt = -9, auto = false;
   let trick = null, airIdx = 0, gndIdx = 0, cineSide = 1, wave = null, lastWave = -9, eat = null, nextEat = 12, rest = null, nextRest = 500;
-  let introT = 0, introK = 0, menuT = 0, paintP = 0, guardT = -1, guardX = -2.4, cineK = 0, restK = 0;
+  let introT = 0, introK = 0, menuT = 0, paintP = 0, guardT = -1, guardX = -2.4;
   let combo = 0, comboAt = -9, games = 0, tipA = false, tipB = false, lastTap = 0, bumpAt = 0;
   let flowTimer = 0, hintTimer = 0, muted = false;
   let frozen = false;      // test hook: stop the clock but keep drawing
+  let dbl = false, ninjaT = 0, safe = 0, ar = null;     // second jump used, ninja flip timer, no-crash window after a trick, AR view
   const shown = {}, quality = { n: 0, sum: 0, done: false };
 
   /* ---------- small helpers ---------- */
@@ -54,7 +55,7 @@ const Game = (() => {
   const free = () => state === "play" && grounded && !trick && !wave && !eat && rollT <= 0 && stumbleT <= 0 && crashT <= 0;
 
   function buzz(kind, pattern) {
-    try { /error|success|warning/.test(kind) ? tg.HapticFeedback.notificationOccurred(kind) : tg.HapticFeedback.impactOccurred(kind); } catch {}
+    try { kind === "select" ? tg.HapticFeedback.selectionChanged() : /error|success|warning/.test(kind) ? tg.HapticFeedback.notificationOccurred(kind) : tg.HapticFeedback.impactOccurred(kind); } catch {}
     if (pattern && navigator.vibrate) { try { navigator.vibrate(pattern); } catch {} }
   }
 
@@ -69,14 +70,16 @@ const Game = (() => {
       <div class="run-ov"></div>
       <div class="run-fx"></div>
       <div class="run-hint"></div>
+      <div class="run-arbar"></div>
       <div class="run-top">
         <div class="run-hud"><button class="run-btn" data-k="pause" aria-label="Pauza">${ic("pause")}</button><span class="run-coins">${ic("coin")}<b data-k="coins">0</b></span></div>
-        <div class="run-right"><span class="run-hearts"></span><button class="run-btn" data-k="snd" aria-label="Ovoz"></button><button class="run-btn" data-k="x" aria-label="Yopish">${ic("x")}</button></div>
+        <div class="run-right"><span class="run-hearts"></span><button class="run-btn" data-k="ar" aria-label="AR">${ic("ar")}</button><button class="run-btn" data-k="snd" aria-label="Ovoz"></button><button class="run-btn" data-k="x" aria-label="Yopish">${ic("x")}</button></div>
       </div>`;
     document.body.appendChild(root);
     const q = (s) => root.querySelector(s);
     el = { cv: q(".run-cv"), flash: q(".run-flash"), ov: q(".run-ov"), fx: q(".run-fx"), hint: q(".run-hint"), coins: q('[data-k="coins"]'), chip: q(".run-coins"), hearts: q(".run-hearts"), snd: q('[data-k="snd"]') };
-    q('[data-k="x"]').onclick = exit; q('[data-k="pause"]').onclick = pause;
+    q('[data-k="x"]').onclick = exit; q('[data-k="pause"]').onclick = pause; q('[data-k="ar"]').onclick = arOpen;
+    el.arbar = q(".run-arbar");
     muted = store.get("run_mute", false); RunAudio.mute(muted);
     el.snd.onclick = () => { muted = !muted; store.set("run_mute", muted); RunAudio.mute(muted); el.snd.innerHTML = ic(muted ? "mute" : "sound"); };
     el.snd.innerHTML = ic(muted ? "mute" : "sound");
@@ -85,7 +88,7 @@ const Game = (() => {
     init();
   }
   function unmount() {
-    alive = false; cancelAnimationFrame(raf); clearTimeout(flowTimer); clearTimeout(hintTimer); RunAudio.music(false);
+    arStop(); alive = false; cancelAnimationFrame(raf); clearTimeout(flowTimer); clearTimeout(hintTimer); RunAudio.music(false);
     window.removeEventListener("resize", resize); window.removeEventListener("keydown", onKey);
     document.removeEventListener("visibilitychange", onHide);
     if (renderer) { renderer.dispose(); try { renderer.forceContextLoss(); } catch {} renderer = null; }
@@ -129,7 +132,7 @@ const Game = (() => {
     if (force || hearts !== shown.h) { shown.h = hearts; el.hearts.innerHTML = [0, 1, 2].map((i) => ic("heart", i < hearts ? "on" : "")).join(""); }
   }
   function reward(text) {    // every prize looks and sounds the same way, so it reads as a reward
-    pop(text, "gold"); RunAudio.jingle(); buzz("success"); burst(px, py + 1.2, 0, "#FFE08A", 16, 3.2); bump(); hud();
+    pop(text, "gold"); buzz("success"); burst(px, py + 1.2, 0, "#FFE08A", 16, 3.2); bump(); hud();
   }
   function fail(title, text) {
     if (!alive) return;
@@ -144,9 +147,10 @@ const Game = (() => {
     try { T = T || (await loadLib()); }
     catch { return fail("Yuklab bo'lmadi", "Internetga ulanib, qayta urinib ko'ring. Ilova bir marta ochilgandan keyin o'yin internetsiz ham ishlaydi."); }
     if (!alive) return;
-    try { renderer = new T.WebGLRenderer({ canvas: el.cv, antialias: true, powerPreference: "high-performance" }); }
+    try { renderer = new T.WebGLRenderer({ canvas: el.cv, antialias: true, alpha: true, powerPreference: "high-performance" }); }
     catch { return fail("3D grafika ishlamadi", "Bu qurilma yoki brauzer 3D grafikani qo'llab-quvvatlamaydi."); }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearColor(0x000000, 0);
     renderer.toneMapping = T.ACESFilmicToneMapping;
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
     for (const m of MOODS) if (!m.c) {
@@ -167,8 +171,8 @@ const Game = (() => {
     quality.done = false; quality.n = quality.sum = 0;
     resize(); window.addEventListener("resize", resize);
     bindInput(); document.addEventListener("visibilitychange", onHide);
-    showMenu();
-    last = performance.now(); raf = requestAnimationFrame(loop);
+    play();
+    raf = requestAnimationFrame(loop);
   }
   function resize() {
     if (!renderer) return;
@@ -308,20 +312,19 @@ const Game = (() => {
   function spawnRow(z = FAR) {
     rows++;
     let gap = 13 + speed * 0.55 + rnd(0, 5);
+    // one obstacle per row, so a single swipe to the side always gets past it
     const L = [0, 1, 2].sort(() => Math.random() - 0.5), r = Math.random();
     const low = () => pick(["barrier", "crates", "melons", "teleshka"]), full = () => pick(["damas", "damas", "cart", "meat"]);
     if (rows < 4) { put(pick(["barrier", "crates", "sedan"]), L[0], z); trail(L[1], z, 5); }
-    else if (r < 0.16) { put(pick([low(), "banner", full(), "sedan"]), L[0], z); trail(L[1], z, 5); }
-    else if (r < 0.32) { put(full(), L[0], z); put(Math.random() < 0.5 ? full() : "sedan", L[1], z); trail(L[2], z, 6); }
-    else if (r < 0.44) { const t = low(); for (const l of L) put(t, l, z); arc(L[0], z); }
-    else if (r < 0.56) { for (const l of L) put("banner", l, z); trail(L[0], z, 4); }
-    else if (r < 0.70) { put(full(), L[0], z); put(low(), L[1], z); put("banner", L[2], z); arc(L[1], z); }
-    else if (r < 0.86) {        // run over the cars: a plank ramp, then two cars bumper to bumper
+    else if (r < 0.26) { put(low(), L[0], z); r < 0.13 ? arc(L[0], z) : trail(L[1], z, 5); }
+    else if (r < 0.42) { put("banner", L[0], z); trail(L[1], z, 5); }
+    else if (r < 0.64) { put(full(), L[0], z); trail(L[1], z, 6); }
+    else if (r < 0.78) { put("sedan", L[0], z); for (let i = 0; i < 3; i++) put("coin", L[0], z + 1 - i * 1.2, 2.3); trail(L[1], z, 4); }
+    else if (r < 0.92) {        // run over the cars: a plank ramp, then two cars bumper to bumper
       put("ramp", L[0], z); put("sedan", L[0], z - 3.8); put("sedan", L[0], z - 8.05);
       for (let i = 0; i < 6; i++) put("coin", L[0], z - 2.4 - i * 1.5, 2.3);
-      put(full(), L[1], z - 4); trail(L[2], z - 4, 4); gap += 9;
-    } else if (r < 0.94) { for (const l of L) put("sedan", l, z); for (let i = 0; i < 3; i++) put("coin", L[0], z + 1 - i * 1.2, 2.3); }
-    else { trail(L[0], z, 4); trail(L[1], z - 11, 4); put(pick(["non", "samsa"]), L[2], z - 5, 0.95); gap += 6; }
+      trail(L[1], z - 4, 4); gap += 9;
+    } else { trail(L[0], z, 4); trail(L[1], z - 11, 4); put(pick(["non", "samsa"]), L[2], z - 5, 0.95); gap += 6; }
     spawnIn = gap;
     return gap;
   }
@@ -346,10 +349,14 @@ const Game = (() => {
 
   /* ---------- player actions ---------- */
   function doJump() {
-    if (!grounded) { jumpBuf = 0.18; return; }       // remembered, fires on landing
+    if (!grounded) {
+      if (dbl) { jumpBuf = 0.18; return; }       // remembered, fires on landing
+      dbl = true; vy = JUMP * 0.95; ninjaT = 0.5; jumpAt = time;
+      sfx("jump", 1.3); buzz("medium"); return;
+    }
     vy = JUMP; py += 0.03; grounded = false; jumpAt = time; jumpBuf = 0; rollT = 0;
     sfx("jump"); buzz("light");
-    if (games <= 3 && !tipB) { tipB = true; tip("Havoda 2 marta bosing: salto"); }
+    if (games <= 3 && !tipB) { tipB = true; tip("Havoda yana yuqoriga suring: ninja sakrash"); }
   }
   function startRoll() { rollT = ROLL; rollAt = time; sfx("roll"); buzz("light"); }
   function doRoll() {
@@ -378,7 +385,7 @@ const Game = (() => {
     wave = null; sfx("trick"); buzz("medium");
   }
   function endTrick() {
-    const t = trick; trick = null; coins += t.air ? 5 : 2;
+    const t = trick; trick = null; safe = 0.4; coins += t.air ? 5 : 2;
     reward(`${LABEL[t.name]} +${t.air ? 5 : 2}`);
   }
   function graze(d) {
@@ -393,7 +400,7 @@ const Game = (() => {
   function collect(o) {
     o.gone = true; coins += o.val;
     combo = time - comboAt < 0.6 ? combo + 1 : 1; comboAt = time;
-    sfx("coin", 1 + Math.min(combo, 14) * 0.045); bump();
+    buzz("select"); bump();
     burst(laneX(o.lane), o.y, o.z, "#FFD45A", o.val > 1 ? 12 : 5, 2.4);
     if (o.val > 1) { buzz("soft"); pop(`+${o.val}`, "gold"); }
     if (combo === 10 || combo === 20) { coins += 5; reward(`Combo x${combo}! +5`); }
@@ -401,6 +408,7 @@ const Game = (() => {
   function act(dir) {
     if (dir === "T") return doTrick();
     if (state !== "play") return;
+    if (trick) { trick = null; safe = 0.4; }
     if (dir === "L") move(-1); else if (dir === "R") move(1); else if (dir === "U") doJump(); else doRoll();
   }
   function onKey(e) {
@@ -411,10 +419,11 @@ const Game = (() => {
   function bindInput() {
     window.addEventListener("keydown", onKey);
     const cv = el.cv; let id = null, sx = 0, sy = 0, x0 = 0, y0 = 0, t0 = 0, lastDir = "";
-    cv.addEventListener("pointerdown", (e) => { id = e.pointerId; sx = x0 = e.clientX; sy = y0 = e.clientY; t0 = performance.now(); lastDir = ""; try { cv.setPointerCapture(id); } catch {} });
+    cv.addEventListener("pointerdown", (e) => { RunAudio.wake(); id = e.pointerId; sx = x0 = e.clientX; sy = y0 = e.clientY; t0 = performance.now(); lastDir = ""; try { cv.setPointerCapture(id); } catch {} });
     // the action fires while the finger is still moving, not when it lifts
     cv.addEventListener("pointermove", (e) => {
       if (e.pointerId !== id) return;
+      if (state === "ar") { ar.yaw += (e.clientX - sx) * 0.012; sx = e.clientX; return; }
       const dx = e.clientX - sx, dy = e.clientY - sy, ax = Math.abs(dx), ay = Math.abs(dy);
       if (Math.max(ax, ay) < (lastDir ? 30 : 14)) return;
       const dir = ax > ay ? (dx > 0 ? "R" : "L") : dy < 0 ? "U" : "D";
@@ -425,8 +434,9 @@ const Game = (() => {
     cv.addEventListener("pointerup", (e) => {
       if (e.pointerId !== id) return; id = null;
       const now = performance.now();
+      if (state === "ar") { if (now - t0 < 260 && Math.hypot(e.clientX - x0, e.clientY - y0) < 14) arFlip(); return; }
       if (lastDir || now - t0 > 260 || Math.hypot(e.clientX - x0, e.clientY - y0) > 14) return;     // not a tap
-      if (state === "rest") { rest.t = Math.max(rest.t, 2.35); return; }                             // tap skips the break
+      if (state === "ar") { arFlip(); return; }
       if (now - lastTap < 340) { lastTap = 0; doTrick(); } else lastTap = now;
     });
     cv.addEventListener("pointercancel", () => { id = null; });
@@ -468,23 +478,6 @@ const Game = (() => {
     }
     if (e.t > 3.1) { eat = null; S.apple.visible = false; }
   }
-  function startRest() {        // every few hundred metres: catch breath, drink water, get a prize
-    state = "rest"; rest = { t: 0, v: speed, paid: false, gulp: false };
-    nextRest += 600;
-    for (const o of objs) if (o.z > -80) o.gone = true;
-    spawnIn = Math.max(spawnIn, 30);
-    pop(`${Math.floor(dist / 100) * 100} m!`, "gold");
-  }
-  function restStep() {
-    const r = rest;
-    if (r.t > 0.4 && r.t < 1.0 && Math.random() < 0.25) burst(px + rnd(-0.2, 0.2), 1.5, -0.2, "#BFE6FF", 1, 1.2);
-    if (r.t > 1.2 && !r.gulp) { r.gulp = true; sfx("gulp"); setTimeout(() => sfx("gulp"), 380); }
-    if (r.t >= 2.4 && !r.paid) {
-      r.paid = true; confetti(18);
-      if (hearts < HEARTS) { hearts++; reward("+1 jon"); } else { coins += 30; reward("+30 tanga"); }
-    }
-    if (r.t >= 3.1) { rest = null; state = "play"; invuln = 1.2; trail(lane, -16, 6); }
-  }
   function guardStep(raw) {     // the watchman from the opening scene chases for a moment, then falls behind
     if (guardT < 0) return;
     guardT += raw;
@@ -506,7 +499,7 @@ const Game = (() => {
       o.position.z += ds;
       if (o.position.z > C.BACK) {        // comes round again further up the street, slightly changed
         o.position.z -= C.LOOP; const u = o.userData;
-        if (u.arm) { u.calls = Math.random() < 0.5; u.hi = false; u.bub.material = pick(S.bubbleMats); }
+        if (u.arm) { u.calls = Math.random() < 0.15; u.hi = false; u.bub.material = pick(S.bubbleMats); }
         if (u.gate) { u.n = (u.n + 1) % S.gateMats.length; u.gate.material = S.gateMats[u.n]; }
       }
     }
@@ -538,7 +531,6 @@ const Game = (() => {
   function update(dt, raw) {
     time += dt;
     let v = 0;
-    if (state === "rest") { rest.t += raw; v = rest.v * Math.max(0, 1 - rest.t / 0.4); restStep(); }
     if (state === "intro" && (introT += raw) > 0.45) state = "play";
     const playing = state === "play";
     if (playing) v = speed;
@@ -557,17 +549,18 @@ const Game = (() => {
       gy = groundAt();
       if (py > gy + 0.02 || vy > 0) {
         grounded = false; vy -= GRAV * dt; py += vy * dt;
-        if (py <= gy && vy <= 0) { py = gy; vy = 0; grounded = true; burst(px, gy + 0.1, 0, "#D8C7A8", 6, 1.6); if (fastFall) { fastFall = false; startRoll(); } }
-      } else { grounded = true; py = py < gy ? Math.min(gy, py + 12 * dt) : gy; }
+        if (py <= gy && vy <= 0) { py = gy; vy = 0; grounded = true; dbl = false; burst(px, gy + 0.1, 0, "#D8C7A8", 6, 1.6); if (fastFall) { fastFall = false; startRoll(); } }
+      } else { grounded = true; dbl = false; py = py < gy ? Math.min(gy, py + 12 * dt) : gy; }
       if (rollT > 0 && (rollT -= dt) <= 0) { rollT = 0; lowT = 0.1; }
       if (lowT > 0) lowT -= dt;
       if (jumpBuf > 0) { jumpBuf -= dt; if (grounded) doJump(); }
       if (invuln > 0) invuln -= dt;
+      if (safe > 0) safe -= dt;
+      if (ninjaT > 0) ninjaT -= dt;
       if (trick && ((trick.t += dt) >= trick.dur || (grounded && trick.t > 0.12))) endTrick();
       if ((spawnIn -= speed * dt) <= 0) spawnRow();
       if (auto) autopilot();
-      if (dist >= nextRest && gy === 0 && free()) startRest();
-      else if (runT > nextEat && free()) startEat();
+      if (runT > nextEat && free()) startEat();
       if (games <= 3 && !tipA && runT > 2.2) { tipA = true; tip("Ekranni 2 marta bosing: akrobatika"); }
     } else if (crashT > 0 && py > 0) py = Math.max(0, py - 12 * dt);
     if (crashT > 0) crashT += dt;
@@ -594,7 +587,7 @@ const Game = (() => {
         o.seen = true;       // a last-moment jump, roll or dodge counts as a near miss
         o.nm = (o.lane === lane && ((o.kind === "low" && time - jumpAt < 0.16) || (o.kind === "high" && time - rollAt < 0.14))) || (o.kind === "full" && o.lane === prevLane && o.lane !== lane && time - laneAt < 0.26);
       }
-      if (near && dx < 0.85 && invuln <= 0 && hits(o)) return crash();
+      if (near && dx < 0.85 && invuln <= 0 && safe <= 0 && !trick && hits(o)) return crash();
       if (o.z - o.hd > 0.4) { o.done = true; if (o.nm) nearMiss(); }
     }
   }
@@ -607,7 +600,7 @@ const Game = (() => {
     let sl = -s * 0.85, sr = s * 0.85, fl = 1.3, fr = 1.3, zl = -0.1, zr = 0.1;
     let lean = -0.16, pivY = HIP + Math.abs(Math.cos(A.phase)) * 0.05, hy = 0, hx = 0, twist = 0, wob = 0, pz = 0;
     let fx = 0, fyaw = 0, fz = 0;      // whole-body flips: applied directly, not eased
-    const busy = crashT > 0 || trick || rollT > 0;
+    const busy = crashT > 0 || trick || rollT > 0 || ninjaT > 0;
     if (crashT > 0) {                  // knocked onto the back, legs in the air
       const e = 1 - Math.pow(1 - clamp(crashT / 0.4, 0, 1), 2);
       fx = 1.4 * e; pivY = HIP - 0.56 * e; pz = 1.1 * e; lean = 0;
@@ -617,8 +610,10 @@ const Game = (() => {
       pivY = HIP;
       if (n === "salto" || n === "oldinga") { fx = n === "salto" ? turn : -turn; hl = hr = 0.3 + 1.6 * tuck; kl = kr = 0.3 + 1.9 * tuck; sl = sr = 2.6 - 1.5 * tuck; fl = fr = 0.3 + 1.5 * tuck; lean = -0.1 - 0.35 * tuck; }
       else if (n === "twist") { fx = turn; fyaw = turn; hl = hr = 0.1; kl = kr = 0.15; sl = sr = 0.9; fl = fr = 2.2; zl = 0.4; zr = -0.4; lean = 0; }
-      else if (n === "charx") { fz = turn * trick.side; hl = 0.7; hr = -0.7; kl = kr = 0.15; sl = sr = 3.0; zl = -0.5; zr = 0.5; fl = fr = 0.1; lean = 0; }
       else { fyaw = turn * trick.side; hl = 0.6; kl = 1.1; hr = -0.1; kr = 0.2; zl = -1.4; zr = 1.4; sl = sr = 0.2; fl = fr = 0.3; lean = 0; }
+    } else if (ninjaT > 0) {           // ninja jump: quick tucked front flip
+      fx = -Math.PI * 2 * (1 - ninjaT / 0.5); pivY = HIP; lean = -0.4;
+      hl = hr = 1.8; kl = kr = 2.1; sl = sr = 1.2; fl = fr = 1.8;
     } else if (rollT > 0) {            // tucked forward somersault
       fx = -Math.PI * 2 * (1 - rollT / ROLL); pivY = 0.45; lean = -0.5;
       hl = hr = 1.9; kl = kr = 2.2; sl = sr = 1.3; fl = fr = 1.9;
@@ -627,14 +622,9 @@ const Game = (() => {
       sr = 1.75 + Math.sin(time * 5) * 0.3; fr = 0.55 + Math.sin(time * 5 + 1) * 0.25; zr = 0.15 + Math.sin(time * 2.3) * 0.3; hy = time % 6 > 5.2 ? 1.2 : 0;
     } else if (startle) {
       hl = hr = 0; kl = kr = 0.1; lean = 0; pivY = HIP + 0.1; sl = sr = 2.5; zl = -0.6; zr = 0.6; fl = fr = 0.4; hy = 1.3;
-    } else if (state === "rest") {     // out of breath, then a drink, then a cheer
-      const r = rest.t; hl = hr = 0; kl = kr = 0.05; pivY = HIP; lean = 0;
-      if (r < 1.0) { lean = -0.75 + Math.sin(time * 7) * 0.05; hl = hr = 0.78; kl = kr = 0.3; sl = sr = 0.85; fl = fr = 0.15; pivY = HIP - 0.05; hx = 0.25; }
-      else if (r < 2.4) { sr = 1.35; fr = 2.35; zr = 0.25; hx = 0.42; zl = -0.45; fl = 1.5; sl = 0.1; lean = 0.06; }
-      else { sl = sr = 2.9; zl = -0.35; zr = 0.35; fl = fr = 0.15; pivY = HIP + Math.abs(Math.sin(time * 9)) * 0.12; }
     } else if (!grounded && state === "play") {
       pivY = HIP; lean = -0.06;
-      if (vy > 0) { hl = 1.15; kl = 1.35; hr = -0.55; kr = 1.2; sl = -0.9; sr = 1.9; }
+      if (vy > 0) { hl = 1.15; kl = 1.35; hr = -0.55; kr = 1.2; sl = 2.1; sr = 1.9; zl = -0.3; zr = 0.3; fl = fr = 0.5; }
       else { hl = 0.5; kl = 0.5; hr = -0.2; kr = 0.6; sl = 0.4; sr = 0.4; zl = -1.0; zr = 1.0; fl = fr = 0.4; }
     }
     if (!busy && state === "play") {
@@ -661,7 +651,7 @@ const Game = (() => {
     A.g.rotation.y += ((menu || (state === "intro" && introT < 0.12) ? Math.PI / 2 : 0) - A.g.rotation.y) * (1 - Math.exp(-dt * 14));
     A.g.position.set(px, py, A.g.position.z + (pz - A.g.position.z) * k);
     A.g.visible = invuln <= 0 || Math.floor(time * 16) % 2 === 0;
-    S.can.visible = menu || startle; S.bottle.visible = state === "rest" && rest.t > 0.9 && rest.t < 2.5;
+    S.can.visible = menu || startle; S.bottle.visible = false;
     S.blob.position.set(px, gy + 0.02, A.g.position.z); S.blob.scale.setScalar(Math.max(0.4, 1 - (py - gy) * 0.3));
     S.dizzy.visible = crashT > 0.35;
     if (S.dizzy.visible) { S.dizzy.position.set(px, 0.9, A.g.position.z + 1.0); S.dizzy.rotation.y = time * 5; }
@@ -673,16 +663,10 @@ const Game = (() => {
     kick += ((state === "play" ? clamp((speed - V0) / (VMAX - V0), 0, 1) * 7 : 0) - kick) * k;
     const p = tmp.p.set(camX + (Math.random() - 0.5) * shake * 0.8, CAM_Y + py * 0.25 + (Math.random() - 0.5) * shake * 0.6, CAM_Z);
     const l = tmp.l.set(camX * 1.2, 1.3 + py * 0.2, -10);
-    // close side view while a flip is in the air
-    cineK += ((trick && trick.air && trick.t / trick.dur < 0.8 ? 1 : 0) - cineK) * (1 - Math.exp(-raw * 6));
-    if (cineK > 0.002) { const e = sm(cineK); p.lerp(tmp.a.set(clamp(px + 2.6 * cineSide, -3.3, 3.3), py + 1.5, 4.6), e); l.lerp(tmp.b.set(px, py + 0.9, 0), e); }
-    // front view during the water break
-    restK += ((state === "rest" && rest.t < 2.9 ? 1 : 0) - restK) * (1 - Math.exp(-raw * 5));
-    if (restK > 0.002) { const e = sm(restK); p.lerp(tmp.a.set(px + (px > 0.5 ? -3 : 3), 1.9, -2.6), e); l.lerp(tmp.b.set(px, 1.15, 0.3), e); }
     // opening scene: looking at the wall from the road
     if (introK > 0.002) { const e = sm(introK); p.lerp(tmp.a.set(3.9, 1.6, 0.6), e); l.lerp(tmp.b.set(-3.5, -0.3, 0.2), e); }
     camera.position.copy(p); camera.lookAt(l);
-    camera.fov = baseFov + kick - 9 * cineK; camera.updateProjectionMatrix();
+    camera.fov = baseFov + kick; camera.updateProjectionMatrix();
   }
   function step(raw) {
     // slow motion for flips and near misses
@@ -700,8 +684,78 @@ const Game = (() => {
       quality.sum += Math.min(0.1, real);
       if (++quality.n >= 150) { quality.done = true; if (quality.sum / quality.n > 0.027) lowQuality(); }
     }
+    if (state === "ar") { arStep(raw); renderer.render(ar.scene, ar.cam); return; }
     if (!frozen) step(raw);
     renderer.render(scene, camera);
+  }
+
+  /* ---------- AR: the runner on top of the phone's camera picture ---------- */
+  async function arOpen() {
+    if (!["play", "pause"].includes(state)) return;
+    const back = state === "pause" ? prevState : state;
+    prevState = back; state = "ar"; hideCard(); RunAudio.music(false);
+    let stream = null;
+    try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false }); } catch {}
+    if (!alive) { if (stream) stream.getTracks().forEach((t) => t.stop()); return; }
+    if (!stream) { state = "pause"; return arFail(); }
+    if (!ar) {
+      const sc = new T.Scene(), d = new T.DirectionalLight(0xffffff, 2);
+      d.position.set(2, 4, 3); sc.add(new T.HemisphereLight(0xffffff, 0x8a8f99, 2.2), d);
+      const blob = new T.Mesh(new T.CircleGeometry(0.42, 24), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }));
+      blob.rotation.x = -Math.PI / 2; blob.position.y = 0.01; sc.add(blob);
+      ar = { scene: sc, cam: new T.PerspectiveCamera(50, 1, 0.1, 100), blob };
+    }
+    const v = document.createElement("video");
+    v.className = "run-video"; v.setAttribute("playsinline", ""); v.muted = true; v.autoplay = true; v.srcObject = stream;
+    root.prepend(v); v.play().catch(() => {});
+    Object.assign(ar, { on: true, stream, video: v, back, yaw: Math.PI, flip: -1, mode: "run" });
+    ar.scene.add(P.g); P.g.position.set(0, 0, 0); P.g.visible = true;
+    S.can.visible = S.bottle.visible = S.apple.visible = false;
+    root.classList.add("ar");
+    el.arbar.innerHTML = `<p>Barmoq bilan aylantiring · bosing: salto</p><div>
+      <button data-m="run">${ic("zap")}Yugurish</button><button data-m="wave">${ic("hand")}Salom</button><button data-m="flip">${ic("sparkles")}Salto</button><button data-m="x" class="x" aria-label="Yopish">${ic("x")}</button></div>`;
+    el.arbar.querySelectorAll("button").forEach((b) => { b.onclick = () => { const m = b.dataset.m; m === "x" ? arClose() : m === "flip" ? arFlip() : (ar.mode = m); }; });
+    buzz("medium");
+  }
+  function arFail() {
+    card(`${chip("alert", "lg solid")}<h2>Kamera ochilmadi</h2><p>AR uchun kameraga ruxsat bering. Telegram'ning ba'zi versiyalarida kamera Mini App ichida ishlamaydi.</p><button class="btn-primary" data-a="go">${ic("play")} Davom etish</button>`,
+      { go: () => { hideCard(); state = prevState; RunAudio.music(true); last = performance.now(); } });
+  }
+  function arStop() {
+    if (!ar || !ar.on) return;
+    ar.on = false; ar.stream.getTracks().forEach((t) => t.stop()); ar.video.remove();
+    if (root) { root.classList.remove("ar"); el.arbar.innerHTML = ""; }
+  }
+  function arClose() {
+    arStop();
+    scene.add(P.g); P.pivot.rotation.set(0, 0, 0); P.g.rotation.set(0, 0, 0); P.g.position.set(px, py, 0);
+    state = "pause"; prevState = ar.back; pauseCard();
+  }
+  function arFlip() { if (ar && ar.on && ar.flip < 0) { ar.flip = 0; sfx("trick"); buzz("medium"); } }
+  function arStep(raw) {
+    const A = P; time += raw;
+    ar.cam.aspect = Math.max(1, W) / Math.max(1, H);
+    ar.cam.position.set(0, 1.25, 3.6); ar.cam.lookAt(0, 0.85, 0); ar.cam.updateProjectionMatrix();
+    A.g.rotation.y = ar.yaw;
+    let y = 0, fx = 0;
+    A.head.rotation.set(0, 0, 0);
+    if (ar.flip >= 0) {            // standing back flip
+      ar.flip += raw;
+      const q = Math.min(1, ar.flip / 0.9), e = q * q * (3 - 2 * q), t = Math.sin(Math.PI * q);
+      y = t * 1.1; fx = Math.PI * 2 * e;
+      A.hL.rotation.x = A.hR.rotation.x = 1.6 * t; A.kL.rotation.x = A.kR.rotation.x = -2 * t;
+      A.sL.rotation.set(2.4, 0, -0.3); A.sR.rotation.set(2.4, 0, 0.3); A.eL.rotation.x = A.eR.rotation.x = 0.4 + t;
+      A.pivot.position.y = HIP;
+      if (q >= 1) ar.flip = -1;
+    } else if (ar.mode === "wave") {   // waving with both hands
+      const w = Math.sin(time * 12) * 0.35;
+      A.hL.rotation.x = A.hR.rotation.x = 0; A.kL.rotation.x = A.kR.rotation.x = -0.05;
+      A.sL.rotation.set(0.2, 0, -2.5 - w); A.sR.rotation.set(0.2, 0, 2.5 + w); A.eL.rotation.x = A.eR.rotation.x = 0.4;
+      A.body.rotation.x = 0; A.pivot.position.y = HIP + Math.abs(Math.sin(time * 6)) * 0.03;
+    } else { A.sL.rotation.z = -0.1; A.sR.rotation.z = 0.1; runPose(A, time * 11, false); }
+    A.pivot.rotation.set(fx, 0, 0);
+    A.g.position.set(0, y, 0);
+    ar.blob.scale.setScalar(Math.max(0.4, 1 - y * 0.4));
   }
 
   /* ---------- game flow ---------- */
@@ -711,28 +765,14 @@ const Game = (() => {
     speed = V0; dist = 0; coins = 0; hearts = HEARTS; rows = 0; runT = 0;
     lane = prevLane = first ? 0 : 1; px = first ? -2.55 : 0; py = vy = gy = 0; grounded = true; fastFall = false;
     rollT = lowT = jumpBuf = invuln = stumbleT = crashT = nmSlow = shake = 0;
-    laneAt = jumpAt = rollAt = lastWave = -9; trick = wave = eat = rest = null; nextEat = 12; nextRest = 500; combo = 0; tipA = tipB = false; ts = 1;
+    laneAt = jumpAt = rollAt = lastWave = -9; trick = wave = eat = rest = null; nextEat = 12; dbl = false; ninjaT = safe = 0; combo = 0; tipA = tipB = false; ts = 1;
     P.pivot.rotation.set(0, 0, 0); P.g.position.set(px, 0, 0); P.yaw = P.tilt = 0; P.g.rotation.y = first ? Math.PI / 2 : 0;
     S.apple.visible = S.bottle.visible = S.bag.visible = false;
     if (!first) { S.wall.visible = false; introK = 0; }
     hud(true);
   }
-  function menuCard() {
-    const m = MOODS[moodIdx];
-    card(`
-      <button class="run-mood" data-a="mood">${ic(m.icon)}<b>${m.name}</b>${ic("chev")}</button>
-      <h2>Chorsu Run</h2>
-      <div class="run-best">${ic("trophy")} Eng yaxshi natija: <b>${best()}</b></div>
-      <button class="btn-primary" data-a="play">${ic("play")} O'ynash</button>`,
-      { play, mood: () => { moodOverride = moodIdx = (moodIdx + 1) % MOODS.length; menuCard(); } }, "sheet");
-  }
-  function showMenu() {         // the opening scene: the runner is half-way through painting the Ustoz AI logo
-    state = "menu"; menuT = 0; introK = 1; introT = 0; guardT = -1; S.guard.g.visible = false;
-    reset(true);
-    S.wall.visible = true; S.wall.position.z = 0.2; paintP = 0.36; S.paint(paintP);
-    menuCard();
-  }
   function play() {
+    clearTimeout(flowTimer);
     const first = state === "menu";
     if (!first) reset(false);
     hideCard(); RunAudio.music(true); buzz("medium");
@@ -748,6 +788,9 @@ const Game = (() => {
   function pause() {
     if (!["play", "intro", "rest"].includes(state)) return;
     prevState = state; state = "pause"; RunAudio.music(false);
+    pauseCard();
+  }
+  function pauseCard() {
     card(`${chip("pause", "lg solid")}<h2>Pauza</h2><button class="btn-primary" data-a="go">${ic("play")} Davom etish</button><button class="btn-ghost" data-a="out">Chiqish</button>`,
       { go: () => { hideCard(); state = prevState; RunAudio.music(true); last = performance.now(); }, out: exit });
   }
@@ -796,7 +839,7 @@ const Game = (() => {
     el.ov.querySelectorAll('[data-a="o"]').forEach((b) => { b.disabled = true; if (Number(b.dataset.v) === q.ans) b.classList.add("ok"); });
     if (btn && !ok) btn.classList.add("bad");
     coins = Math.max(0, coins + (ok ? STAKE : -STAKE)); hud(); bump();
-    pop(ok ? `+${STAKE} tanga` : `−${STAKE} tanga`, ok ? "gold" : "bad"); ok ? RunAudio.jingle() : sfx("bad"); buzz(ok ? "success" : "warning");
+    pop(ok ? `+${STAKE} tanga` : `−${STAKE} tanga`, ok ? "gold" : "bad"); if (!ok) sfx("bad"); buzz(ok ? "success" : "warning");
     flowTimer = setTimeout(() => { if (alive) resume(); }, 420);
   }
   function resume() {

@@ -158,7 +158,7 @@ const RunWorld = (() => {
     }
   }
 
-  // The bazaar the road leads to: ribbed turquoise dome on a drum, arcade hall, portal with towers, big sign.
+  // The bazaar at the end of the road, modelled on Chorsu: a great turquoise dome on a round arcaded hall, ringed by smaller domes. No sign: players should recognise it.
   function landmark() {
     const g = new T.Group(); g.position.set(0, 0, -222);
     const lit = (o) => { const m = new T.MeshStandardMaterial({ fog: false, roughness: 0.6, ...o }); S.tints.push({ m, k: 0.25 }); return m; };
@@ -188,27 +188,9 @@ const RunWorld = (() => {
     put(tube, drumM, [31, 8, 31], [0, 15.6, 0]); put(big, tileM, [30.5, 25, 30.5], [0, 19.4, 0]);
     put(G.sph, gold, [1.6, 1.6, 1.6], [0, 45.4, 0]); put(G.cone, gold, [0.7, 5, 0.7], [0, 49, 0]);
     for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + 0.39, x = Math.cos(a) * 37.5, z = Math.sin(a) * 37.5; put(tube, plain, [5.2, 2.4, 5.2], [x, 12.6, z]); put(small, tileM, [5.4, 4.6, 5.4], [x, 13.7, z]); }
-    // portal (peshtoq)
-    const portal = tex(512, 512, (c) => {
-      c.fillStyle = "#DCC7A1"; c.fillRect(0, 0, 512, 512);
-      c.fillStyle = "#0E5F9A"; c.fillRect(22, 22, 468, 490); c.fillStyle = "#DCC7A1"; c.fillRect(54, 54, 404, 458);
-      c.fillStyle = "#F2D279"; for (let i = 0; i < 15; i++) { for (const [x, y] of [[38, 60 + i * 30], [474, 60 + i * 30], [60 + i * 28, 38]]) { c.beginPath(); c.moveTo(x, y - 8); c.lineTo(x + 8, y); c.lineTo(x, y + 8); c.lineTo(x - 8, y); c.fill(); } }
-      const gr = c.createLinearGradient(0, 120, 0, 512); gr.addColorStop(0, "#1B2A3C"); gr.addColorStop(1, "#3B2F26");
-      arch(c, 96, 96, 320, 416); c.fillStyle = gr; c.fill(); c.lineWidth = 16; c.strokeStyle = "#18A9C6"; c.stroke();
-      arch(c, 126, 150, 260, 362); c.lineWidth = 5; c.strokeStyle = "#F2D279"; c.stroke();
-    });
-    put(G.box, plain, [34, 30, 6], [0, 15, 44]);
-    const pf = put(G.plane, lit({ map: portal }), [34, 30, 1], [0, 15, 47.05]);
-    for (const x of [-32, 32]) { put(tube, plain, [2.6, 36, 2.6], [x, 18, 45]); put(tube, tileM, [2.72, 2.6, 2.72], [x, 29, 45]); put(small, tileM, [3.1, 3.6, 3.1], [x, 36, 45]); put(G.cone, gold, [0.4, 3, 0.4], [x, 41, 45]); }
-    const sign = tex(1024, 160, (c) => {
-      const gr = c.createLinearGradient(0, 0, 0, 160); gr.addColorStop(0, "#0E5F9A"); gr.addColorStop(1, "#0A3F70"); c.fillStyle = gr; c.fillRect(0, 0, 1024, 160);
-      c.strokeStyle = "#F2D279"; c.lineWidth = 8; c.strokeRect(10, 10, 1004, 140);
-      c.fillStyle = "#FFE9A8"; c.font = "800 96px Inter, Arial, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("CHORSU BOZORI", 512, 84);
-    });
-    put(G.box, lit({ color: 0x0a3f70 }), [58, 9.4, 1], [0, 35.5, 46.5]);
-    put(G.plane, lit({ map: sign, emissiveMap: sign, emissive: 0xffffff, emissiveIntensity: 0.2 }), [56, 8.7, 1], [0, 35.5, 47.05]);
-    S.signMats.push(g.children[g.children.length - 1].material);
-    pf.renderOrder = 1;
+    // outer ring of low domed halls
+    const lowHall = lit({ map: arcade(4, false) });
+    for (let i = 0; i < 14; i++) { const a = i * Math.PI * 2 / 14 + 0.11, x = Math.cos(a) * 54, z = Math.sin(a) * 54; put(tube, lowHall, [7, 6, 7], [x, 3, z]); put(small, tileM, [6.6, 5, 6.6], [x, 6, z]); }
     scene.add(g);
   }
 
@@ -372,7 +354,7 @@ const RunWorld = (() => {
     for (const x of [-4.75, 4.75]) gk.add(G.box, "#E7D8B8", [0.9, 6.6, 0.9], [x, 3.3, 0]).add(G.box, "#18A9C6", [0.96, 0.5, 0.96], [x, 5.2, 0]).add(G.box, "#C9B48C", [1.1, 0.4, 1.1], [x, 0.2, 0]).add(G.half, "#18A9C6", [0.62, 0.8, 0.62], [x, 7.55, 0]);
     gk.add(G.box, "#E7D8B8", [10.6, 1.9, 0.8], [0, 6.55, 0]).add(G.box, "#18A9C6", [10.7, 0.16, 0.86], [0, 5.6, 0]).add(G.box, "#18A9C6", [10.7, 0.16, 0.86], [0, 7.5, 0]);
     S.gateGeo = gk.geo();
-    S.gateMats = ["CHORSU BOZORI", "XUSH KELIBSIZ", "USTOZ AI"].map((t) => {
+    S.gateMats = ["USTOZ AI", "XUSH KELIBSIZ"].map((t) => {
       const map = tex(512, 96, (c) => {
         const gr = c.createLinearGradient(0, 0, 0, 96); gr.addColorStop(0, "#0E5F9A"); gr.addColorStop(1, "#0A3F70"); c.fillStyle = gr; c.fillRect(0, 0, 512, 96);
         c.strokeStyle = "#F2D279"; c.lineWidth = 5; c.strokeRect(6, 6, 500, 84);
@@ -523,7 +505,7 @@ const RunWorld = (() => {
         if (u.umb) snowOn(m, G.cone, [2.34, 0.72, 2.34], [0, 3.23, -0.2]); else snowOn(m, G.box, [3.4, 0.1, 2.44], [0, 2.67, 0.15], [0.17, 0, 0]);
         const arm = mesh(S.armGeos[u.shirt], S.prop, false); arm.position.set(u.sx - 0.255, 1.36, -1.1); arm.rotation.z = -0.12; m.add(arm);
         const bub = new T.Sprite(pick(S.bubbleMats)); bub.scale.set(2.5, 0.94, 1); bub.position.set(u.sx, 3.75, 0.9); bub.visible = false; m.add(bub);
-        m.userData = { arm, bub, side, calls: Math.random() < 0.5, k: 0, ph: rnd(0, 6), hi: false };
+        m.userData = { arm, bub, side, calls: Math.random() < 0.15, k: 0, ph: rnd(0, 6), hi: false };
         add(m, side * 6.75, z); S.stalls.push(m);
       } else if (r < 0.88) tree(pick(S.frontTrees), side * rnd(6.3, 7.0), z);
       else { const m = mesh(pick(S.groups), S.prop); m.rotation.y = -side * rnd(0.6, 2.4); add(m, side * 5.9, z); }

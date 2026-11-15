@@ -1,5 +1,5 @@
 // Offline cache: the app shell and the game work without internet after the first visit.
-const CACHE = "ustozai-v5", LIB_CACHE = "ustozai-lib";
+const CACHE = "ustozai-v6", LIB_CACHE = "ustozai-lib";
 const FILES = ["./", "index.html", "styles.css", "data.js", "app.js", "game.js", "run-world.js", "run-audio.js", "logo.png"];
 const LIB = /three(\.js\/|@)0\.160\.0/;     // the game's 3D library on a CDN
 const LIB_URL = "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js";
