@@ -3,11 +3,8 @@
 // Controls: swipe left/right = change lane, up = jump, down = roll, double tap = acrobatic trick.
 
 const Game = (() => {
-  const LIBS = [
-    "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js",
-    "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js",
-    "https://unpkg.com/three@0.160.0/build/three.module.min.js",
-  ];
+  const LIB = "./lib/three.module.min.js";      // three.js is kept in the app itself so it works offline
+  const MODELS = ["damas", "tree1", "tree2"], CREDITS = "3D modellar (CC BY 4.0): Chevrolet Damas, own.guest · Eiffel Tower, Dimiter · Daraxtlar, Nicholas-3D";
   const C = { SLOT: 10, SLOTS: 20, LOOP: 200, BACK: 50 };     // scenery repeats every LOOP metres, BACK of them behind the runner
   const LANE = 2, FAR = -150, GONE = 14, HIP = 0.83;
   const CAM_Y = 4.3, CAM_Z = 8.4, GRAV = 26, JUMP = 9.6, ROLL = 0.62, V0 = 15, VMAX = 33;
@@ -38,6 +35,7 @@ const Game = (() => {
   let combo = 0, comboAt = -9, games = 0, tipA = false, tipB = false, lastTap = 0, bumpAt = 0;
   let flowTimer = 0, hintTimer = 0, muted = false;
   let frozen = false;      // test hook: stop the clock but keep drawing
+  let loaded = null;       // downloaded models, kept between games
   let dbl = false, ninjaT = 0, ninjaK = 0, flipT = 0, safe = 0, ar = null;     // second jump used, ninja flip timer, no-crash window after a trick, AR view
   const shown = {}, quality = { n: 0, sum: 0, done: false };
 
@@ -139,9 +137,25 @@ const Game = (() => {
     card(`${chip("alert", "lg solid")}<h2>${title}</h2><p>${text}</p><button class="btn-primary" data-a="retry">${ic("refresh")} Qayta urinish</button>`, { retry: () => { card(LOADING); init(); } });
   }
 
-  async function loadLib() {
-    for (const url of LIBS) { try { return await import(url); } catch {} }
-    throw new Error("three.js could not be loaded");
+  async function loadLib() { return import(LIB); }
+  // Loads the 3D models in the background once the run has started; the game never waits for them.
+  async function loadModels() {
+    try {
+      if (!loaded) {
+        const [{ GLTFLoader }, { MeshoptDecoder }] = await Promise.all([import("./lib/GLTFLoader.js"), import("./lib/meshopt_decoder.module.js")]);
+        const l = new GLTFLoader(); l.setMeshoptDecoder(MeshoptDecoder);
+        loaded = { get: (n) => l.loadAsync(`models/${n}.glb`).then((g) => g.scene).catch(() => null) };
+        const scenes = await Promise.all(MODELS.map(loaded.get));
+        MODELS.forEach((n, i) => { loaded[n] = scenes[i]; });
+      }
+      if (!alive) return;
+      RunWorld.useModels(loaded);
+      for (const o of pools.damas || []) scene.remove(o);      // vans waiting in the pool are swapped for the new model
+      pools.damas = [];
+      if (quality.low) return;
+      loaded.eiffel = loaded.eiffel || (await loaded.get("eiffel"));
+      if (alive && loaded.eiffel && !quality.low) RunWorld.useModels({ eiffel: loaded.eiffel });
+    } catch {}
   }
   async function init() {
     try { T = T || (await loadLib()); }
@@ -149,7 +163,7 @@ const Game = (() => {
     if (!alive) return;
     try { renderer = new T.WebGLRenderer({ canvas: el.cv, antialias: true, alpha: true, powerPreference: "high-performance" }); }
     catch { return fail("3D grafika ishlamadi", "Bu qurilma yoki brauzer 3D grafikani qo'llab-quvvatlamaydi."); }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.setClearColor(0x000000, 0);
     renderer.toneMapping = T.ACESFilmicToneMapping;
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
@@ -173,6 +187,7 @@ const Game = (() => {
     bindInput(); document.addEventListener("visibilitychange", onHide);
     play();
     raf = requestAnimationFrame(loop);
+    loadModels();
   }
   function resize() {
     if (!renderer) return;
@@ -184,6 +199,7 @@ const Game = (() => {
     camera.fov = baseFov; camera.updateProjectionMatrix();
   }
   function lowQuality() {
+    quality.low = true; if (S.eiffel) S.eiffel.visible = false;
     renderer.setPixelRatio(1); renderer.shadowMap.enabled = false; S.sun.castShadow = false;
     W = 0; resize();
   }
@@ -215,6 +231,8 @@ const Game = (() => {
     S.disc.material.color.copy(cur.disc); S.disc.material.opacity = cur.discA; S.glow.material.color.copy(cur.disc); S.glow.material.opacity = cur.glow;
     S.disc.position.copy(cur.discDir).normalize().multiplyScalar(950); S.glow.position.copy(S.disc.position);
     for (const t of S.tints) { t.base = t.base || t.m.color.clone(); t.m.color.copy(t.base).lerp(cur.fog, t.k); }   // far things take on the haze colour
+    for (const m of S.leafMats) { m.userData.base = m.userData.base || m.color.clone(); m.color.copy(m.userData.base).lerp(S.white, cur.snow * 0.7); }   // snow on the leaves
+    for (const m of S.eiffelMats) m.emissiveIntensity = 0.1 + cur.lamps * 2.2;
     const day = cur.stars < 0.5 && cur.rain < 0.5;
     S.flocks[0].mesh.visible = S.flocks[1].mesh.visible = day;
   }
@@ -800,7 +818,7 @@ const Game = (() => {
     pauseCard();
   }
   function pauseCard() {
-    card(`${chip("pause", "lg solid")}<h2>Pauza</h2><button class="btn-primary" data-a="go">${ic("play")} Davom etish</button><button class="btn-ghost" data-a="out">Chiqish</button>`,
+    card(`${chip("pause", "lg solid")}<h2>Pauza</h2><button class="btn-primary" data-a="go">${ic("play")} Davom etish</button><button class="btn-ghost" data-a="out">Chiqish</button><p class="run-credit">${CREDITS}</p>`,
       { go: () => { hideCard(); state = prevState; RunAudio.music(true); last = performance.now(); }, out: exit });
   }
   // Telegram's back button pauses a run instead of leaving the game

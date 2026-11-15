@@ -445,6 +445,7 @@ const RunWorld = (() => {
       return k.geo();
     });
     V.lightsDamas = baker().add(box, "#FFFFFF", [0.3, 0.14, 0.05], [-0.55, 0.86, 1.57]).add(box, "#FFFFFF", [0.3, 0.14, 0.05], [0.55, 0.86, 1.57]).geo();
+    S.lightsDamas = V.lightsDamas;
     V.lightsSedan = baker().add(box, "#FFFFFF", [0.34, 0.12, 0.05], [-0.58, 0.72, 2.06]).add(box, "#FFFFFF", [0.34, 0.12, 0.05], [0.58, 0.72, 2.06]).geo();
     V.cart = (() => {
       const k = baker(), wd = "#A9773F", dk = "#4A3423";
@@ -497,7 +498,7 @@ const RunWorld = (() => {
     const { SLOT, SLOTS, BACK } = S.C;
     const add = (o, x, z) => { o.position.x = x; o.position.z = z; scene.add(o); S.scn.push(o); return o; };
     const snowOn = (parent, g, s, p, r) => { const m = new T.Mesh(g, S.snowMat); m.scale.set(...s); m.position.set(...p); if (r) m.rotation.set(...r); m.visible = false; parent.add(m); S.snow.push(m); };
-    const tree = (geo, x, z) => { const m = mesh(geo, S.prop), s = rnd(0.82, 1.25); m.scale.setScalar(s); m.rotation.y = rnd(0, 6.28); snowOn(m, G.ico1, [1.5, 0.45, 1.5], [0, geo.userData.top - 0.5, 0]); add(m, x, z); };
+    const tree = (geo, x, z) => { const m = mesh(geo, S.prop), s = rnd(0.82, 1.25); m.scale.setScalar(s); m.rotation.y = rnd(0, 6.28); snowOn(m, G.ico1, [1.5, 0.45, 1.5], [0, geo.userData.top - 0.5, 0]); return add(m, x, z); };
     for (let i = 0; i < SLOTS; i++) for (const side of [-1, 1]) {
       const z = BACK - i * SLOT - (side > 0 ? SLOT * 0.5 : 0), r = Math.random();
       if (r < 0.62) {
@@ -507,7 +508,7 @@ const RunWorld = (() => {
         const bub = new T.Sprite(pick(S.bubbleMats)); bub.scale.set(2.5, 0.94, 1); bub.position.set(u.sx, 3.75, 0.9); bub.visible = false; m.add(bub);
         m.userData = { arm, bub, side, calls: Math.random() < 0.15, k: 0, ph: rnd(0, 6), hi: false };
         add(m, side * 6.75, z); S.stalls.push(m);
-      } else if (r < 0.88) tree(pick(S.frontTrees), side * rnd(6.3, 7.0), z);
+      } else if (r < 0.88) S.frontTreeMeshes.push(tree(pick(S.frontTrees), side * rnd(6.3, 7.0), z));
       else { const m = mesh(pick(S.groups), S.prop); m.rotation.y = -side * rnd(0.6, 2.4); add(m, side * 5.9, z); }
       tree(pick(S.backTrees), side * rnd(10.1, 11), z - SLOT * 0.5);
       const f = pick(S.facades), w = rnd(8.2, 9.6), h = rnd(4.4, 7.6), hs = new T.Group(), hk = baker();
@@ -582,7 +583,7 @@ const RunWorld = (() => {
   function build(three, C) {
     T = three; NI.clear(); CAPS.clear();
     scene = new T.Scene();
-    S = { scene, camera: new T.PerspectiveCamera(70, 1, 0.1, 1500), C, snow: [], scroll: [], scn: [], walkers: [], stalls: [], facades: [], tints: [], signMats: [], snowOn: false, tmpC: new T.Color(), white: new T.Color("#FFFFFF") };
+    S = { scene, camera: new T.PerspectiveCamera(70, 1, 0.1, 1500), C, frontTreeMeshes: [], leafMats: [], eiffelMats: [], eiffel: null, snow: [], scroll: [], scn: [], walkers: [], stalls: [], facades: [], tints: [], signMats: [], snowOn: false, tmpC: new T.Color(), white: new T.Color("#FFFFFF") };
     G = {
       box: new T.BoxGeometry(1, 1, 1), sph: new T.SphereGeometry(1, 18, 14), lo: new T.SphereGeometry(1, 10, 8), cyl: new T.CylinderGeometry(1, 1, 1, 14),
       cone: new T.ConeGeometry(1, 1, 8), taper: new T.CylinderGeometry(0.55, 1, 1, 10), ico: new T.IcosahedronGeometry(1, 2), ico1: new T.IcosahedronGeometry(1, 1),
@@ -595,5 +596,41 @@ const RunWorld = (() => {
     return S;
   }
 
-  return { build };
+  // Scales a downloaded model to a target length or height, stands it on the ground and centres it.
+  function fit(src, { len, height, rotY = 0 }) {
+    const inner = src.clone(); inner.rotation.y = rotY; inner.updateMatrixWorld(true);
+    const size = new T.Box3().setFromObject(inner).getSize(new T.Vector3());
+    inner.scale.multiplyScalar(len ? len / Math.max(size.x, size.z) : height / size.y); inner.updateMatrixWorld(true);
+    const b = new T.Box3().setFromObject(inner), c = b.getCenter(new T.Vector3());
+    inner.position.x -= c.x; inner.position.z -= c.z; inner.position.y -= b.min.y;
+    const g = new T.Group(); g.add(inner); return g;
+  }
+  // Swaps the downloaded 3D models in once they have loaded; until then (or without them) the hand-made shapes are used.
+  function useModels(m) {
+    const meshes = (o, fn) => o.traverse((c) => { if (c.isMesh) fn(c); });
+    if (m.damas) {
+      const proto = fit(m.damas, { len: 3.15, rotY: Math.PI / 2 });      // the model's front faces -X; turn it towards the runner
+      meshes(proto, (c) => { c.castShadow = true; });
+      S.make.damas = () => { const o = proto.clone(); o.add(new T.Mesh(S.lightsDamas, S.headMat)); return o; };
+    }
+    const trees = [[m.tree1, 7.6], [m.tree2, 6.4]].filter((t) => t[0]).map(([t, h]) => {
+      const p = fit(t, { height: h });
+      meshes(p, (c) => { c.castShadow = true; if (c.material.alphaTest > 0 && !S.leafMats.includes(c.material)) S.leafMats.push(c.material); });
+      return p;
+    });
+    if (trees.length) for (const old of S.frontTreeMeshes) {      // about three in four street trees become the real models
+      if (Math.random() < 0.25) continue;
+      const g = pick(trees).clone(), i = S.scn.indexOf(old);
+      g.position.copy(old.position); g.rotation.y = rnd(0, 6.28); g.scale.setScalar(rnd(0.85, 1.15));
+      scene.remove(old); scene.add(g); if (i >= 0) S.scn[i] = g;
+    }
+    if (trees.length) S.frontTreeMeshes = [];
+    if (m.eiffel && !S.eiffel) {           // far in the background; its lights come on in the evening
+      const e = fit(m.eiffel, { height: 92 }); e.position.set(80, 0, -335); e.rotation.y = 0.5;
+      meshes(e, (c) => { c.material.fog = false; if (!S.eiffelMats.includes(c.material)) { S.eiffelMats.push(c.material); S.tints.push({ m: c.material, k: 0.3 }); } });
+      scene.add(e); S.eiffel = e;
+    }
+  }
+
+  return { build, useModels };
 })();
