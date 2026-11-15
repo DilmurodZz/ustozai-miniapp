@@ -38,7 +38,7 @@ const Game = (() => {
   let combo = 0, comboAt = -9, games = 0, tipA = false, tipB = false, lastTap = 0, bumpAt = 0;
   let flowTimer = 0, hintTimer = 0, muted = false;
   let frozen = false;      // test hook: stop the clock but keep drawing
-  let dbl = false, ninjaT = 0, safe = 0, ar = null;     // second jump used, ninja flip timer, no-crash window after a trick, AR view
+  let dbl = false, ninjaT = 0, ninjaK = 0, flipT = 0, safe = 0, ar = null;     // second jump used, ninja flip timer, no-crash window after a trick, AR view
   const shown = {}, quality = { n: 0, sum: 0, done: false };
 
   /* ---------- small helpers ---------- */
@@ -351,10 +351,12 @@ const Game = (() => {
   function doJump() {
     if (!grounded) {
       if (dbl) { jumpBuf = 0.18; return; }       // remembered, fires on landing
-      dbl = true; vy = JUMP * 0.95; ninjaT = 0.5; jumpAt = time;
+      dbl = true; vy = JUMP * 0.95; ninjaT = 0.6; ninjaK = (ninjaK + 1) % 4; flipT = 0; jumpAt = time;
       sfx("jump", 1.3); buzz("medium"); return;
     }
+    const over = gy > 0.3 || objs.some((o) => o.lane === lane && !o.gone && o.kind !== "pick" && o.kind !== "ramp" && o.z < 0 && o.z > -(speed * 0.6 + 2));
     vy = JUMP; py += 0.03; grounded = false; jumpAt = time; jumpBuf = 0; rollT = 0;
+    if (over && Math.random() < 1 / 3) flipT = 0.55;      // one jump in three off a car or over an obstacle is a quick back flip
     sfx("jump"); buzz("light");
     if (games <= 3 && !tipB) { tipB = true; tip("Havoda yana yuqoriga suring: ninja sakrash"); }
   }
@@ -557,6 +559,7 @@ const Game = (() => {
       if (invuln > 0) invuln -= dt;
       if (safe > 0) safe -= dt;
       if (ninjaT > 0) ninjaT -= dt;
+      if (flipT > 0) flipT -= dt;
       if (trick && ((trick.t += dt) >= trick.dur || (grounded && trick.t > 0.12))) endTrick();
       if ((spawnIn -= speed * dt) <= 0) spawnRow();
       if (auto) autopilot();
@@ -600,7 +603,7 @@ const Game = (() => {
     let sl = -s * 0.85, sr = s * 0.85, fl = 1.3, fr = 1.3, zl = -0.1, zr = 0.1;
     let lean = -0.16, pivY = HIP + Math.abs(Math.cos(A.phase)) * 0.05, hy = 0, hx = 0, twist = 0, wob = 0, pz = 0;
     let fx = 0, fyaw = 0, fz = 0;      // whole-body flips: applied directly, not eased
-    const busy = crashT > 0 || trick || rollT > 0 || ninjaT > 0;
+    const busy = crashT > 0 || trick || rollT > 0 || ninjaT > 0 || flipT > 0;
     if (crashT > 0) {                  // knocked onto the back, legs in the air
       const e = 1 - Math.pow(1 - clamp(crashT / 0.4, 0, 1), 2);
       fx = 1.4 * e; pivY = HIP - 0.56 * e; pz = 1.1 * e; lean = 0;
@@ -611,9 +614,15 @@ const Game = (() => {
       if (n === "salto" || n === "oldinga") { fx = n === "salto" ? turn : -turn; hl = hr = 0.3 + 1.6 * tuck; kl = kr = 0.3 + 1.9 * tuck; sl = sr = 2.6 - 1.5 * tuck; fl = fr = 0.3 + 1.5 * tuck; lean = -0.1 - 0.35 * tuck; }
       else if (n === "twist") { fx = turn; fyaw = turn; hl = hr = 0.1; kl = kr = 0.15; sl = sr = 0.9; fl = fr = 2.2; zl = 0.4; zr = -0.4; lean = 0; }
       else { fyaw = turn * trick.side; hl = 0.6; kl = 1.1; hr = -0.1; kr = 0.2; zl = -1.4; zr = 1.4; sl = sr = 0.2; fl = fr = 0.3; lean = 0; }
-    } else if (ninjaT > 0) {           // ninja jump: quick tucked front flip
-      fx = -Math.PI * 2 * (1 - ninjaT / 0.5); pivY = HIP; lean = -0.4;
-      hl = hr = 1.8; kl = kr = 2.1; sl = sr = 1.2; fl = fr = 1.8;
+    } else if (ninjaT > 0) {           // ninja jump: four poses in turn
+      pivY = HIP;
+      if (ninjaK === 0) { fx = -Math.PI * 2 * (1 - ninjaT / 0.6); hl = hr = 1.8; kl = kr = 2.1; sl = sr = 1.2; fl = fr = 1.8; lean = -0.4; }   // tucked front flip
+      else if (ninjaK === 1) { hl = hr = 1.4; kl = kr = 2.0; sl = sr = 2.9; zl = -0.55; zr = 0.55; fl = fr = 0.1; lean = 0.05; }               // arms up in a V, knees tucked
+      else if (ninjaK === 2) { hl = hr = 1.5; kl = kr = 1.9; sl = sr = 0.5; zl = -1.35; zr = 1.35; fl = fr = 0.6; lean = -0.15; }             // arms out wide, crouched in the air
+      else { hl = 1.7; kl = 2.0; hr = -0.7; kr = 0.5; sl = sr = -0.9; zl = -0.25; zr = 0.25; fl = fr = 0.3; lean = -0.35; }                    // flying knee, arms swept back
+    } else if (flipT > 0) {            // quick back flip
+      fx = Math.PI * 2 * (1 - flipT / 0.55); pivY = HIP; lean = -0.2;
+      hl = hr = 1.7; kl = kr = 2.0; sl = sr = 2.2; fl = fr = 1.2;
     } else if (rollT > 0) {            // tucked forward somersault
       fx = -Math.PI * 2 * (1 - rollT / ROLL); pivY = 0.45; lean = -0.5;
       hl = hr = 1.9; kl = kr = 2.2; sl = sr = 1.3; fl = fr = 1.9;
@@ -765,14 +774,14 @@ const Game = (() => {
     speed = V0; dist = 0; coins = 0; hearts = HEARTS; rows = 0; runT = 0;
     lane = prevLane = first ? 0 : 1; px = first ? -2.55 : 0; py = vy = gy = 0; grounded = true; fastFall = false;
     rollT = lowT = jumpBuf = invuln = stumbleT = crashT = nmSlow = shake = 0;
-    laneAt = jumpAt = rollAt = lastWave = -9; trick = wave = eat = rest = null; nextEat = 12; dbl = false; ninjaT = safe = 0; combo = 0; tipA = tipB = false; ts = 1;
+    laneAt = jumpAt = rollAt = lastWave = -9; trick = wave = eat = rest = null; nextEat = 12; dbl = false; ninjaT = flipT = safe = 0; combo = 0; tipA = tipB = false; ts = 1;
     P.pivot.rotation.set(0, 0, 0); P.g.position.set(px, 0, 0); P.yaw = P.tilt = 0; P.g.rotation.y = first ? Math.PI / 2 : 0;
     S.apple.visible = S.bottle.visible = S.bag.visible = false;
     if (!first) { S.wall.visible = false; introK = 0; }
     hud(true);
   }
   function play() {
-    clearTimeout(flowTimer);
+    clearTimeout(flowTimer); root.classList.remove("over");
     const first = state === "menu";
     if (!first) reset(false);
     hideCard(); RunAudio.music(true); buzz("medium");
@@ -855,7 +864,9 @@ const Game = (() => {
     const s = score(), b = best(), isBest = s > b;
     if (isBest) store.set("run_best", s);
     const me = [store.get("school", "Sening maktabing"), user.first_name || "Sen", Math.max(s, b)];
-    const board = [...SCHOOL_BOARD, me].sort((a, c) => c[2] - a[2]);
+    const board = [...SCHOOL_BOARD, me].sort((a, c) => c[2] - a[2]), mine = board.indexOf(me);
+    const row = (r, i) => `<div class="${r === me ? "me" : ""}"><span>${i + 1}</span><span>${r[1]}<small>${r[0]}</small></span><b>${r[2]}</b></div>`;
+    root.classList.add("over");
     card(`
       ${chip(isBest ? "trophy" : "flag", "lg solid")}
       <h2>${isBest ? "Yangi rekord!" : "O'yin tugadi"}</h2>
@@ -863,8 +874,7 @@ const Game = (() => {
       <p>${Math.floor(dist)} m · ${coins} tanga</p>
       <div class="run-board">
         <b>Haftalik maktablar reytingi</b>
-        ${board.slice(0, 7).map((r, i) => `<div class="${r === me ? "me" : ""}"><span>${i + 1}</span><span>${r[1]}<small>${r[0]}</small></span><b>${r[2]}</b></div>`).join("")}
-        <small class="run-prize">${ic("gift")} Hafta g'olibi maktabiga: Premium kurslar</small>
+        ${board.slice(0, 5).map(row).join("")}${mine >= 5 ? row(me, mine) : ""}
       </div>
       <button class="btn-primary" data-a="play">${ic("refresh")} Qayta o'ynash</button>
       <button class="btn-ghost" data-a="share">Do'stlarni chaqirish</button>`,

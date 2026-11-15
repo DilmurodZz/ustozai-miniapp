@@ -292,7 +292,7 @@ a { color: inherit; text-decoration: none; }
 .run-cv { position: relative; z-index: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .run-video { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; }
 .run.ar { background: #000; }
-.run.ar .run-top, .run.ar .run-hint, .run.ar .run-fx { display: none; }
+.run.ar .run-top, .run.ar .run-hint, .run.ar .run-fx, .run.over .run-top { display: none; }
 .run-arbar { display: none; position: absolute; z-index: 5; left: 12px; right: 12px; bottom: calc(16px + env(safe-area-inset-bottom)); text-align: center; }
 .run.ar .run-arbar { display: block; }
 .run-arbar p { margin: 0 0 10px; color: #fff; font-size: 13px; font-weight: 600; text-shadow: 0 1px 6px rgba(0,0,0,.7); }
