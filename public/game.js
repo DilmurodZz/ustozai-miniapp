@@ -9,9 +9,9 @@ const Game = (() => {
   const C = { SLOT: 10, SLOTS: 20, LOOP: 200, BACK: 50 };     // scenery repeats every LOOP metres, BACK of them behind the runner
   const LANE = 2, FAR = -150, GONE = 14;
   let HIP = 0.83;          // hip height of the current runner
-  const CAM_Y = 4.3, CAM_Z = 8.4, GRAV = 26, JUMP = 9.6, ROLL = 0.62, V0 = 15, VMAX = 38;
+  const CAM_Y = 4.3, CAM_Z = 8.4, GRAV = 26, JUMP = 9.6, ROLL = 0.62, V0 = 15, VMAX = 31;
   // where each level starts and what the arrival banner says (level 1 is the street at the start)
-  const LEVELS = { 2: [1500, "2-bosqich: bozor ichida!"], 3: [3000, "3-bosqich: Istanbul!"], 4: [4500, "4-bosqich: Tokio kechasi!"] };
+  const LEVELS = { 2: [1500, "Bozor ichida"], 3: [3000, "Istanbul"], 4: [4500, "Tokio"] };
   const HEARTS = 3, STAKE = 25, SLOT_MS = 30 * 60 * 1000;
   const AIR = ["salto", "oldinga", "twist"], GROUND = ["salto", "burilish"];
   const LABEL = { salto: "Orqaga salto", oldinga: "Oldinga salto", twist: "Burama salto", burilish: "360 burilish" };
@@ -41,6 +41,7 @@ const Game = (() => {
   let frozen = false;      // test hook: stop the clock but keep drawing
   let loaded = null;       // downloaded models, kept between games
   let level = 1, portalOn = false, nextBoost = 300, punch = 0, speedFx = -1;
+  let pace = 1, gateObj = null, trans = null, calm = 0;    // slow-down near a gate, the fade through it, the quiet start of a new level
   let dbl = false, ninjaT = 0, ninjaK = 0, flipT = 0, safe = 0, ar = null;     // second jump used, ninja flip timer, no-crash window after a trick, AR view
   const shown = {}, quality = { n: 0, sum: 0, done: false };
 
@@ -71,6 +72,7 @@ const Game = (() => {
       <canvas class="run-cv"></canvas>
       <div class="run-flash"></div>
       <div class="run-speed"></div>
+      <div class="run-title"></div>
       <div class="run-ov"></div>
       <div class="run-fx"></div>
       <div class="run-hint"></div>
@@ -81,7 +83,7 @@ const Game = (() => {
       </div>`;
     document.body.appendChild(root);
     const q = (s) => root.querySelector(s);
-    el = { cv: q(".run-cv"), flash: q(".run-flash"), speed: q(".run-speed"), ov: q(".run-ov"), fx: q(".run-fx"), hint: q(".run-hint"), coins: q('[data-k="coins"]'), chip: q(".run-coins"), hearts: q(".run-hearts"), snd: q('[data-k="snd"]') };
+    el = { cv: q(".run-cv"), flash: q(".run-flash"), speed: q(".run-speed"), title: q(".run-title"), ov: q(".run-ov"), fx: q(".run-fx"), hint: q(".run-hint"), coins: q('[data-k="coins"]'), chip: q(".run-coins"), hearts: q(".run-hearts"), snd: q('[data-k="snd"]') };
     q('[data-k="x"]').onclick = exit; q('[data-k="pause"]').onclick = pause; q('[data-k="ar"]').onclick = arOpen;
     el.arbar = q(".run-arbar");
     muted = store.get("run_mute", false); RunAudio.mute(muted);
@@ -355,10 +357,10 @@ const Game = (() => {
   }
   // would this obstacle hit the runner in their current pose?
   function hits(o) {
-    if (o.kind === "full") return true;
+    if (o.kind === "full") return py < (o.def.top || 99);
     if (o.kind === "low") return py < 0.5;
     if (o.kind === "high") return !(rollT > 0 || lowT > 0);
-    return o.kind === "plat" && !o.on && py < o.def.front - 0.45;
+    return o.kind === "plat" && !o.on && py < (o.def.clear || o.def.front - 0.45);
   }
   // height of whatever is under the runner's feet: the road, a ramp or a car roof
   function groundAt() {
@@ -367,7 +369,7 @@ const Game = (() => {
       const d = o.def;
       if (!d.h || o.gone || Math.abs(laneX(o.lane) - px) > 0.95 || o.z + o.hd < -0.25 || o.z - o.hd > 0.25) continue;
       const h = d.h(clamp(-o.z / o.hd, -1, 1));
-      if (o.kind === "ramp" || o.on || py >= h - 0.5) { if (h > g) g = h; if (o.kind === "plat") o.on = true; }
+      if (o.kind === "ramp" || o.on || py >= h - 0.8) { if (h > g) g = h; if (o.kind === "plat") o.on = true; }
     }
     return g;
   }
@@ -475,7 +477,7 @@ const Game = (() => {
     const ahead = (l, win) => objs.filter((o) => o.kind !== "pick" && o.kind !== "ramp" && !o.gone && !o.on && o.lane === l && o.z - o.hd < 0.5 && o.z + o.hd > -win).sort((a, b) => b.z - a.z);
     const win = 3 + speed * 0.5, here = ahead(lane, win)[0];
     if (!here || py > 0.6) return;
-    if (here.kind === "full") {
+    if (here.kind === "full" || (here.kind === "plat" && here.def.front > 1.5)) {
       const ok = [lane - 1, lane + 1].filter((l) => l >= 0 && l <= 2 && !ahead(l, win).some((o) => o.kind === "full"));
       if (ok.length) move(ok[0] - lane);
     } else if (-here.z - here.hd < speed * 0.12 + 0.6) {
@@ -535,7 +537,7 @@ const Game = (() => {
     for (const gate of [S.portal, S.torii]) {
       if (!gate.visible) continue;
       gate.position.z += ds;
-      if (portalOn && gate.position.z > CAM_Z + 0.6) enterLevel(level + 1);     // the camera has passed through the gate
+      if (portalOn && !trans && gate.position.z > CAM_Z - 3) trans = { t: 0, n: level + 1, done: false };     // the camera is about to pass through the gate
       if (gate.position.z > 60) gate.visible = false;
     }
     if (S.wall.visible) { S.wall.position.z += ds; if (S.wall.position.z > 24) S.wall.visible = false; }
@@ -568,7 +570,7 @@ const Game = (() => {
     let v = 0;
     if (state === "intro" && (introT += raw) > 0.45) state = "play";
     const playing = state === "play";
-    if (playing) v = speed;
+    if (playing) v = speed * pace;
     if (state === "intro" || playing) introK = Math.max(0, introK - raw / 0.9);
     if (state === "menu") {       // the picture on the wall slowly grows while the menu is open
       menuT += raw;
@@ -579,8 +581,10 @@ const Game = (() => {
     const ds = v * dt;
     if (playing) {
       runT += dt;
-      speed = Math.min(VMAX, speed + dt * (0.06 + 0.42 * (1 - (speed - V0) / (VMAX - V0))));   // quick at first, then easing towards top speed
-      dist += speed * dt;
+      speed = Math.min(VMAX, speed + dt * (0.05 + 0.3 * (1 - (speed - V0) / (VMAX - V0))));   // builds up gently, then eases towards top speed
+      pace += ((portalOn && gateObj.position.z > -75 ? 0.55 : 1) - pace) * (1 - Math.exp(-dt * 1.5));
+      dist += v * dt;
+      if (calm > 0 && (calm -= dt) <= 0) fillRoad();
       if (dist >= nextBoost) boost();
       if (LEVELS[level + 1] && !portalOn && dist >= LEVELS[level + 1][0] - 150) openPortal();
       px += (laneX(lane) - px) * (1 - Math.exp(-dt * 16));
@@ -597,7 +601,7 @@ const Game = (() => {
       if (ninjaT > 0) ninjaT -= dt;
       if (flipT > 0) flipT -= dt;
       if (trick && ((trick.t += dt) >= trick.dur || (grounded && trick.t > 0.12))) endTrick();
-      if ((spawnIn -= speed * dt) <= 0) spawnRow();
+      if ((spawnIn -= v * dt) <= 0) spawnRow();
       if (auto) autopilot();
       if (runT > nextEat && free()) startEat();
       if (games <= 3 && !tipA && runT > 2.2) { tipA = true; tip("Ekranni 2 marta bosing: akrobatika"); }
@@ -615,8 +619,9 @@ const Game = (() => {
     if (want !== moodIdx) { moodIdx = want; if (playing && level === 1) pop(MOODS[want].name); }
     applyMood(1 - Math.exp(-raw * 1.4));
     weather(dt, ds); particles(dt, ds); birds(dt, ds); pose(dt); cam(raw);
-    const fx = Math.round((playing ? clamp((speed - 24) / 16, 0, 0.45) + punch * 0.5 : 0) * 50) / 50;   // speed lines
+    const fx = Math.round((playing ? clamp((speed - 26) / 12, 0, 0.25) + punch * 0.3 : 0) * 50) / 50;   // speed lines, kept faint
     if (fx !== speedFx) { speedFx = fx; el.speed.style.opacity = fx; }
+    if (trans) fadeStep(raw);
     hud();
   }
   function collide() {
@@ -808,14 +813,14 @@ const Game = (() => {
 
   // every 300 m: a short burst of speed effects so the player feels it getting faster
   function boost() {
-    nextBoost += 300; punch = 1; buzz("medium");
+    nextBoost += 300; punch = 0.6; buzz("light");
     pop(`Tezlashdi! ${Math.round(speed * 3.6)} km/soat`, "gold");
   }
   function openPortal() {
     portalOn = true;
     for (const o of objs) if (o.z < FAR + 30) o.gone = true;       // keep the gateway clear
     spawnIn = Math.max(spawnIn, 34);
-    const gate = level + 1 === 4 ? S.torii : S.portal;             // a red torii for Tokyo, the tiled gate otherwise
+    const gate = gateObj = level + 1 === 4 ? S.torii : S.portal;   // a red torii for Tokyo, the tiled gate otherwise
     gate.position.set(0, 0, FAR); gate.visible = true;
   }
   function setIndoor() {
@@ -839,19 +844,55 @@ const Game = (() => {
     S.landmark.visible = !(n === 3 && S.mosque); if (S.mosque) S.mosque.visible = n === 3;
     if (n === 2) setIndoor(); else if (tk) setTokyo(); else { scene.background = null; S.lamp.color.set("#FFD9A0"); }
   }
+  // Going through a gate: a soft fade to warm light, the new place appears at its brightest point, then fades in.
+  function fadeStep(raw) {
+    const tr = trans, IN = 0.4, OUT = 1.1;
+    tr.t += raw;
+    if (!tr.done && tr.t >= IN) { tr.done = true; enterLevel(tr.n); }
+    const a = tr.t < IN ? tr.t / IN : Math.max(0, 1 - (tr.t - IN) / OUT);
+    el.flash.style.transition = "none"; el.flash.style.background = tr.n === 4 ? "#2A2448" : "#FFF3D6"; el.flash.style.opacity = (a * 0.92).toFixed(3);
+    if (tr.t > IN + OUT) { trans = null; el.flash.style.opacity = 0; }
+  }
+  // Arriving: an empty road with a line of coins, the place's name, green fireworks; the obstacles come after a few seconds.
   function enterLevel(n) {
     level = n; portalOn = false; showWorld(n);
-    flash(n === 4 ? "#FFB3D9" : "#FFF5DC", 0.95); confetti(24); coins += 50; reward(`${LEVELS[n][1]} +50`);
+    for (const o of objs) o.gone = true;
+    spawnIn = 1e9; calm = 2.8;
+    trail(lane, -14, 8); trail(lane, -38, 6);
+    coins += 50; bump(); buzz("success");
+    el.title.innerHTML = `<small>${n}-bosqich</small><b>${LEVELS[n][1]}</b><span>+50 tanga</span>`;
+    el.title.className = "run-title"; void el.title.offsetWidth; el.title.className = "run-title show";
+    fireworks(n === 4 ? ["#4ADE80", "#22D3EE", "#F472B6", "#A3E635"] : ["#22C55E", "#4ADE80", "#A3E635", "#34D399", "#FDE047"]);
+  }
+  function fillRoad() {             // the first obstacles of the new level, close enough to arrive soon
+    let z = -60;
+    while (z > FAR) z -= spawnRow(z);
+    spawnIn = FAR - z;
+  }
+  function fireworks(colors) {
+    for (let k = 0; k < 6; k++) setTimeout(() => {
+      if (!alive) return;
+      const b = document.createElement("div"), n = 18;
+      b.className = "run-fw"; b.style.left = rnd(14, 86) + "%"; b.style.top = rnd(12, 38) + "%";
+      for (let i = 0; i < n; i++) {
+        const sp = document.createElement("i"), c = pick(colors);
+        sp.style.cssText = `--a:${(360 / n) * i + rnd(-6, 6)}deg;--d:${rnd(80, 140)}px;--c:${c}`;
+        b.appendChild(sp);
+      }
+      el.fx.appendChild(b); setTimeout(() => b.remove(), 1400);
+    }, k * 260 + rnd(0, 120));
   }
   function backToStreet() {
-    level = 1; portalOn = false; S.portal.visible = S.torii.visible = false; showWorld(1);
+    level = 1; portalOn = false; trans = null; calm = 0; pace = 1;
+    S.portal.visible = S.torii.visible = false; showWorld(1);
+    el.flash.style.opacity = 0; el.title.className = "run-title";
   }
 
   /* ---------- game flow ---------- */
   function reset(first) {
     for (const o of objs) drop(o);
     objs = [];
-    speed = V0; dist = 0; coins = 0; hearts = HEARTS; rows = 0; runT = 0; nextBoost = 300; punch = 0;
+    speed = V0; dist = 0; coins = 0; hearts = HEARTS; rows = 0; runT = 0; nextBoost = 300; punch = 0; pace = 1;
     if (level !== 1 || portalOn) backToStreet();
     lane = prevLane = first ? 0 : 1; px = first ? -2.55 : 0; py = vy = gy = 0; grounded = true; fastFall = false;
     rollT = lowT = jumpBuf = invuln = stumbleT = crashT = nmSlow = shake = 0;

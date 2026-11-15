@@ -486,7 +486,7 @@ const RunWorld = (() => {
     // low = jump over, high = roll under, full = change lane, plat = can be run across (h gives the surface height along its length)
     S.defs = {
       barrier: { kind: "low", hd: 0.3 }, crates: { kind: "low", hd: 0.45 }, melons: { kind: "low", hd: 0.5 }, teleshka: { kind: "low", hd: 0.55 },
-      banner: { kind: "high", hd: 0.3 }, damas: { kind: "full", hd: 1.6 }, cart: { kind: "full", hd: 1.3 }, meat: { kind: "full", hd: 0.8 },
+      banner: { kind: "high", hd: 0.3 }, damas: { kind: "plat", hd: 1.6, front: 1.95, clear: 1.2, h: () => 1.95 }, cart: { kind: "full", hd: 1.3, top: 2.3 }, meat: { kind: "full", hd: 0.8, top: 2.6 },
       sedan: { kind: "plat", hd: 2.1, front: 0.9, h: (u) => (u > 0.5 || u < -0.66 ? 0.9 : 1.41) },
       ramp: { kind: "ramp", hd: 1.7, front: 0, h: (u) => 0.9 * (1 - u) / 2 },
       coin: { kind: "pick", hd: 0.3, val: 1 }, non: { kind: "pick", hd: 0.3, val: 5 }, samsa: { kind: "pick", hd: 0.3, val: 10 },
@@ -608,16 +608,15 @@ const RunWorld = (() => {
   function inside() {
     const { SLOT, SLOTS, BACK } = S.C, LEN = 640, Z0 = -170, W = 8.6, H = 6.4;   // W: distance to the side walls, H: height of the arches
     const g = new T.Group(); g.visible = false; scene.add(g); S.in = g;
-    // floor: cream tiles with terracotta and turquoise stars
+    // floor: cream stone tiles with small, soft stars (kept quiet so the eye stays on the run)
     const floorT = tex(512, 512, (c, w, h) => {
-      c.fillStyle = "#E9DCC3"; c.fillRect(0, 0, w, h);
+      c.fillStyle = "#E6D8BE"; c.fillRect(0, 0, w, h);
       for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
         const cx = x * 128 + 64, cy = y * 128 + 64;
-        c.fillStyle = (x + y) % 2 ? "#B5542B" : "#1F7A8C";
-        c.beginPath(); for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8, r = i % 2 ? 26 : 50; c.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } c.closePath(); c.fill();
-        c.fillStyle = "#F4E3B5"; c.beginPath(); c.arc(cx, cy, 12, 0, 7); c.fill();
+        c.fillStyle = (x + y) % 2 ? "rgba(176,110,78,.45)" : "rgba(78,138,138,.4)";
+        c.beginPath(); for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8, r = i % 2 ? 11 : 22; c.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } c.closePath(); c.fill();
       }
-      c.strokeStyle = "rgba(90,60,30,.35)"; c.lineWidth = 3;
+      c.strokeStyle = "rgba(120,90,60,.18)"; c.lineWidth = 2;
       for (let i = 0; i <= 512; i += 128) { c.beginPath(); c.moveTo(i, 0); c.lineTo(i, h); c.moveTo(0, i); c.lineTo(w, i); c.stroke(); }
     }, 5, LEN / 3.44);
     const fl = new T.Mesh(G.plane, new T.MeshStandardMaterial({ map: floorT, roughness: 0.45, metalness: 0.05 }));
@@ -637,7 +636,7 @@ const RunWorld = (() => {
         c.lineWidth = 10; c.strokeStyle = "#1B86A8"; archPath(c, x, 46, 196, 210); c.stroke();
       }
     }) });
-    // ceiling domes painted with a star pattern, open at the top to let the sun in
+    // ceiling domes painted with a star pattern
     const domeT = tex(512, 256, (c, w, h) => {
       c.fillStyle = "#F1E6CF"; c.fillRect(0, 0, w, h);
       for (let y = 0; y < 4; y++) for (let x = 0; x < 16; x++) {
@@ -649,9 +648,6 @@ const RunWorld = (() => {
     });
     const domeM = new T.MeshStandardMaterial({ map: domeT, side: T.DoubleSide, roughness: 0.7 });
     const domeG = new T.SphereGeometry(1, 28, 10, 0, Math.PI * 2, 0, Math.PI * 0.42);
-    const beamM = new T.MeshBasicMaterial({ color: 0xfff2d0, transparent: true, opacity: 0.11, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending });
-    const beamG = new T.CylinderGeometry(0.7, 2.3, H + 3.4, 18, 1, true);
-    const skyM = new T.MeshBasicMaterial({ color: 0xfff6dc });
     S.inGlow = new T.SpriteMaterial({ map: S.glowMat.map, transparent: true, opacity: 0.9, depthWrite: false, blending: T.AdditiveBlending });
     // one bay of the hall: columns, the arch across, a lantern on each side, the wall behind the stalls
     const bayK = baker();
@@ -671,10 +667,6 @@ const RunWorld = (() => {
         const gl = new T.Sprite(S.inGlow); gl.scale.set(2.2, 2.2, 1); gl.position.set(x * 4.6 * 0.78, H - 1.85, 0); bay.add(gl);
       }
       const d = new T.Mesh(domeG, domeM); d.scale.set(W, 3.2, SLOT / 2 * 1.04); d.position.set(0, H + 0.2, -SLOT / 2); bay.add(d);
-      if (i % 2 === 0) {      // sunbeam through the opening at the top of every other dome
-        const sky = new T.Mesh(G.cyl, skyM); sky.scale.set(1.6, 0.05, 1.6); sky.position.set(0, H + 3.15, -SLOT / 2); bay.add(sky);
-        const b = new T.Mesh(beamG, beamM); b.position.set(0.6, (H + 3.4) / 2, -SLOT / 2 - 1.2); b.rotation.z = -0.12; bay.add(b);
-      }
       add(bay, z);
       for (const side of [-1, 1]) {           // a stall with its seller between each pair of columns
         const geo = pick(S.stallGeos), u = geo.userData, m = mesh(geo, S.prop);
