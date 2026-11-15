@@ -4,10 +4,10 @@
 
 const Game = (() => {
   const LIB = "./lib/three.module.min.js";      // three.js is kept in the app itself so it works offline
-  const MODELS = ["damas", "tree1", "tree2"], CREDITS = "3D modellar (CC BY 4.0): Chevrolet Damas, own.guest · Eiffel Tower, Dimiter · Daraxtlar, Nicholas-3D";
+  const MODELS = ["damas", "tree1", "tree2"], CREDITS = "3D modellar (CC BY 4.0): Chevrolet Damas, own.guest · Daraxtlar, Nicholas-3D";
   const C = { SLOT: 10, SLOTS: 20, LOOP: 200, BACK: 50 };     // scenery repeats every LOOP metres, BACK of them behind the runner
   const LANE = 2, FAR = -150, GONE = 14, HIP = 0.83;
-  const CAM_Y = 4.3, CAM_Z = 8.4, GRAV = 26, JUMP = 9.6, ROLL = 0.62, V0 = 15, VMAX = 33;
+  const CAM_Y = 4.3, CAM_Z = 8.4, GRAV = 26, JUMP = 9.6, ROLL = 0.62, V0 = 15, VMAX = 38, LEVEL2 = 1500;
   const HEARTS = 3, STAKE = 25, SLOT_MS = 30 * 60 * 1000;
   const AIR = ["salto", "oldinga", "twist"], GROUND = ["salto", "burilish"];
   const LABEL = { salto: "Orqaga salto", oldinga: "Oldinga salto", twist: "Burama salto", burilish: "360 burilish" };
@@ -36,6 +36,7 @@ const Game = (() => {
   let flowTimer = 0, hintTimer = 0, muted = false;
   let frozen = false;      // test hook: stop the clock but keep drawing
   let loaded = null;       // downloaded models, kept between games
+  let level = 1, portalOn = false, nextBoost = 300, punch = 0, speedFx = -1;
   let dbl = false, ninjaT = 0, ninjaK = 0, flipT = 0, safe = 0, ar = null;     // second jump used, ninja flip timer, no-crash window after a trick, AR view
   const shown = {}, quality = { n: 0, sum: 0, done: false };
 
@@ -65,6 +66,7 @@ const Game = (() => {
     root.innerHTML = `
       <canvas class="run-cv"></canvas>
       <div class="run-flash"></div>
+      <div class="run-speed"></div>
       <div class="run-ov"></div>
       <div class="run-fx"></div>
       <div class="run-hint"></div>
@@ -75,7 +77,7 @@ const Game = (() => {
       </div>`;
     document.body.appendChild(root);
     const q = (s) => root.querySelector(s);
-    el = { cv: q(".run-cv"), flash: q(".run-flash"), ov: q(".run-ov"), fx: q(".run-fx"), hint: q(".run-hint"), coins: q('[data-k="coins"]'), chip: q(".run-coins"), hearts: q(".run-hearts"), snd: q('[data-k="snd"]') };
+    el = { cv: q(".run-cv"), flash: q(".run-flash"), speed: q(".run-speed"), ov: q(".run-ov"), fx: q(".run-fx"), hint: q(".run-hint"), coins: q('[data-k="coins"]'), chip: q(".run-coins"), hearts: q(".run-hearts"), snd: q('[data-k="snd"]') };
     q('[data-k="x"]').onclick = exit; q('[data-k="pause"]').onclick = pause; q('[data-k="ar"]').onclick = arOpen;
     el.arbar = q(".run-arbar");
     muted = store.get("run_mute", false); RunAudio.mute(muted);
@@ -152,9 +154,6 @@ const Game = (() => {
       RunWorld.useModels(loaded);
       for (const o of pools.damas || []) scene.remove(o);      // vans waiting in the pool are swapped for the new model
       pools.damas = [];
-      if (quality.low) return;
-      loaded.eiffel = loaded.eiffel || (await loaded.get("eiffel"));
-      if (alive && loaded.eiffel && !quality.low) RunWorld.useModels({ eiffel: loaded.eiffel });
     } catch {}
   }
   async function init() {
@@ -199,13 +198,14 @@ const Game = (() => {
     camera.fov = baseFov; camera.updateProjectionMatrix();
   }
   function lowQuality() {
-    quality.low = true; if (S.eiffel) S.eiffel.visible = false;
+    quality.low = true;
     renderer.setPixelRatio(1); renderer.shadowMap.enabled = false; S.sun.castShadow = false;
     W = 0; resize();
   }
 
   /* ---------- moods, weather, particles, birds ---------- */
   function applyMood(k) {
+    if (level === 2) return;     // indoors: fixed warm light, no weather
     const m = MOODS[moodIdx];
     for (const c of COL) cur[c].lerp(m.c[c], k);
     for (const n of NUM) cur[n] += (m[n] - cur[n]) * k;
@@ -232,7 +232,6 @@ const Game = (() => {
     S.disc.position.copy(cur.discDir).normalize().multiplyScalar(950); S.glow.position.copy(S.disc.position);
     for (const t of S.tints) { t.base = t.base || t.m.color.clone(); t.m.color.copy(t.base).lerp(cur.fog, t.k); }   // far things take on the haze colour
     for (const m of S.leafMats) { m.userData.base = m.userData.base || m.color.clone(); m.color.copy(m.userData.base).lerp(S.white, cur.snow * 0.7); }   // snow on the leaves
-    for (const m of S.eiffelMats) m.emissiveIntensity = 0.1 + cur.lamps * 2.2;
     const day = cur.stars < 0.5 && cur.rain < 0.5;
     S.flocks[0].mesh.visible = S.flocks[1].mesh.visible = day;
   }
@@ -332,11 +331,13 @@ const Game = (() => {
     let gap = 13 + speed * 0.55 + rnd(0, 5);
     // one obstacle per row, so a single swipe to the side always gets past it
     const L = [0, 1, 2].sort(() => Math.random() - 0.5), r = Math.random();
-    const low = () => pick(["barrier", "crates", "melons", "teleshka"]), full = () => pick(["damas", "damas", "cart", "meat"]);
+    const inside = level === 2 || portalOn;
+    const low = () => pick(["barrier", "crates", "melons", "teleshka"]), full = () => pick(inside ? ["meat", "cart"] : ["damas", "damas", "cart", "meat"]);
     if (rows < 4) { put(pick(["barrier", "crates", "sedan"]), L[0], z); trail(L[1], z, 5); }
     else if (r < 0.26) { put(low(), L[0], z); r < 0.13 ? arc(L[0], z) : trail(L[1], z, 5); }
     else if (r < 0.42) { put("banner", L[0], z); trail(L[1], z, 5); }
     else if (r < 0.64) { put(full(), L[0], z); trail(L[1], z, 6); }
+    else if (inside && r < 0.92) { put(pick(["banner", low()]), L[0], z); arc(L[0], z); trail(L[1], z, 4); }
     else if (r < 0.78) { put("sedan", L[0], z); for (let i = 0; i < 3; i++) put("coin", L[0], z + 1 - i * 1.2, 2.3); trail(L[1], z, 4); }
     else if (r < 0.92) {        // run over the cars: a plank ramp, then two cars bumper to bumper
       put("ramp", L[0], z); put("sedan", L[0], z - 3.8); put("sedan", L[0], z - 8.05);
@@ -515,13 +516,19 @@ const Game = (() => {
   }
   function scenery(dt, ds, playing) {
     for (const [t, per] of S.scroll) t.offset.y = (t.offset.y + ds / per) % 1;
-    for (const o of S.scn) {
+    if (S.out.visible) for (const o of S.scn) {
       o.position.z += ds;
       if (o.position.z > C.BACK) {        // comes round again further up the street, slightly changed
         o.position.z -= C.LOOP; const u = o.userData;
         if (u.arm) { u.calls = Math.random() < 0.15; u.hi = false; u.bub.material = pick(S.bubbleMats); }
         if (u.gate) { u.n = (u.n + 1) % S.gateMats.length; u.gate.material = S.gateMats[u.n]; }
       }
+    }
+    if (S.in.visible) for (const o of S.inScn) { o.position.z += ds; if (o.position.z > C.BACK) o.position.z -= C.LOOP; }
+    if (S.portal.visible) {
+      S.portal.position.z += ds;
+      if (level === 1 && S.portal.position.z > CAM_Z + 0.6) enterBazaar();     // the camera has passed through the doorway
+      if (S.portal.position.z > 60) S.portal.visible = false;
     }
     if (S.wall.visible) { S.wall.position.z += ds; if (S.wall.position.z > 24) S.wall.visible = false; }
     for (const s of S.stalls) {            // sellers wave and call out as the runner comes past
@@ -564,7 +571,10 @@ const Game = (() => {
     const ds = v * dt;
     if (playing) {
       runT += dt;
-      speed = Math.min(VMAX, speed + dt * 0.2); dist += speed * dt;
+      speed = Math.min(VMAX, speed + dt * (0.06 + 0.42 * (1 - (speed - V0) / (VMAX - V0))));   // quick at first, then easing towards top speed
+      dist += speed * dt;
+      if (dist >= nextBoost) boost();
+      if (level === 1 && !portalOn && dist >= LEVEL2 - 150) openPortal();
       px += (laneX(lane) - px) * (1 - Math.exp(-dt * 16));
       gy = groundAt();
       if (py > gy + 0.02 || vy > 0) {
@@ -596,6 +606,8 @@ const Game = (() => {
     if (want !== moodIdx) { moodIdx = want; if (playing) pop(MOODS[want].name); }
     applyMood(1 - Math.exp(-raw * 1.4));
     weather(dt, ds); particles(dt, ds); birds(dt, ds); pose(dt); cam(raw);
+    const fx = Math.round((playing ? clamp((speed - 24) / 16, 0, 0.45) + punch * 0.5 : 0) * 50) / 50;   // speed lines
+    if (fx !== speedFx) { speedFx = fx; el.speed.style.opacity = fx; }
     hud();
   }
   function collide() {
@@ -686,14 +698,14 @@ const Game = (() => {
   function cam(raw) {
     const k = 1 - Math.exp(-raw * 9), sm = (x) => x * x * (3 - 2 * x);
     camX += (px * 0.62 - camX) * k;
-    shake = Math.max(0, shake - raw * 1.7);
+    shake = Math.max(0, shake - raw * 1.7); punch = Math.max(0, punch - raw * 1.3);
     kick += ((state === "play" ? clamp((speed - V0) / (VMAX - V0), 0, 1) * 7 : 0) - kick) * k;
     const p = tmp.p.set(camX + (Math.random() - 0.5) * shake * 0.8, CAM_Y + py * 0.25 + (Math.random() - 0.5) * shake * 0.6, CAM_Z);
     const l = tmp.l.set(camX * 1.2, 1.3 + py * 0.2, -10);
     // opening scene: looking at the wall from the road
     if (introK > 0.002) { const e = sm(introK); p.lerp(tmp.a.set(3.9, 1.6, 0.6), e); l.lerp(tmp.b.set(-3.5, -0.3, 0.2), e); }
     camera.position.copy(p); camera.lookAt(l);
-    camera.fov = baseFov + kick; camera.updateProjectionMatrix();
+    camera.fov = baseFov + kick + punch * 7; camera.updateProjectionMatrix();
   }
   function step(raw) {
     // slow motion for flips and near misses
@@ -785,11 +797,39 @@ const Game = (() => {
     ar.blob.scale.setScalar(Math.max(0.4, 1 - y * 0.4));
   }
 
+  // every 300 m: a short burst of speed effects so the player feels it getting faster
+  function boost() {
+    nextBoost += 300; punch = 1; buzz("medium");
+    pop(`Tezlashdi! ${Math.round(speed * 3.6)} km/soat`, "gold");
+  }
+  function openPortal() {
+    portalOn = true;
+    for (const o of objs) if (o.z < FAR + 30) o.gone = true;       // keep the doorway clear
+    spawnIn = Math.max(spawnIn, 34);
+    S.portal.position.set(0, 0, FAR); S.portal.visible = true;
+  }
+  function setIndoor() {
+    const fog = 0x3b2a1c;
+    scene.fog.color.setHex(fog); scene.fog.near = 18; scene.fog.far = 95; scene.background = new T.Color(fog);
+    S.hemi.color.set("#FFE4BF"); S.hemi.groundColor.set("#6B4A2E"); S.hemi.intensity = 1.35;
+    S.sun.color.set("#FFE9C6"); S.sun.intensity = 1.2; S.sun.position.set(6, 40, 10).add(S.sun.target.position);
+    S.lamp.color.set("#FFC98A"); S.lamp.intensity = 30; renderer.toneMappingExposure = 1.05;
+  }
+  function enterBazaar() {
+    level = 2; S.out.visible = false; S.in.visible = true; setIndoor();
+    flash("#FFF5DC", 0.95); confetti(24); coins += 50; reward("2-bosqich: bozor ichida! +50");
+  }
+  function leaveBazaar() {
+    level = 1; portalOn = false; S.portal.visible = false; S.out.visible = true; S.in.visible = false;
+    scene.background = null; S.lamp.color.set("#FFD9A0");
+  }
+
   /* ---------- game flow ---------- */
   function reset(first) {
     for (const o of objs) drop(o);
     objs = [];
-    speed = V0; dist = 0; coins = 0; hearts = HEARTS; rows = 0; runT = 0;
+    speed = V0; dist = 0; coins = 0; hearts = HEARTS; rows = 0; runT = 0; nextBoost = 300; punch = 0;
+    if (level === 2 || portalOn) leaveBazaar();
     lane = prevLane = first ? 0 : 1; px = first ? -2.55 : 0; py = vy = gy = 0; grounded = true; fastFall = false;
     rollT = lowT = jumpBuf = invuln = stumbleT = crashT = nmSlow = shake = 0;
     laneAt = jumpAt = rollAt = lastWave = -9; trick = wave = eat = rest = null; nextEat = 12; dbl = false; ninjaT = flipT = safe = 0; combo = 0; tipA = tipB = false; ts = 1;
@@ -914,8 +954,8 @@ const Game = (() => {
     return _info();
   }
   function _mood(i) { moodOverride = moodIdx = i; applyMood(1); renderer.render(scene, camera); return MOODS[i].name; }
-  const _info = () => ({ state, dist: Math.floor(dist), coins, hearts, speed: Math.round(speed), py: +py.toFixed(2), trick: trick && trick.name, eat: !!eat, objs: objs.length, calls: renderer && renderer.info.render.calls });
-  const _set = (o) => { if (o.dist != null) dist = o.dist; if (o.eat != null) nextEat = o.eat; if (o.rest != null) nextRest = o.rest; };
+  const _info = () => ({ state, dist: Math.floor(dist), coins, hearts, speed: Math.round(speed), py: +py.toFixed(2), trick: trick && trick.name, eat: !!eat, level, objs: objs.length, calls: renderer && renderer.info.render.calls });
+  const _set = (o) => { if (o.dist != null) { dist = o.dist; nextBoost = Math.ceil(dist / 300) * 300; } if (o.eat != null) nextEat = o.eat; if (o.rest != null) nextRest = o.rest; };
 
   return { mount, unmount, play, pause, exit, onBack, _sim, _mood, _act: act, _info, _set, _freeze: (f) => { frozen = f; } };
 })();

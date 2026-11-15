@@ -578,12 +578,13 @@ const RunWorld = (() => {
     const pts = new T.Points(pg, new T.PointsMaterial({ size: 0.24, map: dotT, vertexColors: true, transparent: true, depthWrite: false }));
     S.parts = { n, pos, col, vel: new Float32Array(n * 3), life: new Float32Array(n), next: 0, geo: pg };
     for (const o of [S.rain, S.flakes, pts]) { o.frustumCulled = false; scene.add(o); }
+    S.partsMesh = pts;
   }
 
   function build(three, C) {
     T = three; NI.clear(); CAPS.clear();
     scene = new T.Scene();
-    S = { scene, camera: new T.PerspectiveCamera(70, 1, 0.1, 1500), C, frontTreeMeshes: [], leafMats: [], eiffelMats: [], eiffel: null, snow: [], scroll: [], scn: [], walkers: [], stalls: [], facades: [], tints: [], signMats: [], snowOn: false, tmpC: new T.Color(), white: new T.Color("#FFFFFF") };
+    S = { scene, camera: new T.PerspectiveCamera(70, 1, 0.1, 1500), C, frontTreeMeshes: [], leafMats: [], inScn: [], snow: [], scroll: [], scn: [], walkers: [], stalls: [], facades: [], tints: [], signMats: [], snowOn: false, tmpC: new T.Color(), white: new T.Color("#FFFFFF") };
     G = {
       box: new T.BoxGeometry(1, 1, 1), sph: new T.SphereGeometry(1, 18, 14), lo: new T.SphereGeometry(1, 10, 8), cyl: new T.CylinderGeometry(1, 1, 1, 14),
       cone: new T.ConeGeometry(1, 1, 8), taper: new T.CylinderGeometry(0.55, 1, 1, 10), ico: new T.IcosahedronGeometry(1, 2), ico1: new T.IcosahedronGeometry(1, 1),
@@ -593,7 +594,119 @@ const RunWorld = (() => {
     S.rigMat = new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 });
     S.snowMat = new T.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, transparent: true, opacity: 0 });
     sky(); ground(); lights(); backdrop(); landmark(); props(); introWall(); vehicles(); populate(); actors(); weather();
+    // everything that belongs to the open street goes into one group, so level 2 can hide it in one step
+    const keep = new Set([S.hemi, S.sun, S.sun.target, S.lamp, S.P.g, S.guard.g, S.bag, S.blob, S.dizzy, S.partsMesh]);
+    S.out = new T.Group();
+    for (const c of [...scene.children]) if (!keep.has(c)) S.out.add(c);
+    scene.add(S.out);
+    inside(); entrance();
     return S;
+  }
+
+  /* ---------- level 2: inside the covered bazaar ---------- */
+  const archPath = (c, x, y, w, h) => { c.beginPath(); c.moveTo(x, y + h); c.lineTo(x, y + h * 0.45); c.quadraticCurveTo(x, y + h * 0.1, x + w / 2, y); c.quadraticCurveTo(x + w, y + h * 0.1, x + w, y + h * 0.45); c.lineTo(x + w, y + h); c.closePath(); };
+  function inside() {
+    const { SLOT, SLOTS, BACK } = S.C, LEN = 640, Z0 = -170, W = 8.6, H = 6.4;   // W: distance to the side walls, H: height of the arches
+    const g = new T.Group(); g.visible = false; scene.add(g); S.in = g;
+    // floor: cream tiles with terracotta and turquoise stars
+    const floorT = tex(512, 512, (c, w, h) => {
+      c.fillStyle = "#E9DCC3"; c.fillRect(0, 0, w, h);
+      for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+        const cx = x * 128 + 64, cy = y * 128 + 64;
+        c.fillStyle = (x + y) % 2 ? "#B5542B" : "#1F7A8C";
+        c.beginPath(); for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8, r = i % 2 ? 26 : 50; c.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } c.closePath(); c.fill();
+        c.fillStyle = "#F4E3B5"; c.beginPath(); c.arc(cx, cy, 12, 0, 7); c.fill();
+      }
+      c.strokeStyle = "rgba(90,60,30,.35)"; c.lineWidth = 3;
+      for (let i = 0; i <= 512; i += 128) { c.beginPath(); c.moveTo(i, 0); c.lineTo(i, h); c.moveTo(0, i); c.lineTo(w, i); c.stroke(); }
+    }, 5, LEN / 3.44);
+    const fl = new T.Mesh(G.plane, new T.MeshStandardMaterial({ map: floorT, roughness: 0.45, metalness: 0.05 }));
+    fl.scale.set(W * 2, LEN, 1); fl.rotation.x = -Math.PI / 2; fl.position.set(0, 0.01, Z0); fl.receiveShadow = true; g.add(fl);
+    S.scroll.push([floorT, 3.44]);
+    // side walls: an arcade of little shops with goods on the shelves
+    const wallM = new T.MeshStandardMaterial({ roughness: 0.85, map: tex(512, 256, (c, w, h) => {
+      c.fillStyle = "#E7D3AE"; c.fillRect(0, 0, w, h);
+      c.fillStyle = "#18A9C6"; c.fillRect(0, 0, w, 22); c.fillStyle = "#F2D279"; for (let i = 0; i < 16; i++) { c.beginPath(); c.arc(16 + i * 32, 11, 5, 0, 7); c.fill(); }
+      for (let k = 0; k < 2; k++) {
+        const x = 30 + k * 256;
+        archPath(c, x, 46, 196, 210); const gr = c.createLinearGradient(0, 60, 0, 256); gr.addColorStop(0, "#5A3A22"); gr.addColorStop(1, "#2E1F14"); c.fillStyle = gr; c.fill();
+        for (let sh = 0; sh < 3; sh++) {
+          c.fillStyle = "#7A5534"; c.fillRect(x + 22, 120 + sh * 42, 152, 6);
+          for (let i = 0; i < 9; i++) { c.fillStyle = ["#D7372F", "#F4A300", "#7BB342", "#F2C230", "#8D5524", "#E76F51"][(i + sh + k) % 6]; c.fillRect(x + 26 + i * 16, 100 + sh * 42, 12, 20); }
+        }
+        c.lineWidth = 10; c.strokeStyle = "#1B86A8"; archPath(c, x, 46, 196, 210); c.stroke();
+      }
+    }) });
+    // ceiling domes painted with a star pattern, open at the top to let the sun in
+    const domeT = tex(512, 256, (c, w, h) => {
+      c.fillStyle = "#F1E6CF"; c.fillRect(0, 0, w, h);
+      for (let y = 0; y < 4; y++) for (let x = 0; x < 16; x++) {
+        const cx = x * 32 + 16, cy = y * 64 + 32;
+        c.fillStyle = y % 2 ? "#1B86A8" : "#2F5DA8"; c.beginPath();
+        for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, r = i % 2 ? 6 : 13; c.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } c.closePath(); c.fill();
+      }
+      c.fillStyle = "#C9A24E"; for (let y = 0; y < 5; y++) c.fillRect(0, y * 64 - 2, w, 4);
+    });
+    const domeM = new T.MeshStandardMaterial({ map: domeT, side: T.DoubleSide, roughness: 0.7 });
+    const domeG = new T.SphereGeometry(1, 28, 10, 0, Math.PI * 2, 0, Math.PI * 0.42);
+    const beamM = new T.MeshBasicMaterial({ color: 0xfff2d0, transparent: true, opacity: 0.11, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending });
+    const beamG = new T.CylinderGeometry(0.7, 2.3, H + 3.4, 18, 1, true);
+    const skyM = new T.MeshBasicMaterial({ color: 0xfff6dc });
+    S.inGlow = new T.SpriteMaterial({ map: S.glowMat.map, transparent: true, opacity: 0.9, depthWrite: false, blending: T.AdditiveBlending });
+    // one bay of the hall: columns, the arch across, a lantern on each side, the wall behind the stalls
+    const bayK = baker();
+    for (const x of [-4.6, 4.6]) {
+      bayK.add(G.box, "#C9B48C", [0.9, 0.4, 0.9], [x, 0.2, 0]).add(G.cyl, "#E7D8B8", [0.32, H - 0.6, 0.32], [x, (H - 0.6) / 2 + 0.3, 0]).add(G.box, "#18A9C6", [0.84, 0.36, 0.84], [x, H - 0.25, 0]);
+      bayK.add(G.box, "#4A3423", [0.04, 1.4, 0.04], [x * 0.78, H - 0.9, 0]).add(G.box, "#B8892E", [0.36, 0.5, 0.36], [x * 0.78, H - 1.85, 0]);
+    }
+    bayK.add(G.box, "#E7D8B8", [W * 2, 0.6, 0.7], [0, H, 0]).add(G.box, "#1B86A8", [W * 2, 0.14, 0.74], [0, H - 0.3, 0]).add(G.box, "#C9A24E", [W * 2, 0.06, 0.76], [0, H + 0.18, 0]);
+    for (const x of [-1, 1]) bayK.add(G.box, "#E7D8B8", [0.5, 1.2, 0.6], [x * 4.1, H - 0.8, 0], [0, 0, x * 0.7]);
+    const bayG = bayK.geo();
+    const add = (o, z) => { o.position.z = z; g.add(o); S.inScn.push(o); return o; };
+    for (let i = 0; i < SLOTS; i++) {
+      const z = BACK - i * SLOT, bay = new T.Group();
+      bay.add(mesh(bayG, S.prop));
+      for (const x of [-1, 1]) {
+        const w = new T.Mesh(G.plane, wallM); w.scale.set(SLOT, H + 1.6, 1); w.position.set(x * W, (H + 1.6) / 2, 0); w.rotation.y = -x * Math.PI / 2; bay.add(w);
+        const gl = new T.Sprite(S.inGlow); gl.scale.set(2.2, 2.2, 1); gl.position.set(x * 4.6 * 0.78, H - 1.85, 0); bay.add(gl);
+      }
+      const d = new T.Mesh(domeG, domeM); d.scale.set(W, 3.2, SLOT / 2 * 1.04); d.position.set(0, H + 0.2, -SLOT / 2); bay.add(d);
+      if (i % 2 === 0) {      // sunbeam through the opening at the top of every other dome
+        const sky = new T.Mesh(G.cyl, skyM); sky.scale.set(1.6, 0.05, 1.6); sky.position.set(0, H + 3.15, -SLOT / 2); bay.add(sky);
+        const b = new T.Mesh(beamG, beamM); b.position.set(0.6, (H + 3.4) / 2, -SLOT / 2 - 1.2); b.rotation.z = -0.12; bay.add(b);
+      }
+      add(bay, z);
+      for (const side of [-1, 1]) {           // a stall with its seller between each pair of columns
+        const geo = pick(S.stallGeos), u = geo.userData, m = mesh(geo, S.prop);
+        m.rotation.y = -side * Math.PI / 2;
+        const arm = mesh(S.armGeos[u.shirt], S.prop, false); arm.position.set(u.sx - 0.255, 1.36, -1.1); arm.rotation.z = -0.12; m.add(arm);
+        add(m, z - SLOT / 2).position.x = side * 6.5;
+        if (Math.random() < 0.35) { const p = mesh(pick(S.groups), S.prop); p.rotation.y = side * rnd(0.6, 2.4); add(p, z - SLOT * 0.25).position.x = side * 5.1; }
+      }
+    }
+  }
+  // The great tiled gate the runner goes through to get inside; the doorway is see-through.
+  function entrance() {
+    const t = tex(1024, 640, (c, w, h) => {
+      c.fillStyle = "#DCC7A1"; c.fillRect(0, 0, w, h);
+      c.fillStyle = "#0E5F9A"; c.fillRect(70, 30, w - 140, h - 30); c.fillStyle = "#DCC7A1"; c.fillRect(110, 70, w - 220, h - 70);
+      c.fillStyle = "#F2D279";
+      for (let i = 0; i < 26; i++) for (const [x, y] of [[90, 80 + i * 22], [w - 90, 80 + i * 22], [130 + i * 30, 50]]) { if (x > w - 120 && y === 50) continue; c.beginPath(); c.moveTo(x, y - 8); c.lineTo(x + 8, y); c.lineTo(x, y + 8); c.lineTo(x - 8, y); c.fill(); }
+      c.lineWidth = 26; c.strokeStyle = "#18A9C6"; archPath(c, 300, 150, 424, 490); c.stroke();
+      c.lineWidth = 8; c.strokeStyle = "#F2D279"; archPath(c, 330, 185, 364, 455); c.stroke();
+      c.save(); c.globalCompositeOperation = "destination-out"; archPath(c, 312, 162, 400, 478); c.fill(); c.restore();   // the doorway itself
+    });
+    const g = new T.Group(); g.visible = false;
+    const face = new T.Mesh(G.plane, new T.MeshStandardMaterial({ map: t, alphaTest: 0.5, side: T.DoubleSide, roughness: 0.6 }));
+    face.scale.set(24, 15, 1); face.position.y = 7.5; g.add(face);
+    const k = baker();
+    for (const x of [-1, 1]) {
+      k.add(G.box, "#DCC7A1", [3.4, 15, 3], [x * 13.2, 7.5, -1.4]).add(G.cyl, "#18A9C6", [1.1, 18, 1.1], [x * 13.2, 9, -1.4]);
+      k.add(G.half, "#18A9C6", [1.6, 2.2, 1.6], [x * 13.2, 18, -1.4]).add(G.cone, "#E6B84C", [0.3, 2, 0.3], [x * 13.2, 20.6, -1.4]);
+    }
+    k.add(G.box, "#DCC7A1", [24, 1.4, 3], [0, 15.6, -1.4]).add(G.box, "#18A9C6", [24.4, 0.4, 3.2], [0, 16.4, -1.4]);
+    g.add(mesh(k.geo(), S.prop));
+    scene.add(g); S.portal = g;
   }
 
   // Scales a downloaded model to a target length or height, stands it on the ground and centres it.
@@ -622,14 +735,9 @@ const RunWorld = (() => {
       if (Math.random() < 0.25) continue;
       const g = pick(trees).clone(), i = S.scn.indexOf(old);
       g.position.copy(old.position); g.rotation.y = rnd(0, 6.28); g.scale.setScalar(rnd(0.85, 1.15));
-      scene.remove(old); scene.add(g); if (i >= 0) S.scn[i] = g;
+      const p = old.parent || scene; p.remove(old); p.add(g); if (i >= 0) S.scn[i] = g;
     }
     if (trees.length) S.frontTreeMeshes = [];
-    if (m.eiffel && !S.eiffel) {           // far in the background; its lights come on in the evening
-      const e = fit(m.eiffel, { height: 92 }); e.position.set(80, 0, -335); e.rotation.y = 0.5;
-      meshes(e, (c) => { c.material.fog = false; if (!S.eiffelMats.includes(c.material)) { S.eiffelMats.push(c.material); S.tints.push({ m: c.material, k: 0.3 }); } });
-      scene.add(e); S.eiffel = e;
-    }
   }
 
   return { build, useModels };
