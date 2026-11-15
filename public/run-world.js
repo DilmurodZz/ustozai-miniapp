@@ -160,7 +160,7 @@ const RunWorld = (() => {
 
   // The bazaar at the end of the road, modelled on Chorsu: a great turquoise dome on a round arcaded hall, ringed by smaller domes. No sign: players should recognise it.
   function landmark() {
-    const g = new T.Group(); g.position.set(0, 0, -222);
+    const g = new T.Group(); g.position.set(0, 0, -222); S.landmark = g;
     const lit = (o) => { const m = new T.MeshStandardMaterial({ fog: false, roughness: 0.6, ...o }); S.tints.push({ m, k: 0.25 }); return m; };
     const arch = (c, x, y, w, h) => { c.beginPath(); c.moveTo(x, y + h); c.lineTo(x, y + h * 0.45); c.quadraticCurveTo(x, y + h * 0.1, x + w / 2, y); c.quadraticCurveTo(x + w, y + h * 0.1, x + w, y + h * 0.45); c.lineTo(x + w, y + h); c.closePath(); };
     const tile = tex(128, 128, (c) => {
@@ -599,7 +599,7 @@ const RunWorld = (() => {
     S.out = new T.Group();
     for (const c of [...scene.children]) if (!keep.has(c)) S.out.add(c);
     scene.add(S.out);
-    inside(); entrance();
+    inside(); entrance(); torii();
     return S;
   }
 
@@ -738,6 +738,58 @@ const RunWorld = (() => {
       const p = old.parent || scene; p.remove(old); p.add(g); if (i >= 0) S.scn[i] = g;
     }
     if (trees.length) S.frontTreeMeshes = [];
+    if (m.mosque && !S.mosque) {          // level 3: the Blue Mosque takes the Chorsu dome's place at the end of the road
+      const e = fit(m.mosque, { len: 150, rotY: Math.PI / 2 }); e.position.set(0, -4, -250); e.visible = false;
+      S.mosqueMats = [];
+      meshes(e, (c) => { c.material.fog = false; if (!S.mosqueMats.includes(c.material)) { S.mosqueMats.push(c.material); S.tints.push({ m: c.material, k: 0.22 }); } });
+      S.out.add(e); S.mosque = e;
+    }
+    if (m.jstreet && !S.tokyo) tokyo(m.jstreet);
+  }
+
+  // Pushes the two sides of a narrow street apart so three lanes fit between them.
+  // Whatever crosses the middle (the ground, the wires) is stretched to match.
+  function widen(src, scale, gap) {
+    src.updateMatrixWorld(true);
+    const out = new T.Group(), sm = new T.Matrix4().makeScale(scale, scale, scale), box = new T.Box3().setFromObject(src);
+    const cx = (box.min.x + box.max.x) / 2 * scale;
+    src.traverse((c) => {
+      if (!c.isMesh) return;
+      const g = c.geometry.clone(), p = g.attributes.position, f = new Float32Array(p.count * 3);
+      for (let i = 0; i < p.count; i++) { f[i * 3] = p.getX(i); f[i * 3 + 1] = p.getY(i); f[i * 3 + 2] = p.getZ(i); }   // un-quantise first
+      g.setAttribute("position", new T.BufferAttribute(f, 3));
+      g.applyMatrix4(new T.Matrix4().multiplyMatrices(sm, c.matrixWorld));
+      for (let i = 0; i < p.count; i++) { const x = f[i * 3] - cx; f[i * 3] = x + Math.sign(x) * gap * Math.min(1, Math.abs(x) / 0.8); }
+      g.computeBoundingBox(); g.computeBoundingSphere();
+      const n = new T.Mesh(g, c.material); n.receiveShadow = true; out.add(n);
+    });
+    const b = new T.Box3().setFromObject(out);
+    out.position.set(0, -b.min.y, -(b.min.z + b.max.z) / 2);
+    const wrap = new T.Group(); wrap.add(out); wrap.userData.len = b.max.z - b.min.z;
+    return wrap;
+  }
+  // level 4: four copies of the neon Japanese street in a row, every other one turned round for variety
+  function tokyo(src) {
+    const g = new T.Group(); g.visible = false; scene.add(g); S.tokyo = g; S.tkScn = [];
+    const proto = widen(src, 1.5, 2.9), L = proto.userData.len;
+    proto.traverse((c) => { if (c.isMesh && c.material.emissiveMap) { c.material.emissive.set(0xffffff); c.material.emissiveIntensity = 1.7; } });
+    const base = new T.Mesh(G.plane, new T.MeshStandardMaterial({ color: 0x1d1f26, roughness: 0.35, metalness: 0.3 }));
+    base.scale.set(40, 400, 1); base.rotation.x = -Math.PI / 2; base.position.set(0, -0.02, -150); base.receiveShadow = true; g.add(base);
+    for (let i = 0; i < 4; i++) {
+      const c = i ? proto.clone() : proto;
+      if (i % 2) c.rotation.y = Math.PI;
+      c.position.z = 30 - L / 2 - i * L; g.add(c); S.tkScn.push(c);
+    }
+    S.tkLen = L;
+  }
+  // red torii gate in front of the Tokyo street
+  function torii() {
+    const k = baker(), red = "#C8211B", dark = "#1E1A1A";
+    for (const x of [-5.4, 5.4]) k.add(G.cyl, red, [0.42, 9.2, 0.42], [x, 4.6, 0]).add(G.cyl, dark, [0.55, 0.7, 0.55], [x, 0.35, 0]);
+    k.add(G.box, red, [12.6, 0.55, 0.5], [0, 7.3, 0]).add(G.box, red, [13.4, 0.6, 0.8], [0, 8.9, 0]).add(G.box, dark, [14.8, 0.45, 1.0], [0, 9.45, 0], [0, 0, 0]);
+    for (const x of [-1, 1]) k.add(G.box, dark, [1.2, 0.4, 1.0], [x * 7.6, 9.6, 0], [0, 0, x * 0.18]);
+    k.add(G.box, dark, [0.9, 1.6, 0.25], [0, 8.1, 0.05]).add(G.box, "#E8C060", [0.7, 1.35, 0.27], [0, 8.1, 0.06]);
+    const g = new T.Group(); g.add(mesh(k.geo(), S.prop)); g.visible = false; scene.add(g); S.torii = g;
   }
 
   return { build, useModels };
