@@ -509,7 +509,6 @@ const Game = (() => {
     if (pw.jump > 0) burst(px, 0.2, 0, "#7CF29A", 12, 2.6);
     if (over && Math.random() < 1 / 3) flipT = 0.55;      // one jump in three off a car or over an obstacle is a quick back flip
     sfx("jump"); buzz("light");
-    if (games <= 3 && !tipB) { tipB = true; tip("Havoda yana yuqoriga suring: ninja sakrash"); }
   }
   function startRoll() { rollT = ROLL; rollAt = time; sfx("roll"); buzz("light"); }
   function doRoll() {
@@ -807,7 +806,6 @@ const Game = (() => {
       if ((spawnIn -= v * dt) <= 0) spawnRow();
       if (auto) autopilot();
       if (runT > nextEat && free()) startEat();
-      if (games <= 3 && !tipA && runT > 2.2) { tipA = true; tip("Ekranni 2 marta bosing: akrobatika"); }
     } else if (crashT > 0 && py > 0) py = Math.max(0, py - 12 * dt);
     if (crashT > 0) crashT += dt;
     if (stumbleT > 0) stumbleT -= dt;
@@ -1080,6 +1078,35 @@ const Game = (() => {
     if (!first) { S.wall.visible = false; introK = 0; }
     hud(true);
   }
+  // The very first game: two short cartoon panels (energy, then controls). Never shown again.
+  const SW = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const ARROW = { L: SW('<path d="M19 12H5M11 6l-6 6 6 6"/>'), R: SW('<path d="M5 12h14M13 6l6 6-6 6"/>'), U: SW('<path d="M12 19V5M6 11l6-6 6 6"/>'), D: SW('<path d="M12 5v14M6 13l6 6 6-6"/>'),
+    UU: SW('<path d="M6 13l6-6 6 6M6 19l6-6 6 6"/>'), T: SW('<circle cx="9" cy="10" r="3"/><circle cx="16" cy="13" r="3"/><path d="M9 3v2M16 6v2"/>') };
+  function help() {
+    const back = state; state = "help"; RunAudio.music(false);
+    const done = () => { store.set("run_help", 1); el.kuch.classList.remove("spot"); hideCard(); state = back; RunAudio.music(true); last = performance.now(); buzz("medium"); };
+    el.kuch.classList.add("spot"); buzz("light");
+    card(`<div class="toon-step">1 / 2</div>
+      <div class="toon-ico">${ic("zap")}</div>
+      <h2>Tanga yig', kuchli bo'l!</h2>
+      <div class="toon-bar"><i class="g"></i><i class="y"></i><i class="r"></i></div>
+      <p>Yuqoridagi chiziq bu sening kuching. Tanga yig'sang to'ladi, tugasa yiqilasan!</p>
+      <button class="toon-btn" data-a="next">Tushundim</button>`,
+      { next: () => {
+        el.kuch.classList.remove("spot"); buzz("light");
+        const row = (a, c, t) => `<div class="toon-ctl"><span class="toon-key ${c}">${a}</span><b>${t}</b></div>`;
+        card(`<div class="toon-step">2 / 2</div>
+          <h2>Boshqarish</h2>
+          <div class="toon-grid">
+            ${row(ARROW.L + ARROW.R, "k1", "Chap, o'ng")}
+            ${row(ARROW.U, "k2", "Sakra")}
+            ${row(ARROW.UU, "k3", "2 marta: ninja")}
+            ${row(ARROW.D, "k4", "Sirpan")}
+            ${row(ARROW.T, "k5", "2 marta bos: akrobatika")}
+          </div>
+          <button class="toon-btn" data-a="go">${ic("play")} O'ynash!</button>`, { go: done }, "toon");
+      } }, "toon");
+  }
   function play() {
     clearTimeout(flowTimer); root.classList.remove("over");
     const first = state === "menu";
@@ -1093,6 +1120,7 @@ const Game = (() => {
     if (first) { state = "intro"; introT = 0; guardT = 0; guardX = -2.4; sfx("whistle"); pop("Hoy, to'xta!", "bad"); }   // the watchman turns up
     else state = "play";
     last = performance.now();
+    if (!store.get("run_help", 0)) help();
   }
   function pause() {
     if (!["play", "intro", "rest"].includes(state)) return;
