@@ -44,12 +44,16 @@ const Game = (() => {
   let level = 1, portalOn = false, nextBoost = 300, punch = 0, speedFx = -1;
   let pace = 1, gateObj = null, trans = null, calm = 0;
   // power-ups: seconds left of each, and where the next one appears
-  const PW = { x2: [15, "2x tanga"], jump: [10, "Super sakrash"], fly: [7, "Uchar gilam"], shield: [20, "Qalqon"] }, FLY_H = 5.2;
-  const pw = { x2: 0, jump: 0, fly: 0, shield: 0 };
+  const PW = { x2: [15, "2x tanga"], jump: [10, "Super sakrash"], fly: [7, "Uchar gilam"], shield: [20, "Qalqon"], dash: [0, "Oldinga!"] }, FLY_H = 5.2;
+  const pw = { dash: 0, x2: 0, jump: 0, fly: 0, shield: 0 };
   let nextPow = 260, flyK = 0, G_BOX = null;
   // energy: runs down all the time (faster on later levels), coins and food fill it; empty = he collapses (a crash)
   const DRAIN = [0, 1 / 20, 1 / 18, 1 / 14, 1 / 11];
   let energy = 1, enWarn = 0;
+  // two players: 4 lanes, the friend's runner, the road comes from the host phone; each can be one step ahead or behind
+  let NL = 3, net = null, fr = null, outbox = [], netApplying = false, offT = 0, offPos = 0, hostB = null, lastSend = 0, lastDown = -9;
+  let rdy = { me: false, fr: false, replied: false }, cdT = 0, cdN = 0, saveT = 0, netCard = "";
+  const STEP = 3;
   let moment = null, lastSnapT = 0, momentURL = null;     // the most spectacular moment of this run, for the picture at the end
   let nextWagon = 700, tubeK = 0, inTube = null;     // the train wagon to run through
   const feed = (a) => { energy = Math.min(1, energy + a); };    // slow-down near a gate, the fade through it, the quiet start of a new level
@@ -60,7 +64,7 @@ const Game = (() => {
   const rnd = (a, b) => a + Math.random() * (b - a);
   const pick = (a) => a[Math.floor(Math.random() * a.length)];
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const laneX = (l) => (l - 1) * LANE;
+  const laneX = (l) => (l - (NL - 1) / 2) * LANE;
   const best = () => store.get("run_best", 0);
   let moodStart = Date.now();
   const slotMood = () => Math.floor((Date.now() - moodStart) / SLOT_MS) % MOODS.length;     // 0 = sunny day first
@@ -90,23 +94,27 @@ const Game = (() => {
       <div class="run-hint"></div>
       <div class="run-kuch"><span class="ic-bolt">${ic("zap")}</span><i><b></b></i></div>
       <div class="run-pw"></div>
+      <div class="run-friend" style="display:none"></div>
       <div class="run-top">
         <div class="run-hud"><button class="run-btn" data-k="pause" aria-label="Pauza">${ic("pause")}</button><span class="run-coins">${ic("coin")}<b data-k="coins">0</b></span></div>
         <div class="run-right"><span class="run-hearts"></span><button class="run-btn" data-k="ar" aria-label="AR">${ic("ar")}</button><button class="run-btn" data-k="snd" aria-label="Ovoz"></button><button class="run-btn" data-k="x" aria-label="Yopish">${ic("x")}</button></div>
       </div>`;
     document.body.appendChild(root);
     const q = (s) => root.querySelector(s);
-    el = { cv: q(".run-cv"), flash: q(".run-flash"), speed: q(".run-speed"), title: q(".run-title"), ov: q(".run-ov"), fx: q(".run-fx"), hint: q(".run-hint"), coins: q('[data-k="coins"]'), chip: q(".run-coins"), hearts: q(".run-hearts"), snd: q('[data-k="snd"]'), pwBox: q(".run-pw"), kuch: q(".run-kuch"), kuchBar: q(".run-kuch b") };
+    el = { cv: q(".run-cv"), flash: q(".run-flash"), speed: q(".run-speed"), title: q(".run-title"), ov: q(".run-ov"), fx: q(".run-fx"), hint: q(".run-hint"), coins: q('[data-k="coins"]'), chip: q(".run-coins"), hearts: q(".run-hearts"), snd: q('[data-k="snd"]'), pwBox: q(".run-pw"), kuch: q(".run-kuch"), kuchBar: q(".run-kuch b"), friend: q(".run-friend") };
     q('[data-k="x"]').onclick = exit; q('[data-k="pause"]').onclick = pause; q('[data-k="ar"]').onclick = arToggle;
     el.arBtn = q('[data-k="ar"]');
     muted = store.get("run_mute", false); RunAudio.mute(muted);
     el.snd.onclick = () => { muted = !muted; store.set("run_mute", muted); RunAudio.mute(muted); el.snd.innerHTML = ic(muted ? "mute" : "sound"); };
     el.snd.innerHTML = ic(muted ? "mute" : "sound");
     alive = true; state = "load"; moodOverride = null;
+    net = typeof Duo !== "undefined" && Duo.S.playing && Duo.linked ? { host: Duo.host, name: (Duo.friend && Duo.friend.name) || "Do'st" } : null;
+    NL = net ? 4 : 3;
     card(LOADING);
     init();
   }
   function unmount() {
+    if (net) { for (const u of net.subs || []) u(); net = null; }
     arStop(); alive = false; cancelAnimationFrame(raf); clearTimeout(flowTimer); clearTimeout(hintTimer); RunAudio.music(false);
     window.removeEventListener("resize", resize); window.removeEventListener("keydown", onKey);
     document.removeEventListener("visibilitychange", onHide);
@@ -148,6 +156,7 @@ const Game = (() => {
   }
   function hudPw() {
     for (const k in pw) {
+      if (!PW[k][0]) continue;
       const c = el.pw[k], on = pw[k] > 0;
       if (on !== c.on) { c.on = on; c.el.style.display = on ? "" : "none"; }
       if (on) { const f = Math.round(pw[k] / PW[k][0] * 40) / 40; if (f !== c.f) { c.f = f; c.bar.style.transform = `scaleX(${f})`; } }
@@ -155,6 +164,10 @@ const Game = (() => {
   }
   function hud(force) {
     if (el.pw) hudPw();
+    if (net && fr) {
+      const rel = fr.o - offT, t = `${esc(net.name)} · ${"♥".repeat(Math.max(0, fr.h))} · ${fr.co}${rel > 0 ? " · oldinda" : rel < 0 ? " · orqada" : ""}`;
+      if (t !== shown.f) { shown.f = t; el.friend.innerHTML = t; }
+    }
     const e = Math.round(energy * 60) / 60;
     if (force || e !== shown.e) {
       shown.e = e; el.kuchBar.style.transform = `scaleX(${e})`;
@@ -199,13 +212,14 @@ const Game = (() => {
   }
   // Draws one of everything once, out of sight of the player, so the phone prepares every shader, texture and
   // buffer now instead of stalling the first time each thing comes into view.
-  const POWC = { x2: "#F4A300", jump: "#22B455", fly: "#8B3FD9", shield: "#2E86E8" };
+  const POWC = { dash: "#0EA5A4", x2: "#F4A300", jump: "#22B455", fly: "#8B3FD9", shield: "#2E86E8" };
   function powIcon(k) {
     const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d");
     const gr = g.createRadialGradient(54, 46, 8, 64, 64, 62); gr.addColorStop(0, "#fff"); gr.addColorStop(0.25, POWC[k]); gr.addColorStop(1, POWC[k]);
     g.fillStyle = gr; g.beginPath(); g.arc(64, 64, 58, 0, 7); g.fill(); g.lineWidth = 7; g.strokeStyle = "#fff"; g.stroke();
     g.fillStyle = g.strokeStyle = "#fff"; g.lineCap = g.lineJoin = "round";
-    if (k === "x2") { g.font = "900 54px system-ui, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("x2", 64, 68); }
+    if (k === "dash") { g.lineWidth = 12; for (const x of [46, 70]) { g.beginPath(); g.moveTo(x, 40); g.lineTo(x + 16, 64); g.lineTo(x, 88); g.stroke(); } }
+    else if (k === "x2") { g.font = "900 54px system-ui, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("x2", 64, 68); }
     else if (k === "jump") { g.lineWidth = 12; for (const y of [50, 74]) { g.beginPath(); g.moveTo(40, y + 12); g.lineTo(64, y - 10); g.lineTo(88, y + 12); g.stroke(); } }
     else if (k === "fly") { g.beginPath(); g.moveTo(28, 52); g.quadraticCurveTo(64, 38, 100, 52); g.lineTo(100, 80); g.quadraticCurveTo(64, 66, 28, 80); g.closePath(); g.fill();
       g.fillStyle = POWC.fly; g.beginPath(); g.moveTo(64, 50); g.lineTo(76, 61); g.lineTo(64, 72); g.lineTo(52, 61); g.fill(); g.fillStyle = "#fff"; for (let i = 0; i < 6; i++) g.fillRect(30 + i * 13, 82, 4, 9); }
@@ -286,6 +300,8 @@ const Game = (() => {
     play();
     last = performance.now();
     raf = requestAnimationFrame(loop);
+    if (net) netStart();
+    else { const sv = store.get("run_save", null); if (sv && Date.now() - sv.t < 12 * 3600e3 && state === "play") askResume(sv); }
   }
   function resize() {
     if (!renderer) return;
@@ -293,7 +309,7 @@ const Game = (() => {
     renderer.setSize(W, H, false);
     camera.aspect = W / H;
     // widen the view on tall phone screens so all three lanes stay visible
-    baseFov = clamp(T.MathUtils.radToDeg(2 * Math.atan((LANE + 0.85) / (CAM_Z * camera.aspect))), 54, 78);
+    baseFov = clamp(T.MathUtils.radToDeg(2 * Math.atan((LANE * (NL - 1) / 2 + 0.85) / (CAM_Z * camera.aspect))), 54, NL > 3 ? 88 : 78);
     camera.fov = baseFov; camera.updateProjectionMatrix();
   }
   // A slow phone: lower the resolution and refresh shadows less often now (switching shadows off would rebuild every
@@ -422,9 +438,11 @@ const Game = (() => {
   }
   function drop(o) { o.m.visible = false; o.m.scale.setScalar(1); o.m.position.x = laneX(o.lane); (pools[o.type] || (pools[o.type] = [])).push(o.m); }
   function put(type, l, z, y = 0) {
+    if (net && !net.host && !netApplying) return;
     const d = S.defs[type], m = take(type);
     m.position.set(laneX(l), y, z);
     objs.push({ type, def: d, kind: d.kind, hd: d.hd, val: d.val || 0, lane: l, z, y, m, ph: rnd(0, 6), x: laneX(l) });
+    if (net && net.host && !netApplying) outbox.push(objs[objs.length - 1]);
   }
   function trail(l, z, n) {
     for (let i = 0; i < n; i++) put(i === n - 1 && Math.random() < 0.22 ? pick(["non", "samsa"]) : "coin", l, z + (n - 1) * 1.2 - i * 2.4, 0.95);
@@ -433,25 +451,28 @@ const Game = (() => {
     const step = speed * 0.14;
     for (let i = 0; i < 5; i++) put("coin", l, z + (2 - i) * step, 1.5 + 1.2 * (1 - Math.pow((i - 2) / 2.4, 2)));
   }
+  const lanes = () => [...Array(NL).keys()].sort(() => Math.random() - 0.5);
   function zig(l, z, n) {                 // a coin line that steps across the lanes, inviting a swipe
-    let d = l === 0 ? 1 : l === 2 ? -1 : (Math.random() < 0.5 ? -1 : 1);
-    for (let i = 0; i < n; i++) { if (i && i % 4 === 0) { if (l + d < 0 || l + d > 2) d = -d; l += d; } put("coin", l, z - i * 2.4, 0.95); }
+    let d = l === 0 ? 1 : l === NL - 1 ? -1 : (Math.random() < 0.5 ? -1 : 1);
+    for (let i = 0; i < n; i++) { if (i && i % 4 === 0) { if (l + d < 0 || l + d > NL - 1) d = -d; l += d; } put("coin", l, z - i * 2.4, 0.95); }
   }
   function spawnRow(z = FAR) {
+    if (net && !net.host) { spawnIn = 1e9; return 60; }
     rows++;
     const lv = portalOn ? level + 1 : level;
     let gap = (lv >= 4 ? 10 + speed * 0.42 : lv >= 3 ? 11 + speed * 0.47 : 13 + speed * 0.55) + rnd(0, lv >= 3 ? 3.5 : 5);     // rows come closer together from level 3, closest by the sea
     if (pw.fly > 2.5) { spawnIn = gap; return gap; }    // the road stays empty under the carpet (it fills again just before landing)
     if (S.wagonReady && lv !== 2 && rows > 6 && dist >= nextWagon) {
       nextWagon = dist + rnd(650, 950);
-      const l = Math.random() < 0.5 ? 0 : 2, zc = z - 6.8;      // sized so the far lane stays clear beside it
+      const l = Math.random() < 0.5 ? 0 : NL - 1, zc = z - 6.8;      // sized so the far lane stays clear beside it
       put("wagon", l, zc); objs[objs.length - 1].m.scale.x = l === 0 ? 1 : -1;
-      put("wagonWall", 1, zc);
+      put("wagonWall", l === 0 ? 1 : NL - 2, zc);
       trail(l, z + 7, 4); trail(l, zc + 1.5, 5); put("samsa", l, zc - 4.5, 0.95);
       spawnIn = gap + 15; return gap + 15;
     }
     if (lv >= 4 && rows > 4 && Math.random() < 0.35) {      // the seaside's own tricky rows
-      const L = [0, 1, 2].sort(() => Math.random() - 0.5);
+      const L = lanes();
+      if (NL > 3) trail(L[3], z - 6, 7);
       if (Math.random() < 0.5) {        // roll, then jump, in the same lane, with a stall beside it: one lane free
         const d = speed * 0.85 + 4;     // room to finish the roll before the jump
         put("banner", L[0], z); put(pick(["barrier", "crates", "melons"]), L[0], z - d); put(pick(["meat", "cart"]), L[1], z - d / 2);
@@ -465,12 +486,13 @@ const Game = (() => {
     }
     if (rows > 4 && dist >= nextPow) {          // a power-up in its own lane, coins beside it
       nextPow = dist + rnd(380, 560);
-      const ks = Object.keys(PW), k = ks[Math.floor(Math.random() * ks.length)], l = Math.floor(Math.random() * 3);
-      put("pw_" + k, l, z, 1.15); trail((l + 1) % 3, z + 4, 6);
+      const ks = Object.keys(PW).filter((k) => k !== "dash" || net), k = ks[Math.floor(Math.random() * ks.length)], l = Math.floor(Math.random() * NL);
+      put("pw_" + k, l, z, 1.15); trail((l + 1) % NL, z + 4, 6);
       spawnIn = gap + 6; return gap + 6;
     }
     // one obstacle per row, so a single swipe to the side always gets past it
-    const L = [0, 1, 2].sort(() => Math.random() - 0.5), r = Math.random();
+    const L = lanes(), r = Math.random();
+    if (NL > 3) Math.random() < 0.5 ? trail(L[3], z, 6) : put(pick(["barrier", "crates", "banner"]), L[3], z);      // the 4th lane: coins or something to jump or roll
     const next = portalOn ? level + 1 : level, inside = next === 2 || next === 4;     // no cars in the bazaar or on the promenade
     const low = () => pick(["barrier", "crates", "melons", "teleshka"]), full = () => pick(inside ? ["meat", "cart"] : ["damas", "damas", "cart", "meat"]);
     if (rows < 4) { put(pick(["barrier", "crates", "sedan"]), L[0], z); trail(L[1], z, 5); }
@@ -531,7 +553,7 @@ const Game = (() => {
     else if (rollT < 0.15) startRoll();
   }
   function move(d) {
-    const nl = clamp(lane + d, 0, 2);
+    const nl = clamp(lane + d, 0, NL - 1);
     if (nl === lane) return;
     const over = (o) => !o.gone && o.z + o.hd > -0.9 && o.z - o.hd < 0.9;
     if (pw.fly <= 0 && objs.some((o) => o.kind === "tube" && (o.lane === lane || o.lane === nl) && over(o))) return graze(d);   // the wagon's walls
@@ -585,12 +607,13 @@ const Game = (() => {
     if (combo === 10 || combo === 20) { coins += 5; reward(`Combo x${combo}! +5`); }
   }
   function power(k) {
+    if (k === "dash") { offT = Math.min(1, offT + 1, fr ? fr.o + 1 : 1); feed(0.1); sfx("trick"); reward("Bir qadam oldinga!"); return; }
     pw[k] = PW[k][0]; feed(0.1);
     if (k === "fly") {                // up on the flying carpet, with a long line of coins in the air
       vy = 0; rollT = 0; trick = null; ninjaT = flipT = 0;
       let l = lane;
       const gapC = Math.max(3, speed * 0.2), z0 = -(speed * 0.8 + 8);      // starts once he is up there
-      for (let i = 0; i < 28; i++) { if (i % 8 === 7) l = clamp(l + (Math.random() < 0.5 ? -1 : 1), 0, 2); put("coin", l, z0 - i * gapC, FLY_H + 1.0); }
+      for (let i = 0; i < 28; i++) { if (i % 8 === 7) l = clamp(l + (Math.random() < 0.5 ? -1 : 1), 0, NL - 1); netApplying = true; put("coin", l, z0 - i * gapC, FLY_H + 1.0); netApplying = false; }
     }
     sfx("trick"); reward(PW[k][1] + "!"); burst(px, py + 1.2, 0, POWC[k], 22, 3.6);
   }
@@ -603,6 +626,8 @@ const Game = (() => {
     if (state !== "play") return;
     if (trick) { trick = null; safe = 0.4; }
     if (pw.fly > 0 && (dir === "U" || dir === "D")) return;     // on the carpet only left and right
+    if (dir === "D" && net && grounded && time - lastDown < 0.42) { lastDown = -9; const t = Math.max(-1, offT - 1, fr ? fr.o - 1 : -1); if (t !== offT) { offT = t; pop("Bir qadam orqaga"); buzz("light"); } }
+    else if (dir === "D") lastDown = time;
     if (dir === "L") move(-1); else if (dir === "R") move(1); else if (dir === "U") doJump(); else doRoll();
   }
   function onKey(e) {
@@ -633,14 +658,14 @@ const Game = (() => {
     cv.addEventListener("pointercancel", () => { id = null; });
     cv.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
   }
-  function onHide() { if (document.hidden) pause(); }
+  function onHide() { if (document.hidden) { pause(); saveRun(); } }
   // plays the game by itself: used for testing
   function autopilot() {
     const ahead = (l, win) => objs.filter((o) => o.kind !== "pick" && o.kind !== "ramp" && o.kind !== "tube" && !o.gone && !o.on && o.lane === l && o.z - o.hd < 0.5 && o.z + o.hd > -win).sort((a, b) => b.z - a.z);
     const win = 3 + speed * 0.5, here = ahead(lane, win)[0];
     if (!here || py > 0.6) return;
     if (here.kind === "full" || (here.kind === "plat" && here.def.front > 1.5)) {
-      const ok = [lane - 1, lane + 1].filter((l) => l >= 0 && l <= 2 && !ahead(l, win).some((o) => o.kind === "full"));
+      const ok = [lane - 1, lane + 1].filter((l) => l >= 0 && l <= NL - 1 && !ahead(l, win).some((o) => o.kind === "full"));
       if (ok.length) move(ok[0] - lane);
     } else if (-here.z - here.hd < speed * 0.12 + 0.6) {
       if (here.kind === "high") { if (rollT <= 0 && grounded) startRoll(); } else if (grounded) doJump();
@@ -781,11 +806,12 @@ const Game = (() => {
       if (Math.abs(p - paintP) > 0.006) { paintP = p; S.paint(p); }
       if (Math.random() < raw * 10) burst(-3.36, 1.45 + rnd(-0.55, 0.55), 2.4 - 4.4 * p, S.theme, 1, 0.45);
     }
-    const ds = v * dt;
+    let ds = v * dt;
+    if (net && playing) ds += netAdjust(dt);
     if (playing) {
       runT += dt;
       const cap = vcap();
-      if (speed < cap) speed = Math.min(cap, speed + dt * (level >= 3 ? 0.55 : 0.05 + 0.3 * (1 - (speed - V0) / (cap - V0))));   // gentle at first, a steady push from level 3
+      if (net && !net.host && hostB) speed = hostB.v; else if (speed < cap) speed = Math.min(cap, speed + dt * (level >= 3 ? 0.55 : 0.05 + 0.3 * (1 - (speed - V0) / (cap - V0))));   // gentle at first, a steady push from level 3
       pace = 1;                      // full speed straight through the gates
       dist += v * dt;
       if (calm > 0 && (calm -= dt) <= 0) fillRoad();
@@ -840,6 +866,9 @@ const Game = (() => {
     if (fx !== speedFx) { speedFx = fx; el.speed.style.opacity = fx; }
     if (trans) fadeStep(raw);
     if (ar && ar.on) arApply();
+    if (state === "count") countStep(raw);
+    if (net) { friendStep(raw); netTick(); }
+    if (playing && (saveT += raw) > 2) { saveT = 0; saveRun(); }
     hud();
   }
   function collide() {
@@ -1133,20 +1162,26 @@ const Game = (() => {
     if (first) { state = "intro"; introT = 0; guardT = 0; guardX = -2.4; sfx("whistle"); pop("Hoy, to'xta!", "bad"); }   // the watchman turns up
     else state = "play";
     last = performance.now();
-    if (!store.get("run_help", 0)) help();
+    if (!store.get("run_help", 0) && !net) help();
   }
-  function pause() {
-    if (!["play", "intro", "rest"].includes(state)) return;
-    prevState = state; state = "pause"; RunAudio.music(false);
-    pauseCard(); applyModels();
+  function pause(fromNet) {
+    if (!["play", "intro", "rest", "count"].includes(state)) return;
+    prevState = state === "count" ? "play" : state; state = "pause"; RunAudio.music(false);
+    if (net && fromNet !== true) Duo.send({ t: "pause" });
+    saveRun(); pauseCard(fromNet === true); applyModels();
   }
-  function pauseCard() {
-    card(`${chip("pause", "lg solid")}<h2>Pauza</h2><button class="btn-primary" data-a="go">${ic("play")} Davom etish</button><button class="btn-ghost" data-a="out">Chiqish</button>`,
-      { go: () => { hideCard(); state = prevState; RunAudio.music(true); last = performance.now(); }, out: exit });
+  function pauseCard(byFriend) {
+    card(`${chip("pause", "lg solid")}<h2>${byFriend && net ? esc(net.name) + " pauza qildi" : "Pauza"}</h2><button class="btn-primary" data-a="go">${ic("play")} Davom etish</button>${net ? "" : `<button class="btn-ghost" data-a="duo">${ic("users")} Do'st bilan o'ynash</button>`}<button class="btn-ghost" data-a="out">Chiqish</button>`,
+      { go: () => unpause(false), out: exit, duo: () => { location.hash = "#/duo"; } });
+  }
+  function unpause(fromNet) {
+    if (net && !fromNet) Duo.send({ t: "go" });
+    hideCard(); state = prevState; RunAudio.music(true); last = performance.now();
   }
   // Telegram's back button pauses a run instead of leaving the game
-  function onBack() { if (["play", "intro", "rest"].includes(state)) { pause(); return true; } return false; }
+  function onBack() { if (["play", "intro", "rest", "count"].includes(state)) { pause(); return true; } return false; }
   function crash() {
+    if (net) Duo.send({ t: "wait" });
     state = "dead"; hearts--; crashT = 0.001; rollT = 0; fastFall = false; shake = 0.7; nmSlow = 0;
     trick = wave = null; if (eat) { eat = null; S.apple.visible = false; }
     flash("#FF5A5F", 0.45); sfx("crash"); buzz("error", [90, 50, 180]); buzz("heavy");
@@ -1196,10 +1231,132 @@ const Game = (() => {
     hideCard();
     for (const o of objs) if (o.z > -45) o.gone = true;      // clear the road just ahead
     crashT = 0; py = vy = gy = 0; grounded = true; rollT = lowT = jumpBuf = stumbleT = 0;
-    invuln = 1.6; speed = Math.max(V0, speed * 0.85); spawnIn = Math.max(spawnIn, 16); energy = 1; enWarn = 0;
+    invuln = 1.6; speed = Math.max(V0, speed * 0.85); spawnIn = net && !net.host ? 1e9 : Math.max(spawnIn, 16); energy = 1; enWarn = 0;
+    if (net) Duo.send({ t: "go2" });
     trail(lane, -14, 5);
     state = "play"; last = performance.now();
   }
+  /* ---------- two players ---------- */
+  function netAdjust(dt) {          // the step ahead/behind, and the guest following the host's road
+    const d = (offT - offPos) * Math.min(1, dt * 5); offPos += d; let extra = d * STEP;
+    if (!net.host && hostB) {
+      const hb = hostB.b + hostB.v * (performance.now() - hostB.at) / 1000, err = hb + offPos * STEP - (dist + extra);
+      extra += Math.abs(err) > 25 ? err : err * Math.min(1, dt * 2.5);
+    }
+    dist += extra; return extra;
+  }
+  function netTick() {
+    const now = performance.now();
+    if (net.host && state === "wait") outbox = [];          // the whole road is sent when the friend is ready
+    if (net.host && outbox.length) { Duo.send({ t: "o", i: outbox.filter((o) => !o.gone).map((o) => [o.type, o.lane, Math.round((dist - o.z) * 100) / 100, o.y, o.m.scale.x]) }); outbox = []; }
+    if (now - lastSend < 66) return;
+    lastSend = now;
+    const m = { t: "s", x: +px.toFixed(2), y: +py.toFixed(2), r: rollT > 0 ? 1 : 0, n: ninjaT > 0 ? 1 : 0, f: flipT > 0 ? 1 : 0, c: crashT > 0 ? 1 : 0, o: offT, op: +offPos.toFixed(3), h: hearts, co: coins };
+    if (net.host) { m.b = +(dist - offPos * STEP).toFixed(2); m.v = +speed.toFixed(2); }
+    Duo.send(m);
+  }
+  function friendStep(dt) {
+    const F = S.friend; if (!F) return;
+    const on = !!(fr && performance.now() - fr.at < 3000 && state !== "over");
+    F.g.visible = S.friendTag.visible = on;
+    if (!on) return;
+    const k = 1 - Math.exp(-dt * 14);
+    F.x = F.x == null ? fr.x : F.x + (fr.x - F.x) * k; F.y = F.y == null ? fr.y : F.y + (fr.y - F.y) * k;
+    const z = -(fr.op - offPos) * STEP;
+    F.g.position.set(F.x, F.y, F.g.position.z + (z - F.g.position.z) * k);
+    F.phase += dt * (["play", "count"].includes(state) ? 6 + speed * 0.4 : 0);
+    runPose(F, F.phase, false);
+    let fx = 0;
+    if (fr.c) { fx = 1.4; F.pivot.position.y = HIP * 0.4; }
+    else if (fr.r || fr.n || fr.f) { F.spin = (F.spin || 0) + dt * (fr.r ? 10 : 11); fx = fr.f ? F.spin : -F.spin; F.hL.rotation.x = F.hR.rotation.x = 1.8; F.kL.rotation.x = F.kR.rotation.x = -2.1; F.sL.rotation.x = F.sR.rotation.x = 1.3; if (fr.r) F.pivot.position.y = HIP * 0.72; }
+    else { F.spin = 0; if (fr.y > 0.3) { F.hL.rotation.x = 1.15; F.kL.rotation.x = -1.35; F.hR.rotation.x = -0.55; F.kR.rotation.x = -1.2; F.sL.rotation.x = 2.1; F.sR.rotation.x = 1.9; } }
+    F.pivot.rotation.set(fx, 0, 0);
+    S.friendTag.position.set(F.x, F.y + 2.35, F.g.position.z);
+  }
+  function nameTag(text) {
+    const c = document.createElement("canvas"); c.width = 256; c.height = 64; const g = c.getContext("2d");
+    g.fillStyle = "rgba(255,255,255,.92)"; g.beginPath(); g.roundRect ? g.roundRect(8, 8, 240, 48, 24) : g.rect(8, 8, 240, 48); g.fill();
+    g.fillStyle = "#1F2937"; g.font = "500 28px -apple-system, Segoe UI, Roboto, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(text.slice(0, 14), 128, 33);
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace;
+    const sp = new T.Sprite(new T.SpriteMaterial({ map: t, depthWrite: false })); sp.scale.set(1.6, 0.4, 1); return sp;
+  }
+  function netStart() {
+    S.friend = S.makeRunner("#F97316"); S.friend.phase = 0; scene.add(S.friend.g);
+    S.friendTag = nameTag(net.name); scene.add(S.friendTag);
+    el.friend.style.display = "";
+    net.subs = [Duo.on("msg", netMsg), Duo.on("lost", netLost), Duo.on("friend", netBack)];
+    lane = prevLane = net.host ? 1 : 2; px = laneX(lane); offT = offPos = 0; hostB = null; fr = null; outbox = [];
+    if (!net.host) { for (const o of objs) o.gone = true; spawnIn = 1e9; }
+    if (net.host && Duo.S.resume) applyRun(Duo.S.resume);
+    state = "wait"; netWait(`${esc(net.name)} kutilmoqda…`);
+    rdy = { me: true, fr: false, replied: false }; Duo.send({ t: "rdy" });
+  }
+  function netWait(text, acts) { netCard = text; card(`<div class="run-spin"></div><p>${text}</p>${acts ? acts.html : ""}`, acts ? acts.on : {}); }
+  function countdown() { hideCard(); state = "count"; cdT = 3.2; cdN = 0; RunAudio.music(true); last = performance.now(); }
+  function countStep(raw) {
+    cdT -= raw; const n = Math.ceil(cdT - 0.2);
+    if (n !== cdN && n > 0 && n <= 3) { cdN = n; pop(String(n)); buzz("light"); }
+    if (cdT <= 0) { state = "play"; pop("Ketdik!", "gold"); buzz("medium"); }
+  }
+  function netMsg(m) {
+    if (!alive || !net) return;
+    if (m.t === "s") { fr = m; fr.at = performance.now(); if (!net.host && m.b != null) hostB = { b: m.b, v: m.v, at: fr.at }; return; }
+    if (m.t === "o") {
+      if (net.host) return;
+      netApplying = true;
+      for (const it of m.i) { put(it[0], it[1], dist - it[2], it[3]); objs[objs.length - 1].m.scale.x = it[4]; }
+      netApplying = false; return;
+    }
+    if (m.t === "rdy") { rdy.fr = true; if (rdy.me && !rdy.replied) { rdy.replied = true; Duo.send({ t: "rdy" }); } if (net.host && rdy.me && state === "wait") { Duo.send({ t: "go0", dist: Math.floor(dist), level }); countdown(); outbox = objs.filter((o) => !o.gone && o.fly == null && o.y < FLY_H); netTick(); } return; }
+    if (m.t === "go0") { if (!net.host && state === "wait") { if (m.dist > 0) applyRun({ ...(Duo.S.resume || {}), dist: m.dist, level: m.level }); countdown(); } return; }
+    if (m.t === "pause") { if (["play", "count"].includes(state)) pause(true); return; }
+    if (m.t === "go") { if (state === "pause") unpause(true); return; }
+    if (m.t === "wait") { if (state === "play" || state === "count") { state = "fwait"; RunAudio.music(false); netWait(`${esc(net.name)} savolga javob bermoqda…`); } return; }
+    if (m.t === "go2") { if (state === "fwait") { hideCard(); for (const o of objs) if (o.z > -45) o.gone = true; invuln = 1.6; state = "play"; RunAudio.music(true); last = performance.now(); } return; }
+    if (m.t === "over") { if (state !== "over") { net.result = { won: true, fs: m.s, fn: net.name }; clearTimeout(flowTimer); gameOver(); } return; }
+    if (m.t === "bye") { if (state !== "over") { netCard = ""; pause(true); card(`${chip("user", "lg solid")}<h2>${esc(net.name)} o'yindan chiqdi</h2><button class="btn-primary" data-a="solo">${ic("play")} Yolg'iz davom etish</button><button class="btn-ghost" data-a="out">Chiqish</button>`, { solo: goSolo, out: exit }); } }
+  }
+  function netLost() {
+    if (!alive || !net || state === "over") return;
+    if (["play", "count", "fwait"].includes(state)) { prevState = "play"; state = "pause"; RunAudio.music(false); }
+    net.lost = true;
+    card(`<div class="run-spin"></div><h2>Aloqa uzildi</h2><p>Qayta ulanmoqda… O'yin saqlandi.</p><button class="btn-ghost" data-a="solo">Yolg'iz davom etish</button><button class="btn-ghost" data-a="out">Chiqish</button>`, { solo: goSolo, out: exit });
+    saveRun();
+  }
+  function netBack() {
+    if (!alive || !net || !net.lost) return;
+    net.lost = false;
+    card(`${chip("user", "lg solid")}<h2>${esc(net.name)} qaytdi</h2><button class="btn-primary" data-a="go">${ic("play")} Davom etish</button>`, { go: () => unpause(false) });
+  }
+  function goSolo() {                 // the friend is gone: the run goes on alone (the host's job falls to this phone)
+    if (net) { for (const u of net.subs || []) u(); Duo.leave(); }
+    net = null; fr = null; if (S.friend) S.friend.g.visible = S.friendTag.visible = false; el.friend.style.display = "none";
+    spawnIn = 0; hideCard(); state = "play"; RunAudio.music(true); last = performance.now();
+  }
+  /* ---------- the run is saved, so it can go on after leaving the app ---------- */
+  function saveRun() {
+    if (!["play", "pause", "fwait", "count", "dead", "math"].includes(state) || dist < 30) return;
+    store.set("run_save", { t: Date.now(), duo: !!net, host: net ? net.host : false, dist: Math.floor(dist), coins, hearts, level, energy: +energy.toFixed(3), speed: +speed.toFixed(2) });
+  }
+  function applyRun(sv) {
+    for (const o of objs) o.gone = true;
+    level = sv.level || 1; portalOn = false; S.portal.visible = false; showWorld(level);
+    dist = sv.dist || 0; coins = sv.coins || 0; hearts = clamp(sv.hearts || 3, 1, HEARTS); energy = clamp(sv.energy || 1, 0.5, 1);
+    speed = clamp(sv.speed || V0, V0, vcap()); nextBoost = Math.ceil((dist + 1) / 300) * 300; nextPow = dist + 200; nextWagon = dist + 500; nextEat = runT + 12;
+    if (!net || net.host) { trail(lane, -14, 6); fillRoad(); }
+    invuln = 1.5; hud(true);
+  }
+  function askResume(sv) {
+    state = "resumeQ"; RunAudio.music(false);
+    const info = `${sv.dist} m · ${sv.coins} tanga · ${sv.hearts} jon`;
+    const go = () => { hideCard(); applyRun(sv); state = "play"; RunAudio.music(true); last = performance.now(); };
+    const fresh = () => { store.set("run_save", null); hideCard(); state = "play"; RunAudio.music(true); last = performance.now(); };
+    card(`${chip("refresh", "lg solid")}<h2>Davom etamizmi?</h2><p>Saqlangan o'yin: ${info}</p>
+      ${sv.duo ? `<button class="btn-primary" data-a="duo">${ic("users")} Do'st bilan davom etish</button><button class="btn-ghost" data-a="go">Yolg'iz davom etish</button>` : `<button class="btn-primary" data-a="go">${ic("play")} Davom etish</button>`}
+      <button class="btn-ghost" data-a="fresh">Yangi o'yin</button>`,
+      { go, fresh, duo: () => { Duo.S.resume = sv; location.hash = "#/duo"; } });
+  }
+
   /* ---------- the best moment: remembered during the run, filmed as a still at the end ---------- */
   const BONES = ["pivot", "body", "head", "sL", "eL", "sR", "eR", "hL", "kL", "hR", "kR"];
   const CAPTION = { near: "Juda yaqin edi!", ninja: "Ninja sakrash!", flip: "Havoda salto!", wagon: "Yulduzli vagondan!", fly: "Uchar gilamda!", trick: "Havoda akrobatika!", run: "Oldinga, to'xtamay!" };
@@ -1221,7 +1378,7 @@ const Game = (() => {
     if (flipT > 0.24 && flipT < 0.3) offer("flip", overObstacle() ? 7.5 : 3.5);
     if (trick && trick.air && trick.t > trick.dur * 0.42 && trick.t < trick.dur * 0.5) offer("trick", 4.5);
     if (pw.fly > 3.4 && pw.fly < 3.5) offer("fly", 5);
-    if (!moment && time - lastSnapT > 2 && grounded) { lastSnapT = time; moment = takeSnap("run"); moment.score = 0; }
+    if (!moment && time - lastSnapT > 2 && grounded && invuln <= 0 && rollT <= 0) { lastSnapT = time; moment = takeSnap("run"); moment.score = 0; }
   }
   // Rebuilds the remembered moment, films it from a dramatic angle at 1080x1920 and finishes it like a film still.
   function filmMoment() {
@@ -1251,18 +1408,18 @@ const Game = (() => {
         if (c.distanceTo(o.p) < o.r + 0.3) return false;
         const d = aim.clone().sub(c), t = clamp(o.p.clone().sub(c).dot(d) / d.lengthSq(), 0, 1);
         return c.clone().addScaledVector(d, t).distanceTo(o.p) > o.r * 0.85;
-      }) && Math.abs(c.x) < 3.9;
+      }) && Math.abs(c.x) < 4.3;
       const sd = Math.random() < 0.5 ? -1 : 1;
       const base = air
-        ? [[1.4, 0.35 - R.y, -4.6, 0.9, 38], [-1.4, 0.35 - R.y, -4.6, 0.9, 38], [3.4, 0.5 - R.y * 0.5, -1.2, 0.85, 36], [-3.4, 0.5 - R.y * 0.5, -1.2, 0.85, 36], [1.6, 1.2, 3.8, 1.0, 40], [-1.6, 1.2, 3.8, 1.0, 40]]
-        : sn.kind === "wagon" ? [[0.6, 0.9, -4.4, 1.15, 42], [-0.6, 0.9, -4.4, 1.15, 42], [1.4, 1.4, 4.0, 1.1, 40]]
-        : [[1.8, 0.75, 3.9, 1.0, 36], [-1.8, 0.75, 3.9, 1.0, 36], [1.5, 0.55, -4.2, 1.0, 36], [-1.5, 0.55, -4.2, 1.0, 36], [3.5, 0.9, -0.8, 1.0, 34], [-3.5, 0.9, -0.8, 1.0, 34]];
+        ? [[2.4, 0.7 - R.y, -6.8, 0.2 - R.y * 0.45, 48], [3.9, 0.9 - R.y * 0.6, 0.8, 0.3 - R.y * 0.4, 50], [2.2, 2.0 - R.y * 0.5, 7.2, 0.4 - R.y * 0.4, 46], [1.2, 0.5 - R.y, -7.5, 0.3 - R.y * 0.4, 46]]
+        : sn.kind === "wagon" ? [[0.8, 1.2, -6.2, 1.0, 46], [1.6, 1.8, 6.8, 1.0, 46]]
+        : [[2.6, 1.4, 6.8, 0.9, 46], [2.2, 0.9, -6.4, 1.0, 46], [3.9, 1.5, 1.4, 0.9, 50], [1.2, 2.2, 7.5, 0.8, 44]];
       const order = sd > 0 ? base : base.map((b) => [-b[0], ...b.slice(1)]);
       let sh = order[0], cpos = null;
       for (const b of order) { const c = new T.Vector3(R.x + b[0], Math.max(0.2, R.y + b[1]), R.z + b[2]); if (clear(c)) { sh = b; cpos = c; break; } }
       if (!cpos) { sh = [0.4, 2.6, 5.5, 1.0, 42]; cpos = new T.Vector3(R.x + 0.4, R.y + 2.6, R.z + 5.5); }
       camera.position.copy(cpos);
-      camera.lookAt(R.x, R.y + sh[3], R.z);
+      camera.lookAt(R.x * 0.85, R.y + sh[3], R.z - 1.5);
       camera.fov = sh[4]; camera.aspect = 1080 / 1920; camera.updateProjectionMatrix();
       renderer.setPixelRatio(1); renderer.setSize(1080, 1920, false);
       renderer.render(scene, camera);
@@ -1291,6 +1448,20 @@ const Game = (() => {
     b.globalAlpha = 1; b.globalCompositeOperation = "destination-in";
     let gr = b.createRadialGradient(Wd / 2, Hd * 0.48, Hd * 0.18, Wd / 2, Hd * 0.48, Hd * 0.62); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,1)");
     b.fillStyle = gr; b.fillRect(0, 0, Wd, Hd); g.drawImage(blur, 0, 0);
+    // speed: streaks rushing out from the runner, warm specks of light
+    g.save(); g.globalCompositeOperation = "lighter";
+    const cx = Wd / 2, cy = Hd * 0.47;
+    for (let i = 0; i < 110; i++) {
+      const a = Math.random() * Math.PI * 2, r0 = 380 + Math.random() * 520, len = 140 + Math.random() * 360;
+      const x0 = cx + Math.cos(a) * r0, y0 = cy + Math.sin(a) * r0 * 1.55, x1 = cx + Math.cos(a) * (r0 + len), y1 = cy + Math.sin(a) * (r0 + len) * 1.55;
+      const lg = g.createLinearGradient(x0, y0, x1, y1); lg.addColorStop(0, "rgba(255,255,255,0)"); lg.addColorStop(1, `rgba(255,248,235,${0.06 + Math.random() * 0.16})`);
+      g.strokeStyle = lg; g.lineWidth = 1 + Math.random() * 2.6; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+    }
+    for (let i = 0; i < 28; i++) {
+      const x = Math.random() * Wd, y = Math.random() * Hd * 0.8, r = 6 + Math.random() * 26, rg = g.createRadialGradient(x, y, 0, x, y, r);
+      rg.addColorStop(0, `rgba(255,214,150,${0.12 + Math.random() * 0.2})`); rg.addColorStop(1, "rgba(255,214,150,0)"); g.fillStyle = rg; g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    g.restore();
     g.globalCompositeOperation = "soft-light";
     gr = g.createLinearGradient(0, 0, 0, Hd); gr.addColorStop(0, "rgba(255,170,90,0.55)"); gr.addColorStop(0.55, "rgba(255,200,150,0.15)"); gr.addColorStop(1, "rgba(20,90,130,0.6)");
     g.fillStyle = gr; g.fillRect(0, 0, Wd, Hd);
@@ -1328,7 +1499,9 @@ const Game = (() => {
   }
 
   function gameOver() {
-    state = "over"; RunAudio.music(false); applyModels();
+    state = "over"; RunAudio.music(false); applyModels(); store.set("run_save", null);
+    if (net && !net.result) { net.result = { won: false, fn: net.name, fs: fr ? fr.co * 10 : 0 }; Duo.send({ t: "over", s: score() }); }
+    const duoRes = net && net.result;
     const s = score(), b = best(), isBest = s > b;
     if (isBest) store.set("run_best", s);
     const me = [store.get("school", "Sening maktabing"), user.first_name || "Sen", Math.max(s, b)];
@@ -1337,7 +1510,8 @@ const Game = (() => {
     root.classList.add("over");
     card(`
       ${chip(isBest ? "trophy" : "flag", "lg solid")}
-      <h2>${isBest ? "Yangi rekord!" : "O'yin tugadi"}</h2>
+      <h2>${duoRes ? (duoRes.won ? "G'alaba!" : esc(duoRes.fn) + " yutdi") : isBest ? "Yangi rekord!" : "O'yin tugadi"}</h2>
+      ${duoRes ? `<p class="run-duo">${duoRes.won ? esc(duoRes.fn) + " barcha jonini yo'qotdi" : "Sizning jonlaringiz tugadi"}</p>` : ""}
       <div class="run-score">${s}</div>
       <p>${Math.floor(dist)} m · ${coins} tanga</p>
       ${moment ? `<button class="run-moment" data-a="photo"><span class="run-moment-img"><i></i></span><span><small>Eng zo'r lahza</small><b>${CAPTION[moment.kind] || CAPTION.run}</b><em>Ko'rish va ulashish</em></span></button>` : ""}
@@ -1346,8 +1520,9 @@ const Game = (() => {
         ${board.slice(0, 5).map(row).join("")}${mine >= 5 ? row(me, mine) : ""}
       </div>
       <button class="btn-primary" data-a="play">${ic("refresh")} Qayta o'ynash</button>
+      ${net ? "" : `<button class="btn-ghost" data-a="duo">${ic("users")} Do'st bilan o'ynash</button>`}
       <button class="btn-ghost" data-a="share">Do'stlarni chaqirish</button>`,
-      { play, share: () => share(s), photo: showPhoto });
+      { play: net ? () => { location.hash = "#/duo"; } : play, share: () => share(s), photo: showPhoto, duo: () => { location.hash = "#/duo"; } });
     if (isBest) { buzz("success"); confetti(28); }
     if (moment) setTimeout(() => {          // film the moment just after the results appear
       if (!alive || state !== "over") return;
@@ -1361,12 +1536,12 @@ const Game = (() => {
     const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`Chorsu Run'da ${s} ball to'pladim. Meni yenga olasanmi?`)}`;
     if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
   }
-  function exit() { location.hash = "#/"; }
+  function exit() { if (net) { Duo.send({ t: "bye" }); for (const u of net.subs || []) u(); net = null; Duo.leave(); } if (state !== "over") saveRun(); location.hash = "#/"; }
 
   // test hooks: the hidden preview pane throttles animation frames, so tests step the game by hand
   function _sim(sec, pilot = true) {
     const was = auto; auto = pilot;
-    for (let i = 0; i < sec * 60 && ["play", "rest", "intro"].includes(state); i++) step(1 / 60);
+    for (let i = 0; i < sec * 60 && ["play", "rest", "intro", "count"].includes(state); i++) step(1 / 60);
     auto = was; renderer.render(scene, camera);
     return _info();
   }
@@ -1374,7 +1549,7 @@ const Game = (() => {
   const _info = () => ({ state, dist: Math.floor(dist), coins, hearts, speed: Math.round(speed), py: +py.toFixed(2), trick: trick && trick.name, eat: !!eat, level, objs: objs.length, calls: renderer && renderer.info.render.calls });
   const _set = (o) => { if (o.wagon) nextWagon = 0; if (o.energy != null) energy = o.energy; if (o.dist != null) { dist = o.dist; nextBoost = Math.ceil(dist / 300) * 300; } if (o.eat != null) nextEat = o.eat; if (o.rest != null) nextRest = o.rest; };
 
-  return { mount, unmount, play, pause, exit, onBack, _end: () => gameOver(), _moment: () => moment && moment.kind, _sim, _mood, _act: act, _info, _set, _freeze: (f) => { frozen = f; }, _rig: () => ({ P, S, T, camera }), _put: (type, z) => { for (const o of objs) if (o.z < 5 && o.z > -70) { o.gone = true; o.m.visible = false; } spawnIn = Math.max(spawnIn, 70); put(type, lane, z); } };
+  return { mount, unmount, play, pause, exit, onBack, _end: () => gameOver(), _road: () => objs.filter((o) => o.kind !== "pick" && !o.gone).map((o) => o.type + ":" + o.lane + ":" + Math.round(dist - o.z)).sort(), _net: () => ({ fr, offT, offPos, host: net && net.host, NL, dist: +dist.toFixed(1) }), _moment: () => moment && moment.kind, _sim, _mood, _act: act, _info, _set, _freeze: (f) => { frozen = f; }, _rig: () => ({ P, S, T, camera }), _put: (type, z) => { for (const o of objs) if (o.z < 5 && o.z > -70) { o.gone = true; o.m.visible = false; } spawnIn = Math.max(spawnIn, 70); put(type, lane, z); } };
 })();
 
 const SCHOOL_BOARD = [

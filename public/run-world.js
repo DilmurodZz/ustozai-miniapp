@@ -268,7 +268,11 @@ const RunWorld = (() => {
     head.position.set(0, 1.0, 0); body.add(head);
     k = baker();
     k.add(G.sph, skin, [0.2, 0.215, 0.2], [0, 0, 0]).add(G.half, hair, [0.213, 0.225, 0.213], [0, 0.015, 0.012], [0.42, 0, 0]);
-    for (const x of [-0.075, 0.075]) k.add(G.sph, dark, [0.027, 0.034, 0.02], [x, 0.02, -0.185]);
+    for (const x of [-0.075, 0.075]) {          // eyes with a white and a sparkle, brows, cheeks
+      k.add(G.sph, "#FFFFFF", [0.042, 0.048, 0.02], [x, 0.02, -0.18]).add(G.sph, dark, [0.026, 0.032, 0.02], [x, 0.016, -0.193]).add(G.sph, "#FFFFFF", [0.009, 0.009, 0.006], [x + 0.01, 0.03, -0.211]);
+      k.add(G.box, hair, [0.052, 0.012, 0.014], [x, 0.066, -0.188], [0, 0, x > 0 ? -0.18 : 0.18]).add(G.lo, "#F4A3A0", [0.03, 0.017, 0.01], [x * 1.62, -0.045, -0.158]);
+    }
+    k.add(G.lo, "#D9946C", [0.024, 0.022, 0.028], [0, -0.022, -0.2]).add(G.box, "#8A3B3B", [0.05, 0.011, 0.01], [0, -0.072, -0.188]);
     bone(k, head);
     const limb = (x, y, r1, l1, r2, l2, c, end) => {
       const a = new T.Group(), b = new T.Group(); a.position.set(x, y, 0); body.add(a);
@@ -632,6 +636,7 @@ const RunWorld = (() => {
     for (const c of [...scene.children]) if (!keep.has(c)) S.out.add(c);
     scene.add(S.out);
     inside(); entrance(); seaside();
+    S.makeRunner = (c) => firstRunner(c);      // the friend's runner in a two-player game
     return S;
   }
 

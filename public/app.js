@@ -101,6 +101,7 @@ const ICONS = {
   pause: '<path d="M8.5 5v14M15.5 5v14"/>',
   tap: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8.5"/>',
   ar: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M12 7l4.5 2.5v5L12 17l-4.5-2.5v-5zM12 12v5M12 12l4.5-2.5M12 12 7.5 9.5"/>',
+  users: '<circle cx="9" cy="8" r="3.2"/><path d="M3 19a6 6 0 0 1 12 0M16 4.6a3 3 0 0 1 0 6M17.6 13.6A5.6 5.6 0 0 1 21 19"/>',
   hand: '<path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V12M11 11V4.5a1.5 1.5 0 0 1 3 0V12M14 11.5V6a1.5 1.5 0 0 1 3 0v8a7 7 0 0 1-7 7c-2.5 0-4-1.3-5.4-3.4L3 14.5a1.5 1.5 0 0 1 2.5-1.6L8 16"/>',
 };
 const ic = (name, cls = "") => `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
@@ -119,7 +120,7 @@ const compassSVG = `<svg class="compass" viewBox="0 0 200 200" aria-hidden="true
 /* ---------- tab bar ---------- */
 const TABS = [["#/", "Asosiy", "home"], ["#/kurslar", "Kurslar", "play"], ["#/tanlov", "Tanlov", "trophy"], ["#/kashf", "Kashf et", "compass"], ["#/profil", "Profil", "user"]];
 function renderTabs(route) {
-  const hidden = ["#/kompas", "#/natija", "#/oyin"].includes(route);
+  const hidden = ["#/kompas", "#/natija", "#/oyin", "#/duo"].includes(route);
   tabbar.classList.toggle("hide", hidden);
   tabbar.innerHTML = TABS.map(([h, l, i]) => `<a href="${h}" class="${h === route ? "on" : ""}">${ic(i)}<span>${l}</span></a>`).join("");
 }
@@ -141,6 +142,7 @@ function Home() {
     <span class="btn-white">Boshlash ${ic("chev")}</span>
   </a>
   <div class="grid">${tiles.map(([i, l, h], n) => `<a class="tile t${n + 1}" href="${h}">${chip(i, "c" + (n + 1))}${l}</a>`).join("")}</div>
+  <a class="list-item duo-link" href="#/duo">${chip("users", "sm")}<span>Do'st bilan o'ynash<small>Chorsu game, ikki kishi</small></span>${ic("chev", "chev")}</a>
   ${res ? `<div class="section-title">Sening natijang</div>
     <a class="list-item" href="#/natija">${chip(PERSONAS[res].icon, "sm")}${PERSONAS[res].name}${ic("chev", "chev")}</a>` : ""}`;
 }
@@ -299,11 +301,46 @@ function Soon(key) {
   </div>`;
 }
 
+/* ---------- two players: the lobby ---------- */
+function DuoScreen() {
+  const sv = Duo.S.resume;
+  return `${navbar("Do'st bilan o'ynash")}
+  <div class="card duo">
+    <div class="duo-head">${chip("users", "lg")}<h2>Ikki kishilik poyga</h2><p>Kodingni do'stingga yubor yoki uning kodini kirit. Uzoqda bo'lsangiz ham birga yugurasiz.</p></div>
+    ${sv ? `<div class="duo-save">Saqlangan o'yin: ${sv.dist} m · ${sv.coins} tanga</div>` : ""}
+    <div class="duo-code"><small>Sening koding</small><b id="duo-me">· · · ·</b><button class="icon-btn" id="duo-new" aria-label="Yangi kod">${ic("refresh")}</button></div>
+    <div class="duo-join"><input id="duo-in" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Do'stingning kodi" autocomplete="off"><button class="btn-primary" id="duo-go">Ulanish</button></div>
+    <div class="duo-st" id="duo-st"></div>
+    <button class="btn-primary duo-start" id="duo-start" hidden>${ic("play")} Boshlash</button>
+    <p class="duo-note">Ikkalangiz ham internetda bo'lishingiz kerak</p>
+  </div>`;
+}
+let duoSubs = [];
+function bindDuo() {
+  const $ = (id) => document.getElementById(id);
+  const launch = () => { Duo.S.playing = true; location.hash = "#/oyin"; };
+  const paint = () => {
+    if (!$("duo-me")) return;
+    const st = Duo.S.status, f = Duo.friend;
+    $("duo-me").textContent = Duo.code ? Duo.code.split("").join(" ") : "· · · ·";
+    const txt = { idle: "", opening: "Kod tayyorlanmoqda…", ready: "Kod tayyor. Do'stingni kut yoki uning kodini kirit.", dialing: "Ulanmoqda…", linked: f ? `Ulandi: ${esc(f.name)}` : "Ulandi", lost: "Aloqa uzildi, qayta ulanmoqda…", error: "Ulanib bo'lmadi" }[st] || "";
+    $("duo-st").innerHTML = `<span class="dot ${st}"></span>${txt}${Duo.S.error && st !== "linked" ? `<small>${esc(Duo.S.error)}</small>` : ""}`;
+    $("duo-start").hidden = st !== "linked";
+  };
+  duoSubs.forEach((u) => u()); duoSubs = [Duo.on("status", paint), Duo.on("friend", paint), Duo.on("msg", (m) => { if (m.t === "start" && location.hash === "#/duo") launch(); })];
+  $("duo-new").onclick = () => { haptic("light"); Duo.refresh(); };
+  $("duo-in").oninput = (e) => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4); };
+  $("duo-go").onclick = () => { const c = $("duo-in").value; if (c.length !== 4) return toast("4 xonali kodni kiriting"); if (c === Duo.code) return toast("Bu sizning kodingiz"); haptic("medium"); Duo.dial(c); };
+  $("duo-start").onclick = () => { haptic("medium"); Duo.send({ t: "start" }); launch(); };
+  Duo.open().then(() => { paint(); const sv = Duo.S.resume, back = Duo.savedDial(); if (sv && !sv.host && back && !Duo.linked) Duo.dial(back); });
+  paint();
+}
+
 /* ---------- router ---------- */
 const ROUTES = {
   "#/": Home, "#/kompas": Kompas, "#/natija": Natija, "#/tanlov": Tanlov, "#/profil": Profil,
   "#/kurslar": () => Soon("kurslar"), "#/oyin": () => "", "#/mutolaa": () => Soon("mutolaa"),
-  "#/chegirma": () => Soon("chegirma"), "#/vositalar": () => Soon("vositalar"), "#/kashf": () => Soon("kashf"),
+  "#/duo": DuoScreen, "#/chegirma": () => Soon("chegirma"), "#/vositalar": () => Soon("vositalar"), "#/kashf": () => Soon("kashf"),
 };
 let gameOn = false;
 function render() {
@@ -314,6 +351,7 @@ function render() {
   app.style.animation = "none"; void app.offsetWidth; app.style.animation = "";
   renderTabs(route);
   if (route === "#/kompas") bindSwipe();
+  if (route === "#/duo") bindDuo(); else if (duoSubs.length) { duoSubs.forEach((u) => u()); duoSubs = []; }
   try { route === "#/" ? tg.BackButton.hide() : tg.BackButton.show(); } catch {}
 }
 window.addEventListener("hashchange", () => { window.scrollTo(0, 0); render(); });
