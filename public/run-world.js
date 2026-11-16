@@ -520,6 +520,7 @@ const RunWorld = (() => {
       banner: { kind: "high", hd: 0.3 }, damas: { kind: "plat", hd: 1.6, front: 1.95, clear: 1.2, h: () => 1.95 }, cart: { kind: "full", hd: 1.3, top: 2.3 }, meat: { kind: "full", hd: 0.8, top: 2.6 },
       sedan: { kind: "plat", hd: 2.1, front: 0.9, h: (u) => (u > 0.5 || u < -0.66 ? 0.9 : 1.41) },
       ramp: { kind: "ramp", hd: 1.7, front: 0, h: (u) => 0.9 * (1 - u) / 2 },
+      wagon: { kind: "tube", hd: 6.8 }, wagonWall: { kind: "full", hd: 6.8, top: 99, wall: true },
       coin: { kind: "pick", hd: 0.3, val: 1 }, non: { kind: "pick", hd: 0.3, val: 5 }, samsa: { kind: "pick", hd: 0.3, val: 10 },
     };
   }
@@ -777,6 +778,65 @@ const RunWorld = (() => {
     }
   }
 
+  // The Starlight Carriage: a wagon standing on the road that the runner can run straight through.
+  // Its corridor (model x = -1.85) is lined up with a lane; the doors at both ends are hinged so they swing open.
+  // Parts sharing a material are merged so the whole wagon costs few draw calls.
+  const WAG = { s: 0.58, cx: -1.85, floor: -3.41, cz: -0.7, hinge: -2.97, front: 5.6, back: -11.89 };
+  function mergeByMat(list) {         // [{geo, matrix, mat}] -> meshes, one per material
+    const by = new Map();
+    for (const it of list) { if (!by.has(it.mat)) by.set(it.mat, []); by.get(it.mat).push(it); }
+    const out = [], v = new T.Vector3(), nm = new T.Matrix3();
+    for (const [mat, items] of by) {
+      let n = 0, ni = 0; for (const it of items) { n += it.geo.attributes.position.count; ni += it.geo.index ? it.geo.index.count : it.geo.attributes.position.count; }
+      const P = new Float32Array(n * 3), N = new Float32Array(n * 3), U = new Float32Array(n * 2), I = new Uint32Array(ni);
+      let o = 0, oi = 0;
+      for (const it of items) {
+        const g = it.geo, p = g.attributes.position, q = g.attributes.normal, t = g.attributes.uv; nm.getNormalMatrix(it.matrix);
+        for (let i = 0; i < p.count; i++) {
+          v.fromBufferAttribute(p, i).applyMatrix4(it.matrix); P.set([v.x, v.y, v.z], (o + i) * 3);
+          if (q) { v.fromBufferAttribute(q, i).applyMatrix3(nm).normalize(); N.set([v.x, v.y, v.z], (o + i) * 3); }
+          if (t) U.set([t.getX(i), t.getY(i)], (o + i) * 2);
+        }
+        if (g.index) for (let i = 0; i < g.index.count; i++) I[oi++] = o + g.index.getX(i); else for (let i = 0; i < p.count; i++) I[oi++] = o + i;
+        o += p.count;
+      }
+      const geo = new T.BufferGeometry();
+      geo.setAttribute("position", new T.BufferAttribute(P, 3)); geo.setAttribute("normal", new T.BufferAttribute(N, 3)); geo.setAttribute("uv", new T.BufferAttribute(U, 2));
+      geo.setIndex(new T.BufferAttribute(I, 1)); geo.computeBoundingSphere();
+      out.push(new T.Mesh(geo, mat));
+    }
+    return out;
+  }
+  function wagonIn(src) {
+    src.updateMatrixWorld(true);
+    const body = [], doorF = [], doorB = [];
+    src.traverse((c) => {
+      if (!c.isMesh) return;
+      const mat = c.material, n = c.name;
+      if (/kover/.test(n)) { mat.color.set("#A0283A"); if (mat.map) mat.map = null; mat.needsUpdate = true; }        // a red runner carpet down the corridor
+      if (/light_0|inside_svetilnik|light_blue/.test(n)) { mat.emissive = new T.Color("#FFC870"); mat.emissiveIntensity = 1.6; }
+      const it = { geo: c.geometry, matrix: c.matrixWorld.clone(), mat };
+      if (/door/.test(n)) { const b = new T.Box3().setFromObject(c); ((b.min.z + b.max.z) / 2 > 0 ? doorF : doorB).push(it); } else body.push(it);
+    });
+    const inner = new T.Group();
+    for (const m of mergeByMat(body)) { m.castShadow = true; inner.add(m); }
+    // the doors turn around their hinge on the outer wall
+    for (const [list, z, name] of [[doorF, WAG.front, "doorF"], [doorB, WAG.back, "doorB"]]) {
+      const pivot = new T.Group(); pivot.name = name; pivot.position.set(WAG.hinge, 0, z);
+      for (const m of mergeByMat(list)) { m.position.set(-WAG.hinge, 0, -z); pivot.add(m); }
+      inner.add(pivot);
+    }
+    // warm glows along the corridor ceiling and in both doorways (they grow when the doors open)
+    const gm = new T.SpriteMaterial({ map: S.glowMat.map, color: 0xFFC870, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending });
+    S.wagonGlow = gm;
+    for (const z of [WAG.front - 0.6, 1.8, -3.5, -8.5, WAG.back + 0.6]) { const g = new T.Sprite(gm); g.scale.set(3.4, 3.4, 1); g.position.set(WAG.cx, 1.6, z); inner.add(g); }
+    inner.scale.setScalar(WAG.s);
+    inner.position.set(-WAG.cx * WAG.s, -WAG.floor * WAG.s + 0.02, -WAG.cz * WAG.s);
+    S.make.wagon = () => { const g = new T.Group(); g.add(inner.clone()); return g; };
+    S.make.wagonWall = () => new T.Object3D();
+    S.wagonReady = true;
+  }
+
   /* ---------- level 2: inside the covered bazaar ---------- */
   const archPath = (c, x, y, w, h) => { c.beginPath(); c.moveTo(x, y + h); c.lineTo(x, y + h * 0.45); c.quadraticCurveTo(x, y + h * 0.1, x + w / 2, y); c.quadraticCurveTo(x + w, y + h * 0.1, x + w, y + h * 0.45); c.lineTo(x + w, y + h); c.closePath(); };
   function inside() {
@@ -907,6 +967,7 @@ const RunWorld = (() => {
     }
     if (trees.length) S.frontTreeMeshes = [];
     if (m.city && !S.cities.length) cityIn(m.city);
+    if (m.wagon && !S.wagonReady) wagonIn(m.wagon);
     if (m.mosque && !S.mosque) {          // level 3: the Blue Mosque takes the Chorsu dome's place at the end of the road
       const e = fit(m.mosque, { len: 150, rotY: Math.PI / 2 }); e.position.set(0, -4, -250); e.visible = false;
       S.mosqueMats = [];

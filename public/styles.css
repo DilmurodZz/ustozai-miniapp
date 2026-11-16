@@ -377,9 +377,19 @@ a { color: inherit; text-decoration: none; }
 
 .credit { margin: 14px 4px 4px; font-size: 10px; line-height: 1.4; text-align: center; color: var(--muted, #8a8fa3); opacity: .7; }
 
-.run-pw { position: absolute; left: 12px; top: calc(var(--tg-safe-top, 0px) + 58px); z-index: 4; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.run-pw { position: absolute; left: 12px; top: calc(var(--tg-safe-top, 0px) + 96px); z-index: 4; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
 .run-pwc { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px 0 4px; border-radius: 999px; background: rgba(255,255,255,.93); box-shadow: 0 4px 14px -6px rgba(18,24,41,.5); }
 .run-pwc img { width: 26px; height: 26px; }
 .run-pwc i { width: 56px; height: 6px; border-radius: 3px; background: rgba(18,24,41,.12); overflow: hidden; }
 .run-pwc b { display: block; height: 100%; background: var(--grad); transform-origin: left; }
 .run.over .run-pw { display: none; }
+
+.run-kuch { position: absolute; left: 12px; top: calc(var(--tg-safe-top, 0px) + 56px); z-index: 4; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 8px; border-radius: 999px; background: rgba(255,255,255,.93); box-shadow: 0 4px 14px -6px rgba(18,24,41,.5); pointer-events: none; }
+.run-kuch .ic-bolt { display: flex; color: #22B455; transition: color .3s; } .run-kuch .ic { width: 16px; height: 16px; }
+.run-kuch i { width: 120px; height: 10px; border-radius: 5px; background: rgba(18,24,41,.12); overflow: hidden; }
+.run-kuch b { display: block; height: 100%; border-radius: 5px; transform-origin: left; background: linear-gradient(90deg, #16A34A, #4ADE80); transition: background .3s; }
+.run-kuch.y b { background: linear-gradient(90deg, #EAB308, #FDE047); } .run-kuch.y .ic-bolt { color: #CA8A04; }
+.run-kuch.r b { background: linear-gradient(90deg, #DC2626, #F87171); } .run-kuch.r .ic-bolt { color: #DC2626; }
+.run-kuch.r { animation: kuchpulse .7s ease-in-out infinite; }
+@keyframes kuchpulse { 50% { transform: scale(1.06); box-shadow: 0 0 0 4px rgba(220,38,38,.25), 0 4px 14px -6px rgba(18,24,41,.5); } }
+.run.over .run-kuch { display: none; }

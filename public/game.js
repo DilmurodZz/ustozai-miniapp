@@ -4,7 +4,7 @@
 
 const Game = (() => {
   const LIB = "./lib/three.module.min.js";      // three.js is kept in the app itself so it works offline
-  const MODELS = ["damas", "tree1", "tree2", "mosque", "city"];
+  const MODELS = ["damas", "tree1", "tree2", "mosque", "city", "wagon"];
   const C = { SLOT: 10, SLOTS: 20, LOOP: 200, BACK: 50 };     // scenery repeats every LOOP metres, BACK of them behind the runner
   const LANE = 2, FAR = -150, GONE = 14;
   let HIP = 0.83;          // hip height of the current runner
@@ -46,7 +46,12 @@ const Game = (() => {
   // power-ups: seconds left of each, and where the next one appears
   const PW = { magnet: [10, "Magnit"], x2: [15, "2x tanga"], jump: [10, "Super sakrash"], fly: [7, "Uchar gilam"], shield: [20, "Qalqon"] }, FLY_H = 5.2;
   const pw = { magnet: 0, x2: 0, jump: 0, fly: 0, shield: 0 };
-  let nextPow = 260, flyK = 0, G_BOX = null;    // slow-down near a gate, the fade through it, the quiet start of a new level
+  let nextPow = 260, flyK = 0, G_BOX = null;
+  // energy: runs down all the time (faster on later levels), coins and food fill it; empty = he collapses (a crash)
+  const DRAIN = [0, 1 / 26, 1 / 23, 1 / 18, 1 / 15];
+  let energy = 1, enWarn = 0;
+  let nextWagon = 700, tubeK = 0, inTube = null;     // the train wagon to run through
+  const feed = (a) => { energy = Math.min(1, energy + a); };    // slow-down near a gate, the fade through it, the quiet start of a new level
   let dbl = false, ninjaT = 0, ninjaK = 0, flipT = 0, safe = 0, ar = null;     // second jump used, ninja flip timer, no-crash window after a trick, AR view
   const shown = {}, quality = { n: 0, k: 0, sum: 0, done: false };
 
@@ -81,6 +86,7 @@ const Game = (() => {
       <div class="run-ov"></div>
       <div class="run-fx"></div>
       <div class="run-hint"></div>
+      <div class="run-kuch"><span class="ic-bolt">${ic("zap")}</span><i><b></b></i></div>
       <div class="run-pw"></div>
       <div class="run-top">
         <div class="run-hud"><button class="run-btn" data-k="pause" aria-label="Pauza">${ic("pause")}</button><span class="run-coins">${ic("coin")}<b data-k="coins">0</b></span></div>
@@ -88,7 +94,7 @@ const Game = (() => {
       </div>`;
     document.body.appendChild(root);
     const q = (s) => root.querySelector(s);
-    el = { cv: q(".run-cv"), flash: q(".run-flash"), speed: q(".run-speed"), title: q(".run-title"), ov: q(".run-ov"), fx: q(".run-fx"), hint: q(".run-hint"), coins: q('[data-k="coins"]'), chip: q(".run-coins"), hearts: q(".run-hearts"), snd: q('[data-k="snd"]'), pwBox: q(".run-pw") };
+    el = { cv: q(".run-cv"), flash: q(".run-flash"), speed: q(".run-speed"), title: q(".run-title"), ov: q(".run-ov"), fx: q(".run-fx"), hint: q(".run-hint"), coins: q('[data-k="coins"]'), chip: q(".run-coins"), hearts: q(".run-hearts"), snd: q('[data-k="snd"]'), pwBox: q(".run-pw"), kuch: q(".run-kuch"), kuchBar: q(".run-kuch b") };
     q('[data-k="x"]').onclick = exit; q('[data-k="pause"]').onclick = pause; q('[data-k="ar"]').onclick = arToggle;
     el.arBtn = q('[data-k="ar"]');
     muted = store.get("run_mute", false); RunAudio.mute(muted);
@@ -147,6 +153,12 @@ const Game = (() => {
   }
   function hud(force) {
     if (el.pw) hudPw();
+    const e = Math.round(energy * 60) / 60;
+    if (force || e !== shown.e) {
+      shown.e = e; el.kuchBar.style.transform = `scaleX(${e})`;
+      const c = e > 0.6 ? "g" : e > 0.3 ? "y" : "r";
+      if (c !== shown.ec) { shown.ec = c; el.kuch.className = "run-kuch " + c; }
+    }
     if (force || coins !== shown.c) el.coins.textContent = shown.c = coins;
     if (force || hearts !== shown.h) { shown.h = hearts; el.hearts.innerHTML = [0, 1, 2].map((i) => ic("heart", i < hearts ? "on" : "")).join(""); }
   }
@@ -429,6 +441,14 @@ const Game = (() => {
     const lv = portalOn ? level + 1 : level;
     let gap = (lv >= 3 ? 11 + speed * 0.47 : 13 + speed * 0.55) + rnd(0, lv >= 3 ? 3.5 : 5);     // rows come closer together from level 3
     if (pw.fly > 2.5) { spawnIn = gap; return gap; }    // the road stays empty under the carpet (it fills again just before landing)
+    if (S.wagonReady && lv !== 2 && rows > 6 && dist >= nextWagon) {
+      nextWagon = dist + rnd(650, 950);
+      const l = Math.random() < 0.5 ? 0 : 2, zc = z - 6.8;      // sized so the far lane stays clear beside it
+      put("wagon", l, zc); objs[objs.length - 1].m.scale.x = l === 0 ? 1 : -1;
+      put("wagonWall", 1, zc);
+      trail(l, z + 7, 4); trail(l, zc + 1.5, 5); put("samsa", l, zc - 4.5, 0.95);
+      spawnIn = gap + 15; return gap + 15;
+    }
     if (rows > 4 && dist >= nextPow) {          // a power-up in its own lane, coins beside it
       nextPow = dist + rnd(380, 560);
       const ks = Object.keys(PW), k = ks[Math.floor(Math.random() * ks.length)], l = Math.floor(Math.random() * 3);
@@ -440,9 +460,9 @@ const Game = (() => {
     const next = portalOn ? level + 1 : level, inside = next === 2 || next === 4;     // no cars in the bazaar or on the promenade
     const low = () => pick(["barrier", "crates", "melons", "teleshka"]), full = () => pick(inside ? ["meat", "cart"] : ["damas", "damas", "cart", "meat"]);
     if (rows < 4) { put(pick(["barrier", "crates", "sedan"]), L[0], z); trail(L[1], z, 5); }
-    else if (r < 0.26) { put(low(), L[0], z); r < 0.13 ? arc(L[0], z) : trail(L[1], z, 7); if (next >= 3 && Math.random() < 0.45) put("banner", L[2], z); }
+    else if (r < 0.26) { put(low(), L[0], z); r < 0.17 ? arc(L[0], z) : trail(L[1], z, 7); if (next >= 3 && Math.random() < 0.45) put("banner", L[2], z); }
     else if (r < 0.42) { put("banner", L[0], z); trail(L[1], z, 7); if (next >= 3 && Math.random() < 0.45) put(low(), L[2], z); }
-    else if (r < 0.64) { put(full(), L[0], z); Math.random() < 0.4 ? zig(L[1], z + 6, 9) : trail(L[1], z, 7); if (next >= 3 && Math.random() < 0.5) put(pick(["banner", low()]), L[2], z); }
+    else if (r < 0.64) { put(full(), L[0], z); const q = Math.random(); q < 0.35 ? zig(L[1], z + 6, 9) : q < 0.7 ? (trail(L[0], z + 13, 4), trail(L[1], z - 3, 5)) : trail(L[1], z, 7); if (next >= 3 && Math.random() < 0.5) put(pick(["banner", low()]), L[2], z); }
     else if (inside && r < 0.92) { put(pick(["banner", low()]), L[0], z); arc(L[0], z); trail(L[1], z, 4); }
     else if (r < 0.78) { put("sedan", L[0], z); for (let i = 0; i < 3; i++) put("coin", L[0], z + 1 - i * 1.2, 2.3); trail(L[1], z, 4); }
     else if (r < 0.92) {        // run over the cars: a plank ramp, then two cars bumper to bumper
@@ -455,6 +475,8 @@ const Game = (() => {
   }
   // would this obstacle hit the runner in their current pose?
   function hits(o) {
+    if (o.def.wall) return pw.fly <= 0;
+    if (o.kind === "tube") return false;
     if (pw.fly > 0 || (pw.jump > 0 && py - gy > 2.2 && o.kind !== "plat")) return false;
     if (dbl && py - gy > 0.9 && o.kind !== "plat") return false;      // after a ninja jump nothing can stop him
     if (o.kind === "full") return py < (o.def.top || 99);
@@ -476,6 +498,7 @@ const Game = (() => {
 
   /* ---------- player actions ---------- */
   function doJump() {
+    if (inTube) return;                 // under the wagon's roof
     if (!grounded) {
       if (dbl) { jumpBuf = 0.18; return; }       // remembered, fires on landing
       dbl = true; vy = Math.max(JUMP * 0.95, Math.sqrt(2 * GRAV * Math.max(0, 3.4 - (py - gy)))); ninjaT = 0.6;   // always high enough to clear the tallest stall or banner ninjaK = (ninjaK + 1) % 4; flipT = 0; jumpAt = time;
@@ -497,7 +520,9 @@ const Game = (() => {
   function move(d) {
     const nl = clamp(lane + d, 0, 2);
     if (nl === lane) return;
-    const side = invuln <= 0 && objs.some((o) => o.kind !== "pick" && o.kind !== "ramp" && !o.gone && o.lane === nl && o.z + o.hd > -0.9 && o.z - o.hd < 0.9 && hits(o));
+    const over = (o) => !o.gone && o.z + o.hd > -0.9 && o.z - o.hd < 0.9;
+    if (pw.fly <= 0 && objs.some((o) => o.kind === "tube" && (o.lane === lane || o.lane === nl) && over(o))) return graze(d);   // the wagon's walls
+    const side = invuln <= 0 && objs.some((o) => o.kind !== "pick" && o.kind !== "ramp" && o.kind !== "tube" && o.lane === nl && over(o) && hits(o));
     if (side) return graze(d);
     prevLane = lane; lane = nl; laneAt = time;
     sfx("swish"); buzz("light");
@@ -515,7 +540,7 @@ const Game = (() => {
     wave = null; sfx("trick"); buzz("medium");
   }
   function endTrick() {
-    const t = trick; trick = null; safe = 0.4; coins += t.air ? 5 : 2;
+    const t = trick; trick = null; safe = 0.4; coins += t.air ? 5 : 2; feed(0.03);
     reward(`${LABEL[t.name]} +${t.air ? 5 : 2}`);
   }
   function graze(d) {
@@ -523,13 +548,23 @@ const Game = (() => {
     sfx("bump"); buzz("warning", 40); buzz("rigid");
     burst(px + d * 0.5, 1.0, 0, "#FFFFFF", 8, 2.5); pop("Ehtiyot bo'l!", "bad");
   }
+  // inside the wagon: the camera follows him in, the lamps glow, star dust drifts; leaving it pays a bonus
+  function tube(o) {
+    const inside = o.lane === lane && pw.fly <= 0 && o.z + o.hd > -0.2 && o.z - o.hd < 0.2;
+    if (inside && inTube !== o) { inTube = o; o.been = true; sfx("swish"); buzz("medium"); burst(px, 1.4, -2, "#FFE08A", 18, 2.6); }
+    if (!inside && inTube === o) {
+      inTube = null;
+      if (o.z - o.hd > 0) { coins += 20; feed(0.2); punch = 0.5; reward("Yulduzli vagon! +20"); burst(px, 1.3, -1, "#FFD45A", 30, 4.5); burst(px, 1.8, -1, "#9AD8FF", 20, 3.5); }
+    }
+    if (o.z - o.hd > 0.4) o.done = true;
+  }
   function nearMiss() {
-    coins += 3; nmSlow = 0.22; if (!trick) stumbleT = 0.95;
+    coins += 3; nmSlow = 0.22; feed(0.02); if (!trick) stumbleT = 0.95;
     sfx("near"); buzz("medium"); burst(px, 1.2, 0, "#FFE08A", 10, 3); pop("Zo'r! +3", "gold"); bump();
   }
   function collect(o) {
     if (o.def.pw) { o.gone = true; return power(o.def.pw); }
-    o.fly = 0; o.gone = true; const v = o.val * (pw.x2 > 0 ? 2 : 1); coins += v;
+    o.fly = 0; o.gone = true; const v = o.val * (pw.x2 > 0 ? 2 : 1); coins += v; feed(o.val > 1 ? (o.val >= 10 ? 0.18 : 0.1) : 0.009);
     combo = time - comboAt < 0.6 ? combo + 1 : 1; comboAt = time;
     buzz("select"); bump();
     burst(laneX(o.lane), o.y, o.z, "#FFD45A", o.val > 1 ? 12 : 5, 2.4);
@@ -537,7 +572,7 @@ const Game = (() => {
     if (combo === 10 || combo === 20) { coins += 5; reward(`Combo x${combo}! +5`); }
   }
   function power(k) {
-    pw[k] = PW[k][0];
+    pw[k] = PW[k][0]; feed(0.1);
     if (k === "fly") {                // up on the flying carpet, with a long line of coins in the air
       vy = 0; rollT = 0; trick = null; ninjaT = flipT = 0;
       let l = lane;
@@ -588,7 +623,7 @@ const Game = (() => {
   function onHide() { if (document.hidden) pause(); }
   // plays the game by itself: used for testing
   function autopilot() {
-    const ahead = (l, win) => objs.filter((o) => o.kind !== "pick" && o.kind !== "ramp" && !o.gone && !o.on && o.lane === l && o.z - o.hd < 0.5 && o.z + o.hd > -win).sort((a, b) => b.z - a.z);
+    const ahead = (l, win) => objs.filter((o) => o.kind !== "pick" && o.kind !== "ramp" && o.kind !== "tube" && !o.gone && !o.on && o.lane === l && o.z - o.hd < 0.5 && o.z + o.hd > -win).sort((a, b) => b.z - a.z);
     const win = 3 + speed * 0.5, here = ahead(lane, win)[0];
     if (!here || py > 0.6) return;
     if (here.kind === "full" || (here.kind === "plat" && here.def.front > 1.5)) {
@@ -704,6 +739,12 @@ const Game = (() => {
         if (q >= 1) { o.m.scale.setScalar(1); o.fly = null; drop(o); objs.splice(i, 1); }
         continue;
       }
+      if (o.kind === "tube") {
+        const k = clamp((o.z + o.hd + 45) / 18, 0, 1), e = k * k * (3 - 2 * k);
+        const f = o.m.getObjectByName("doorF"), b = o.m.getObjectByName("doorB");
+        if (f) f.rotation.y = -1.75 * e; if (b) b.rotation.y = 1.75 * e;
+        if (S.wagonGlow) S.wagonGlow.opacity = 0.75 * e * (1 - 0.65 * tubeK);
+      }
       if (o.kind === "pick") {
         o.m.rotation.y = time * 4 + o.ph;
         if (pw.magnet > 0 && o.type === "coin" && !o.gone && o.z > -24 && o.z < 1.5) {     // the magnet pulls coins from every lane
@@ -739,6 +780,11 @@ const Game = (() => {
       pace = 1;                      // full speed straight through the gates
       dist += v * dt;
       if (calm > 0 && (calm -= dt) <= 0) fillRoad();
+      if (pw.fly <= 0 && calm <= 0 && !trans) energy -= dt * (DRAIN[level] || DRAIN[4]);
+      const band = energy < 0.15 ? 2 : energy < 0.3 ? 1 : 0;
+      if (band > enWarn) { buzz(band === 2 ? "warning" : "light"); if (band === 2) pop("Kuch kam! Tanga yig'", "bad"); }
+      enWarn = band;
+      if (energy <= 0) { energy = 0; pop("Kuch tugadi!", "bad"); return crash(); }
       if (dist >= nextBoost) boost();
       if (LEVELS[level + 1] && !portalOn && dist >= LEVELS[level + 1][0] - 150) openPortal();
       px += (laneX(lane) - px) * (1 - Math.exp(-dt * 16));
@@ -775,6 +821,11 @@ const Game = (() => {
     const want = level === 3 ? 1 : moodOverride == null ? slotMood() : moodOverride;
     if (want !== moodIdx) { moodIdx = want; if (playing && level === 1) pop(MOODS[want].name); }
     applyMood(1 - Math.exp(-raw * 1.4));
+    tubeK += ((inTube ? 1 : 0) - tubeK) * (1 - Math.exp(-raw * 6));
+    if (tubeK > 0.01) {                // warm light inside the wagon
+      S.lamp.position.set(px, 2.2, -3); S.lamp.intensity = Math.max(S.lamp.intensity, tubeK * 38);
+      if (playing && Math.random() < raw * 22) burst(px + rnd(-0.6, 0.6), rnd(0.4, 2.2), -rnd(1, 7), Math.random() < 0.5 ? "#FFE08A" : "#FFFFFF", 1, 0.5);
+    } else S.lamp.position.set(0, 3.4, -3);
     weather(dt, ds); particles(dt, ds); birds(dt, ds); pose(dt); cam(raw);
     const fx = Math.round((playing ? clamp((speed - 28) / 14, 0, 0.3) + punch * 0.3 : 0) * 50) / 50;   // speed lines, kept faint
     if (fx !== speedFx) { speedFx = fx; el.speed.style.opacity = fx; }
@@ -785,6 +836,7 @@ const Game = (() => {
   function collide() {
     for (const o of objs) {
       if (o.gone || o.done || o.kind === "ramp") continue;
+      if (o.kind === "tube") { tube(o); continue; }
       const dx = Math.abs(laneX(o.lane) - px);
       if (o.kind === "pick") { if (Math.abs(o.z) < 1.1 && Math.abs(o.x - px) < 0.95 && Math.abs(o.y - (py + 0.9)) < 1.25) collect(o); continue; }
       const near = o.z + o.hd > -0.4 && o.z - o.hd < 0.4;
@@ -879,6 +931,7 @@ const Game = (() => {
     const p = tmp.p.set(camX + (Math.random() - 0.5) * shake * 0.8, CAM_Y + py * 0.25 + flyK * 3.6 + (Math.random() - 0.5) * shake * 0.6, CAM_Z);
     const l = tmp.l.set(camX * 1.2, 1.3 + py * 0.2 + flyK * 3.9, -10);
     // opening scene: looking at the wall from the road
+    if (tubeK > 0.002) { p.lerp(tmp.a.set(px, 2.75, 4.4), tubeK); l.lerp(tmp.b.set(px, 1.1, -10), tubeK); }
     if (introK > 0.002) { const e = sm(introK); p.lerp(tmp.a.set(3.9, 1.6, 0.6), e); l.lerp(tmp.b.set(-3.5, -0.3, 0.2), e); }
     camera.position.copy(p); camera.lookAt(l);
     camera.fov = baseFov + kick + punch * 7; camera.updateProjectionMatrix();
@@ -983,7 +1036,7 @@ const Game = (() => {
     for (const o of objs) o.gone = true;
     spawnIn = 1e9; calm = 1.4;
     trail(lane, -14, 8); trail(lane, -38, 6);
-    coins += 50; bump(); buzz("success");
+    coins += 50; feed(0.3); bump(); buzz("success");
     el.title.innerHTML = `<small>${n}-bosqich</small><b>${LEVELS[n][1]}</b><span>+50 tanga</span>`;
     el.title.className = "run-title"; void el.title.offsetWidth; el.title.className = "run-title show";
     fireworks(n === 4 ? ["#4ADE80", "#22D3EE", "#38BDF8", "#A3E635", "#FDE047"] : ["#22C55E", "#4ADE80", "#A3E635", "#34D399", "#FDE047"]);
@@ -1020,7 +1073,7 @@ const Game = (() => {
     if (level !== 1 || portalOn) backToStreet();
     lane = prevLane = first ? 0 : 1; px = first ? -2.55 : 0; py = vy = gy = 0; grounded = true; fastFall = false;
     rollT = lowT = jumpBuf = invuln = stumbleT = crashT = nmSlow = shake = 0;
-    for (const k in pw) pw[k] = 0; nextPow = 260; flyK = 0;
+    for (const k in pw) pw[k] = 0; nextPow = 260; flyK = 0; nextWagon = 700; tubeK = 0; inTube = null; energy = 1; enWarn = 0; shown.e = -1;
     laneAt = jumpAt = rollAt = lastWave = -9; trick = wave = eat = rest = null; nextEat = 12; dbl = false; ninjaT = flipT = safe = 0; combo = 0; tipA = tipB = false; ts = 1;
     P.pivot.rotation.set(0, 0, 0); P.g.position.set(px, 0, 0); P.yaw = P.tilt = 0; P.g.rotation.y = first ? Math.PI / 2 : 0;
     S.apple.visible = S.bottle.visible = S.bag.visible = false;
@@ -1102,7 +1155,7 @@ const Game = (() => {
     hideCard();
     for (const o of objs) if (o.z > -45) o.gone = true;      // clear the road just ahead
     crashT = 0; py = vy = gy = 0; grounded = true; rollT = lowT = jumpBuf = stumbleT = 0;
-    invuln = 1.6; speed = Math.max(V0, speed * 0.85); spawnIn = Math.max(spawnIn, 16);
+    invuln = 1.6; speed = Math.max(V0, speed * 0.85); spawnIn = Math.max(spawnIn, 16); energy = 1; enWarn = 0;
     trail(lane, -14, 5);
     state = "play"; last = performance.now();
   }
@@ -1144,7 +1197,7 @@ const Game = (() => {
   }
   function _mood(i) { moodOverride = moodIdx = i; applyMood(1); renderer.render(scene, camera); return MOODS[i].name; }
   const _info = () => ({ state, dist: Math.floor(dist), coins, hearts, speed: Math.round(speed), py: +py.toFixed(2), trick: trick && trick.name, eat: !!eat, level, objs: objs.length, calls: renderer && renderer.info.render.calls });
-  const _set = (o) => { if (o.dist != null) { dist = o.dist; nextBoost = Math.ceil(dist / 300) * 300; } if (o.eat != null) nextEat = o.eat; if (o.rest != null) nextRest = o.rest; };
+  const _set = (o) => { if (o.wagon) nextWagon = 0; if (o.energy != null) energy = o.energy; if (o.dist != null) { dist = o.dist; nextBoost = Math.ceil(dist / 300) * 300; } if (o.eat != null) nextEat = o.eat; if (o.rest != null) nextRest = o.rest; };
 
   return { mount, unmount, play, pause, exit, onBack, _sim, _mood, _act: act, _info, _set, _freeze: (f) => { frozen = f; }, _rig: () => ({ P, S, T, camera }), _put: (type, z) => { for (const o of objs) if (o.z < 5 && o.z > -70) { o.gone = true; o.m.visible = false; } spawnIn = Math.max(spawnIn, 70); put(type, lane, z); } };
 })();
