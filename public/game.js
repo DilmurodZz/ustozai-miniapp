@@ -489,7 +489,8 @@ const Game = (() => {
     }
     if (rows > 4 && dist >= nextPow) {          // a power-up in its own lane, coins beside it
       nextPow = dist + rnd(380, 560);
-      const ks = Object.keys(PW).filter((k) => k !== "dash" || net), k = ks[Math.floor(Math.random() * ks.length)], l = Math.floor(Math.random() * NL);
+      const ks = Object.keys(PW).filter((k) => (k !== "dash" || net) && (k !== "fly" || lv !== 2)),     // no flying carpet under the bazaar roof
+      k = ks[Math.floor(Math.random() * ks.length)], l = Math.floor(Math.random() * NL);
       put("pw_" + k, l, z, 1.15); trail((l + 1) % NL, z + 4, 6);
       spawnIn = gap + 6; return gap + 6;
     }
@@ -1074,6 +1075,7 @@ const Game = (() => {
   }
   // Arriving: an empty road with a line of coins, the place's name, green fireworks; the obstacles come after a few seconds.
   function enterLevel(n) {
+    if (n === 2 && pw.fly > 0) { pw.fly = 0; invuln = Math.max(invuln, 1.6); vy = 0; }     // the carpet lands before the covered bazaar
     level = n; portalOn = false; showWorld(n);
     for (const o of objs) o.gone = true;
     spawnIn = 1e9; calm = 1.4;
