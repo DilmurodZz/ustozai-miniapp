@@ -299,7 +299,7 @@ const Game = (() => {
     last = performance.now();
     raf = requestAnimationFrame(loop);
     if (net) netStart();
-    else { const sv = store.get("run_save", null); if (sv && Date.now() - sv.t < 12 * 3600e3 && state === "play") askResume(sv); }
+    else { const sv = store.get("run_save", null); if (sv && Date.now() - sv.t < 12 * 3600e3 && state === "play") askResume(sv); else if (state === "play") startPanel(); }
   }
   function resize() {
     if (!renderer) return;
@@ -1160,7 +1160,6 @@ const Game = (() => {
     if (first) { state = "intro"; introT = 0; guardT = 0; guardX = -2.4; sfx("whistle"); pop("Hoy, to'xta!", "bad"); }   // the watchman turns up
     else state = "play";
     last = performance.now();
-    if (!store.get("run_help", 0) && !net) help();
   }
   function pause(fromNet) {
     if (!["play", "intro", "rest", "count"].includes(state)) return;
@@ -1409,11 +1408,27 @@ const Game = (() => {
     if (!net || net.host) { trail(lane, -14, 6); fillRoad(); }
     invuln = 1.5; hud(true);
   }
+  // Before every new game: start alone with one big round button, or go and play with a friend.
+  function startPanel() {
+    state = "startQ"; RunAudio.music(false);
+    const rec = best();
+    card(`<div class="st-logo">${ic("gamepad")}</div>
+      <h2>Chorsu game</h2>
+      <p>${rec ? `Rekordingiz: ${rec} ball` : "Yugur, tanga yig', to'siqlardan o't"}</p>
+      <button class="st-play" data-a="go" aria-label="O'yinni boshlash"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" fill="currentColor"/></svg></button>
+      <span class="st-label">O'yinni boshlash</span>
+      <button class="st-duo" data-a="duo"><span class="st-duo-ic">${ic("users")}</span><span class="st-duo-tx">Do'stingiz bilan o'ynang<small>Ikki kishi, uzoqda bo'lsangiz ham</small></span>${ic("chev")}</button>`,
+      { go: begin, duo: () => { location.hash = "#/duo"; } }, "start");
+  }
+  function begin() {
+    hideCard(); state = "play"; RunAudio.music(true); last = performance.now(); buzz("medium");
+    if (!store.get("run_help", 0)) help();
+  }
   function askResume(sv) {
     state = "resumeQ"; RunAudio.music(false);
     const info = `${sv.dist} m · ${sv.coins} tanga · ${sv.hearts} jon`;
     const go = () => { hideCard(); applyRun(sv); state = "play"; RunAudio.music(true); last = performance.now(); };
-    const fresh = () => { store.set("run_save", null); hideCard(); state = "play"; RunAudio.music(true); last = performance.now(); };
+    const fresh = () => { store.set("run_save", null); startPanel(); };
     card(`${chip("refresh", "lg solid")}<h2>Davom etamizmi?</h2><p>Saqlangan o'yin: ${info}</p>
       ${sv.duo ? `<button class="btn-primary" data-a="duo">${ic("users")} Do'st bilan davom etish</button><button class="btn-ghost" data-a="go">Yolg'iz davom etish</button>` : `<button class="btn-primary" data-a="go">${ic("play")} Davom etish</button>`}
       <button class="btn-ghost" data-a="fresh">Yangi o'yin</button>`,
