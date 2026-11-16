@@ -101,6 +101,7 @@ const ICONS = {
   pause: '<path d="M8.5 5v14M15.5 5v14"/>',
   tap: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8.5"/>',
   ar: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M12 7l4.5 2.5v5L12 17l-4.5-2.5v-5zM12 12v5M12 12l4.5-2.5M12 12 7.5 9.5"/>',
+  map: '<path d="M9 4 3 6.5V20l6-2.5 6 2.5 6-2.5V4l-6 2.5zM9 4v13.5M15 6.5V20"/>',
   users: '<circle cx="9" cy="8" r="3.2"/><path d="M3 19a6 6 0 0 1 12 0M16 4.6a3 3 0 0 1 0 6M17.6 13.6A5.6 5.6 0 0 1 21 19"/>',
   hand: '<path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V12M11 11V4.5a1.5 1.5 0 0 1 3 0V12M14 11.5V6a1.5 1.5 0 0 1 3 0v8a7 7 0 0 1-7 7c-2.5 0-4-1.3-5.4-3.4L3 14.5a1.5 1.5 0 0 1 2.5-1.6L8 16"/>',
 };
@@ -308,6 +309,10 @@ function DuoScreen() {
   <div class="card duo">
     <div class="duo-head">${chip("users", "lg")}<h2>Ikki kishilik poyga</h2><p>Kodingni do'stingga yubor yoki uning kodini kirit. Uzoqda bo'lsangiz ham birga yugurasiz.</p></div>
     ${sv ? `<div class="duo-save">Saqlangan o'yin: ${sv.dist} m · ${sv.coins} tanga</div>` : ""}
+    <div class="duo-me">
+      <input id="duo-name" maxlength="16" placeholder="Ismingiz" value="${esc(runnerName())}" autocomplete="off">
+      <div class="run-colors">${RUN_COLORS.map((c) => `<button data-c="${c}" class="${c === (runnerColor() || RUN_COLORS[0]) ? "on" : ""}" style="background:${c}" aria-label="Rang"></button>`).join("")}</div>
+    </div>
     <div class="duo-code"><small>Sening koding</small><b id="duo-me">· · · ·</b><button class="icon-btn" id="duo-new" aria-label="Yangi kod">${ic("refresh")}</button></div>
     <div class="duo-join"><input id="duo-in" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Do'stingning kodi" autocomplete="off"><button class="btn-primary" id="duo-go">Ulanish</button></div>
     <div class="duo-st" id="duo-st"></div>
@@ -328,10 +333,12 @@ function bindDuo() {
     $("duo-start").hidden = st !== "linked";
   };
   duoSubs.forEach((u) => u()); duoSubs = [Duo.on("status", paint), Duo.on("friend", paint), Duo.on("msg", (m) => { if (m.t === "start" && location.hash === "#/duo") launch(); })];
+  $("duo-name").onchange = (e) => { const n = e.target.value.trim().slice(0, 16); if (n) { store.set("run_name", n); if (Duo.linked) Duo.hello(); } };
+  document.querySelectorAll(".duo-me [data-c]").forEach((b) => { b.onclick = () => { store.set("run_color", b.dataset.c); document.querySelectorAll(".duo-me [data-c]").forEach((x) => x.classList.toggle("on", x === b)); haptic("light"); if (Duo.linked) Duo.hello(); }; });
   $("duo-new").onclick = () => { haptic("light"); Duo.refresh(); };
   $("duo-in").oninput = (e) => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4); };
   $("duo-go").onclick = () => { const c = $("duo-in").value; if (c.length !== 4) return toast("4 xonali kodni kiriting"); if (c === Duo.code) return toast("Bu sizning kodingiz"); haptic("medium"); Duo.dial(c); };
-  $("duo-start").onclick = () => { haptic("medium"); Duo.send({ t: "start" }); launch(); };
+  $("duo-start").onclick = () => { const n = $("duo-name").value.trim(); if (n) store.set("run_name", n.slice(0, 16)); haptic("medium"); Duo.send({ t: "start" }); launch(); };
   Duo.open().then(() => { paint(); const sv = Duo.S.resume, back = Duo.savedDial(); if (sv && !sv.host && back && !Duo.linked) Duo.dial(back); });
   paint();
 }

@@ -97,16 +97,14 @@ const Game = (() => {
       <div class="run-friend" style="display:none"></div>
       <div class="run-top">
         <div class="run-hud"><button class="run-btn" data-k="pause" aria-label="Pauza">${ic("pause")}</button><span class="run-coins">${ic("coin")}<b data-k="coins">0</b></span></div>
-        <div class="run-right"><span class="run-hearts"></span><button class="run-btn" data-k="ar" aria-label="AR">${ic("ar")}</button><button class="run-btn" data-k="snd" aria-label="Ovoz"></button><button class="run-btn" data-k="x" aria-label="Yopish">${ic("x")}</button></div>
+        <div class="run-right"><span class="run-hearts"></span><button class="run-btn" data-k="map" aria-label="Xarita">${ic("map")}</button><button class="run-btn" data-k="x" aria-label="Yopish">${ic("x")}</button></div>
       </div>`;
     document.body.appendChild(root);
     const q = (s) => root.querySelector(s);
-    el = { cv: q(".run-cv"), flash: q(".run-flash"), speed: q(".run-speed"), title: q(".run-title"), ov: q(".run-ov"), fx: q(".run-fx"), hint: q(".run-hint"), coins: q('[data-k="coins"]'), chip: q(".run-coins"), hearts: q(".run-hearts"), snd: q('[data-k="snd"]'), pwBox: q(".run-pw"), kuch: q(".run-kuch"), kuchBar: q(".run-kuch b"), friend: q(".run-friend") };
-    q('[data-k="x"]').onclick = exit; q('[data-k="pause"]').onclick = pause; q('[data-k="ar"]').onclick = arToggle;
-    el.arBtn = q('[data-k="ar"]');
+    el = { cv: q(".run-cv"), flash: q(".run-flash"), speed: q(".run-speed"), title: q(".run-title"), ov: q(".run-ov"), fx: q(".run-fx"), hint: q(".run-hint"), coins: q('[data-k="coins"]'), chip: q(".run-coins"), hearts: q(".run-hearts"), pwBox: q(".run-pw"), kuch: q(".run-kuch"), kuchBar: q(".run-kuch b"), friend: q(".run-friend") };
+    q('[data-k="x"]').onclick = exit; q('[data-k="pause"]').onclick = pause; q('[data-k="map"]').onclick = openMap;
+    el.arBtn = q('[data-k="map"]');
     muted = store.get("run_mute", false); RunAudio.mute(muted);
-    el.snd.onclick = () => { muted = !muted; store.set("run_mute", muted); RunAudio.mute(muted); el.snd.innerHTML = ic(muted ? "mute" : "sound"); };
-    el.snd.innerHTML = ic(muted ? "mute" : "sound");
     alive = true; state = "load"; moodOverride = null;
     net = typeof Duo !== "undefined" && Duo.S.playing && Duo.linked ? { host: Duo.host, name: (Duo.friend && Duo.friend.name) || "Do'st" } : null;
     NL = net ? 4 : 3;
@@ -233,8 +231,8 @@ const Game = (() => {
       const im = new T.SpriteMaterial({ map: t, depthWrite: false }), gm = new T.SpriteMaterial({ map: glowMap, color: POWC[k], transparent: true, opacity: 0.9, depthWrite: false, blending: T.AdditiveBlending });
       S.make["pw_" + k] = () => { const g = new T.Group(), a = new T.Sprite(gm), b = new T.Sprite(im); a.scale.set(2.6, 2.6, 1); b.scale.set(1.15, 1.15, 1); g.add(a, b); return g; };
       S.defs["pw_" + k] = { kind: "pick", hd: 0.5, val: 0, pw: k };
-      const c = el.pw[k] = { on: true, f: -1 };
-      c.el = document.createElement("div"); c.el.className = "run-pwc"; c.el.innerHTML = `<img alt="" src="${cv.toDataURL()}"><i><b></b></i>`; c.bar = c.el.querySelector("b");
+      const c = el.pw[k] = { on: false, f: -1 };
+      c.el = document.createElement("div"); c.el.className = "run-pwc"; c.el.style.display = "none"; c.el.innerHTML = `<img alt="" src="${cv.toDataURL()}"><i><b></b></i>`; c.bar = c.el.querySelector("b");
       el.pwBox.appendChild(c.el);
     }
     // the flying carpet: woven pattern, tassels at the ends
@@ -277,7 +275,7 @@ const Game = (() => {
       m.v = { dir: new T.Vector3(...m.dir).normalize(), discDir: new T.Vector3(...m.discDir).normalize() };
     }
     if (store.get("run_lowq", false)) { renderer.setPixelRatio(1); renderer.shadowMap.enabled = false; quality.done = true; }   // a slow phone, found in an earlier game
-    S = RunWorld.build(T, C); scene = S.scene; G_BOX = G_BOX || new T.BoxGeometry(1, 1, 1); camera = S.camera; P = S.P; HIP = P.hip || 0.83; modelsIn = false;
+    S = RunWorld.build(T, C); scene = S.scene; if (runnerColor() && runnerColor() !== S.theme) { P = S.P; paintRunner(runnerColor()); } G_BOX = G_BOX || new T.BoxGeometry(1, 1, 1); camera = S.camera; P = S.P; HIP = P.hip || 0.83; modelsIn = false;
     if (!renderer.shadowMap.enabled) S.sun.castShadow = false;
     el.pwBox.innerHTML = ""; el.pw = {}; powerUps();
     tmp = { p: new T.Vector3(), l: new T.Vector3(), a: new T.Vector3(), b: new T.Vector3() };
@@ -1011,7 +1009,7 @@ const Game = (() => {
     v.className = "run-video"; v.setAttribute("playsinline", ""); v.muted = true; v.autoplay = true; v.srcObject = stream;
     root.prepend(v); v.play().catch(() => {});
     ar = { on: true, stream, video: v };
-    root.classList.add("ar"); el.arBtn.classList.add("on");
+    root.classList.add("ar");
     state = prevState; RunAudio.music(true); last = performance.now();
     buzz("medium"); pop("AR");
   }
@@ -1028,7 +1026,7 @@ const Game = (() => {
     if (!ar || !ar.on) return;
     ar.on = false; ar.stream.getTracks().forEach((t) => t.stop()); ar.video.remove();
     if (!root) return;
-    root.classList.remove("ar"); el.arBtn.classList.remove("on");
+    root.classList.remove("ar");
     for (const o of [S.water, ...(S.cities || []), S.skyMesh, S.mtMesh, S.grassMesh, S.disc, S.glow, ...S.clouds]) if (o) o.visible = true;
     showWorld(level);                 // puts back the landmark, background and fog of the current place
   }
@@ -1171,9 +1169,73 @@ const Game = (() => {
     saveRun(); pauseCard(fromNet === true); applyModels();
   }
   function pauseCard(byFriend) {
-    card(`${chip("pause", "lg solid")}<h2>${byFriend && net ? esc(net.name) + " pauza qildi" : "Pauza"}</h2><button class="btn-primary" data-a="go">${ic("play")} Davom etish</button>${net ? "" : `<button class="btn-ghost" data-a="duo">${ic("users")} Do'st bilan o'ynash</button>`}<button class="btn-ghost" data-a="out">Chiqish</button>`,
-      { go: () => unpause(false), out: exit, duo: () => { location.hash = "#/duo"; } });
+    card(`${chip("pause", "lg solid")}<h2>${byFriend && net ? esc(net.name) + " pauza qildi" : "Pauza"}</h2>
+      <button class="btn-primary" data-a="go">${ic("play")} Davom etish</button>
+      <div class="run-tools">
+        <button data-a="snd">${ic(muted ? "mute" : "sound")}<span>${muted ? "Ovoz o'chiq" : "Ovoz"}</span></button>
+        <button data-a="ar">${ic("ar")}<span>AR kamera</span></button>
+        <button data-a="me"><i style="background:${myColor()}"></i><span>Yuguruvchim</span></button>
+      </div>
+      ${net ? "" : `<button class="btn-ghost" data-a="duo">${ic("users")} Do'st bilan o'ynash</button>`}<button class="btn-ghost" data-a="out">Chiqish</button>`,
+      { go: () => unpause(false), out: exit, duo: () => { location.hash = "#/duo"; },
+        snd: () => { muted = !muted; store.set("run_mute", muted); RunAudio.mute(muted); buzz("light"); pauseCard(byFriend); },
+        ar: () => arToggle(), me: () => runnerCard(() => pauseCard(byFriend)) });
   }
+  /* ---------- my runner: name and colour ---------- */
+  const myName = () => runnerName();
+  const myColor = () => runnerColor() || S.theme || RUN_COLORS[0];
+  function runnerCard(back) {
+    let col = myColor();
+    card(`<h2>Yuguruvchim</h2>
+      <input class="run-name" maxlength="16" value="${esc(myName())}" placeholder="Ismingiz" autocomplete="off">
+      <div class="run-colors">${RUN_COLORS.map((c) => `<button data-c="${c}" class="${c === col ? "on" : ""}" style="background:${c}" aria-label="Rang"></button>`).join("")}</div>
+      <button class="btn-primary" data-a="ok">${ic("check")} Saqlash</button><button class="btn-ghost" data-a="back">Orqaga</button>`,
+      { ok: () => {
+          const n = el.ov.querySelector(".run-name").value.trim().slice(0, 16);
+          if (n) store.set("run_name", n);
+          store.set("run_color", col); paintRunner(col); buzz("success");
+          if (net) Duo.hello();
+          back();
+        }, back });
+    el.ov.querySelectorAll("[data-c]").forEach((b) => { b.onclick = () => { col = b.dataset.c; el.ov.querySelectorAll("[data-c]").forEach((x) => x.classList.toggle("on", x === b)); buzz("select"); }; });
+  }
+  function paintRunner(col) {          // rebuilds the runner in the chosen colour, in place
+    if (!S.makeRunner || !P) return;
+    const old = P, nr = S.makeRunner(col);
+    nr.g.position.copy(old.g.position); nr.g.rotation.copy(old.g.rotation); nr.g.visible = old.g.visible;
+    for (const it of [S.can, S.bottle, S.apple]) if (it) nr.eR.add(it);
+    scene.remove(old.g); scene.add(nr.g); S.P = P = nr;
+  }
+  /* ---------- the route map ---------- */
+  const PLACES = [[0, "Chorsu bozori", "dome"], [1500, "Bozor ichida", "arch"], [3000, "Istanbul", "mosque"], [4500, "Dengiz bo'yi", "wave"]];
+  const PLACE_IC = {
+    dome: '<path d="M4 20h16M6 20v-6h12v6M5 14a7 7 0 0 1 14 0M12 7V4"/>',
+    arch: '<path d="M3 20h18M5 20V10a7 7 0 0 1 14 0v10M9 20v-6a3 3 0 0 1 6 0v6"/>',
+    mosque: '<path d="M3 20h18M7 20v-5a5 5 0 0 1 10 0v5M12 10V7M4 20V9M20 20V9M4 9l0-3M20 9l0-3"/>',
+    wave: '<path d="M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 19c2-2 4-2 6 0s4 2 6 0 4-2 6 0M15 10l3-5 3 5z"/>',
+  };
+  function openMap() {
+    const was = state;
+    if (["play", "count"].includes(state)) pause();
+    else if (state !== "pause") return;
+    const total = 6000, at = (m) => clamp(m / total, 0, 1), pos = (f) => `calc(26px + ${f.toFixed(4)} * (100% - 52px))`;
+    const me = Math.floor(dist), fd = net && fr ? Math.floor(dist + (fr.op - offPos) * STEP) : null;
+    const next = PLACES.find((p) => p[0] > me);
+    const stops = PLACES.map(([m, name, k], i) => `<div class="map-stop ${me >= m ? "done" : ""} ${i + 1 === level ? "here" : ""}" style="bottom:${pos(at(m))}">
+        <span class="map-ic">${`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${PLACE_IC[k]}</svg>`}</span>
+        <span class="map-tx"><b>${name}</b><small>${m ? fmtNum(m) + " m" : "Boshlanish"}</small></span></div>`).join("");
+    card(`<div class="map-head"><h2>Yo'l xaritasi</h2><p>${next ? `Keyingi: <b>${next[1]}</b> · ${fmtNum(next[0] - me)} m qoldi` : "Barcha manzillar ochildi"}</p></div>
+      <div class="map-road">
+        <div class="map-line"><i style="height:${at(me) * 100}%"></i></div>
+        ${stops}
+        <div class="map-dot me" style="bottom:${pos(at(me))};background:${myColor()}" title="${esc(myName())}">${esc(myName().slice(0, 1).toUpperCase())}</div>
+        ${fd != null ? `<div class="map-dot fr" style="bottom:${pos(at(fd))};background:${(Duo.friend && Duo.friend.color) || "#F97316"}" title="${esc(net.name)}">${esc(net.name.slice(0, 1).toUpperCase())}</div>` : ""}
+      </div>
+      <div class="map-foot"><span>${fmtNum(me)} m</span><span>${coins} tanga</span><span>${level}-bosqich</span></div>
+      <button class="btn-primary" data-a="go">${ic("play")} Davom etish</button>`,
+      { go: () => unpause(false) }, "mapv");
+  }
+  const fmtNum = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   function unpause(fromNet) {
     if (net && !fromNet) Duo.send({ t: "go" });
     hideCard(); state = prevState; RunAudio.music(true); last = performance.now();
@@ -1281,7 +1343,8 @@ const Game = (() => {
     const sp = new T.Sprite(new T.SpriteMaterial({ map: t, depthWrite: false })); sp.scale.set(1.6, 0.4, 1); return sp;
   }
   function netStart() {
-    S.friend = S.makeRunner("#F97316"); S.friend.phase = 0; scene.add(S.friend.g);
+    const fc = (Duo.friend && Duo.friend.color) || "#F97316";
+    S.friend = S.makeRunner(fc === myColor() ? (fc === "#F97316" ? "#16A34A" : "#F97316") : fc); S.friend.phase = 0; scene.add(S.friend.g);
     S.friendTag = nameTag(net.name); scene.add(S.friendTag);
     el.friend.style.display = "";
     net.subs = [Duo.on("msg", netMsg), Duo.on("lost", netLost), Duo.on("friend", netBack)];
@@ -1478,7 +1541,7 @@ const Game = (() => {
     g.globalAlpha = 0.8; g.font = `400 30px ${F}`; g.fillText(`${sn.level}-bosqich · ${sn.level === 1 ? "Chorsu bozori" : LEVELS[sn.level][1]}`, Wd / 2, 182); g.globalAlpha = 1;
     g.textAlign = "left";
     g.font = `700 92px ${F}`; g.fillText(CAPTION[sn.kind] || CAPTION.run, 72, Hd - 300);
-    const who = user.username ? "@" + user.username : user.first_name || "O'yinchi";
+    const who = myName();
     g.font = `500 44px ${F}`; g.fillText(who, 72, Hd - 218);
     g.globalAlpha = 0.78; g.font = `400 34px ${F}`; g.fillText(`${Math.floor(dist)} m  ·  ${coins} tanga  ·  ${score()} ball`, 72, Hd - 160);
     g.globalAlpha = 0.6; g.font = `400 28px ${F}`; g.fillText(`t.me/${BOT}`, 72, Hd - 100); g.globalAlpha = 1;
@@ -1504,7 +1567,7 @@ const Game = (() => {
     const duoRes = net && net.result;
     const s = score(), b = best(), isBest = s > b;
     if (isBest) store.set("run_best", s);
-    const me = [store.get("school", "Sening maktabing"), user.first_name || "Sen", Math.max(s, b)];
+    const me = [store.get("school", "Sening maktabing"), myName(), Math.max(s, b)];
     const board = [...SCHOOL_BOARD, me].sort((a, c) => c[2] - a[2]), mine = board.indexOf(me);
     const row = (r, i) => `<div class="${r === me ? "me" : ""}"><span>${i + 1}</span><span>${r[1]}<small>${r[0]}</small></span><b>${r[2]}</b></div>`;
     root.classList.add("over");

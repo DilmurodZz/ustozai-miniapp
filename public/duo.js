@@ -1,6 +1,10 @@
 // Two-player link for Chorsu game. Each phone gets a 4-digit code; one player types the other's code and the two
 // phones talk directly (WebRTC data channel). A public PeerJS server is used only to introduce the phones.
 // The phone that receives the call is the "host": it decides the road (obstacles, coins, speed).
+// runner colours a player can choose
+const RUN_COLORS = ["#2748F5", "#F97316", "#16A34A", "#DC2626", "#9333EA", "#0EA5E9", "#DB2777", "#334155"];
+const runnerName = () => { try { const v = JSON.parse(localStorage.getItem("uz_run_name")); if (v) return v; } catch {} const u = window.Telegram && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user; return (u && u.first_name) || "O'yinchi"; };
+const runnerColor = () => { try { return JSON.parse(localStorage.getItem("uz_run_color")) || null; } catch { return null; } };
 const Duo = (() => {
   const PREFIX = "chorsu-game-v1-";
   const ICE = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }, { urls: "stun:global.stun.twilio.com:3478" }] };
@@ -48,15 +52,14 @@ const Duo = (() => {
     c.on("open", () => {
       if (c !== conn) return;
       host = asHost; seen = Date.now(); redial = 0;
-      const me = (window.Telegram && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) || {};
-      c.send({ t: "hello", name: me.first_name || "Do'st", code });
+      c.send({ t: "hello", name: runnerName(), color: runnerColor(), code });
       set("linked");
       clearInterval(hb); hb = setInterval(beat, 1000);
     });
     c.on("data", (m) => {
       if (c !== conn || !m || !m.t) return;
       seen = Date.now();
-      if (m.t === "hello") { friend = { name: String(m.name || "Do'st").slice(0, 24), code: String(m.code || "") }; ls.set("duo_friend", friend); if (!host) ls.set("duo_dial", friend.code); emit("friend", friend); return; }
+      if (m.t === "hello") { friend = { name: String(m.name || "Do'st").slice(0, 16), code: String(m.code || ""), color: RUN_COLORS.includes(m.color) ? m.color : null }; ls.set("duo_friend", friend); if (!host) ls.set("duo_dial", friend.code); emit("friend", friend); return; }
       if (m.t === "hb") return;
       emit("msg", m);
     });
@@ -78,6 +81,7 @@ const Duo = (() => {
     on: (k, f) => { (subs[k] || (subs[k] = [])).push(f); return () => { subs[k] = subs[k].filter((g) => g !== f); }; },
     get code() { return code; }, get host() { return host; }, get friend() { return friend; },
     get linked() { return S.status === "linked"; },
+    hello: () => send({ t: "hello", name: runnerName(), color: runnerColor(), code }),
     savedDial: () => ls.get("duo_dial", null),
   };
 })();
