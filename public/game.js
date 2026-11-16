@@ -8,7 +8,9 @@ const Game = (() => {
   const C = { SLOT: 10, SLOTS: 20, LOOP: 200, BACK: 50 };     // scenery repeats every LOOP metres, BACK of them behind the runner
   const LANE = 2, FAR = -150, GONE = 14;
   let HIP = 0.83;          // hip height of the current runner
-  const CAM_Y = 4.3, CAM_Z = 8.4, GRAV = 26, JUMP = 9.6, ROLL = 0.62, V0 = 15, VMAX = 31;
+  const CAM_Y = 4.3, CAM_Z = 8.4, GRAV = 26, JUMP = 9.6, ROLL = 0.62, V0 = 15, VMAX = 46;
+  // top speed per level: levels 1-2 stay relaxed, from level 3 the run gets fast and needs full attention
+  const VCAP = [0, 26, 28, 37, 42], vcap = () => (level >= 4 ? Math.min(VMAX, 42 + (dist - 4500) / 1000) : VCAP[level]);
   // where each level starts and what the arrival banner says (level 1 is the street at the start)
   const LEVELS = { 2: [1500, "Bozor ichida"], 3: [3000, "Istanbul"], 4: [4500, "Dengiz bo'yi"] };
   const HEARTS = 3, STAKE = 25, SLOT_MS = 30 * 60 * 1000;
@@ -40,7 +42,11 @@ const Game = (() => {
   let frozen = false;      // test hook: stop the clock but keep drawing
   let loaded = null;       // downloaded models, kept between games
   let level = 1, portalOn = false, nextBoost = 300, punch = 0, speedFx = -1;
-  let pace = 1, gateObj = null, trans = null, calm = 0;    // slow-down near a gate, the fade through it, the quiet start of a new level
+  let pace = 1, gateObj = null, trans = null, calm = 0;
+  // power-ups: seconds left of each, and where the next one appears
+  const PW = { magnet: [10, "Magnit"], x2: [15, "2x tanga"], jump: [10, "Super sakrash"], fly: [7, "Uchar gilam"], shield: [20, "Qalqon"] }, FLY_H = 5.2;
+  const pw = { magnet: 0, x2: 0, jump: 0, fly: 0, shield: 0 };
+  let nextPow = 260, flyK = 0, G_BOX = null;    // slow-down near a gate, the fade through it, the quiet start of a new level
   let dbl = false, ninjaT = 0, ninjaK = 0, flipT = 0, safe = 0, ar = null;     // second jump used, ninja flip timer, no-crash window after a trick, AR view
   const shown = {}, quality = { n: 0, k: 0, sum: 0, done: false };
 
@@ -75,13 +81,14 @@ const Game = (() => {
       <div class="run-ov"></div>
       <div class="run-fx"></div>
       <div class="run-hint"></div>
+      <div class="run-pw"></div>
       <div class="run-top">
         <div class="run-hud"><button class="run-btn" data-k="pause" aria-label="Pauza">${ic("pause")}</button><span class="run-coins">${ic("coin")}<b data-k="coins">0</b></span></div>
         <div class="run-right"><span class="run-hearts"></span><button class="run-btn" data-k="ar" aria-label="AR">${ic("ar")}</button><button class="run-btn" data-k="snd" aria-label="Ovoz"></button><button class="run-btn" data-k="x" aria-label="Yopish">${ic("x")}</button></div>
       </div>`;
     document.body.appendChild(root);
     const q = (s) => root.querySelector(s);
-    el = { cv: q(".run-cv"), flash: q(".run-flash"), speed: q(".run-speed"), title: q(".run-title"), ov: q(".run-ov"), fx: q(".run-fx"), hint: q(".run-hint"), coins: q('[data-k="coins"]'), chip: q(".run-coins"), hearts: q(".run-hearts"), snd: q('[data-k="snd"]') };
+    el = { cv: q(".run-cv"), flash: q(".run-flash"), speed: q(".run-speed"), title: q(".run-title"), ov: q(".run-ov"), fx: q(".run-fx"), hint: q(".run-hint"), coins: q('[data-k="coins"]'), chip: q(".run-coins"), hearts: q(".run-hearts"), snd: q('[data-k="snd"]'), pwBox: q(".run-pw") };
     q('[data-k="x"]').onclick = exit; q('[data-k="pause"]').onclick = pause; q('[data-k="ar"]').onclick = arToggle;
     el.arBtn = q('[data-k="ar"]');
     muted = store.get("run_mute", false); RunAudio.mute(muted);
@@ -131,7 +138,15 @@ const Game = (() => {
     const now = performance.now(); if (now - bumpAt < 110) return; bumpAt = now;
     el.chip.classList.remove("bump"); void el.chip.offsetWidth; el.chip.classList.add("bump");
   }
+  function hudPw() {
+    for (const k in pw) {
+      const c = el.pw[k], on = pw[k] > 0;
+      if (on !== c.on) { c.on = on; c.el.style.display = on ? "" : "none"; }
+      if (on) { const f = Math.round(pw[k] / PW[k][0] * 40) / 40; if (f !== c.f) { c.f = f; c.bar.style.transform = `scaleX(${f})`; } }
+    }
+  }
   function hud(force) {
+    if (el.pw) hudPw();
     if (force || coins !== shown.c) el.coins.textContent = shown.c = coins;
     if (force || hearts !== shown.h) { shown.h = hearts; el.hearts.innerHTML = [0, 1, 2].map((i) => ic("heart", i < hearts ? "on" : "")).join(""); }
   }
@@ -170,6 +185,43 @@ const Game = (() => {
   }
   // Draws one of everything once, out of sight of the player, so the phone prepares every shader, texture and
   // buffer now instead of stalling the first time each thing comes into view.
+  const POWC = { magnet: "#E5383B", x2: "#F4A300", jump: "#22B455", fly: "#8B3FD9", shield: "#2E86E8" };
+  function powIcon(k) {
+    const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d");
+    const gr = g.createRadialGradient(54, 46, 8, 64, 64, 62); gr.addColorStop(0, "#fff"); gr.addColorStop(0.25, POWC[k]); gr.addColorStop(1, POWC[k]);
+    g.fillStyle = gr; g.beginPath(); g.arc(64, 64, 58, 0, 7); g.fill(); g.lineWidth = 7; g.strokeStyle = "#fff"; g.stroke();
+    g.fillStyle = g.strokeStyle = "#fff"; g.lineCap = g.lineJoin = "round";
+    if (k === "magnet") { g.lineWidth = 17; g.beginPath(); g.arc(64, 58, 22, Math.PI, 0, true); g.moveTo(42, 58); g.lineTo(42, 40); g.moveTo(86, 58); g.lineTo(86, 40); g.stroke(); g.fillStyle = "#cfd6e0"; g.fillRect(33, 30, 18, 12); g.fillRect(77, 30, 18, 12); }
+    else if (k === "x2") { g.font = "900 54px system-ui, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("x2", 64, 68); }
+    else if (k === "jump") { g.lineWidth = 12; for (const y of [50, 74]) { g.beginPath(); g.moveTo(40, y + 12); g.lineTo(64, y - 10); g.lineTo(88, y + 12); g.stroke(); } }
+    else if (k === "fly") { g.beginPath(); g.moveTo(28, 52); g.quadraticCurveTo(64, 38, 100, 52); g.lineTo(100, 80); g.quadraticCurveTo(64, 66, 28, 80); g.closePath(); g.fill();
+      g.fillStyle = POWC.fly; g.beginPath(); g.moveTo(64, 50); g.lineTo(76, 61); g.lineTo(64, 72); g.lineTo(52, 61); g.fill(); g.fillStyle = "#fff"; for (let i = 0; i < 6; i++) g.fillRect(30 + i * 13, 82, 4, 9); }
+    else { g.beginPath(); g.moveTo(64, 28); g.lineTo(94, 40); g.quadraticCurveTo(94, 82, 64, 100); g.quadraticCurveTo(34, 82, 34, 40); g.closePath(); g.fill(); g.fillStyle = POWC.shield; g.beginPath(); g.moveTo(64, 42); g.lineTo(82, 50); g.quadraticCurveTo(82, 76, 64, 88); g.closePath(); g.fill(); }
+    return c;
+  }
+  function powerUps() {                 // pickups (a floating badge with a glow), the carpet and the shield bubble
+    const glowMap = S.glowMat.map;
+    for (const k in PW) {
+      const cv = powIcon(k), t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace;
+      const im = new T.SpriteMaterial({ map: t, depthWrite: false }), gm = new T.SpriteMaterial({ map: glowMap, color: POWC[k], transparent: true, opacity: 0.9, depthWrite: false, blending: T.AdditiveBlending });
+      S.make["pw_" + k] = () => { const g = new T.Group(), a = new T.Sprite(gm), b = new T.Sprite(im); a.scale.set(2.6, 2.6, 1); b.scale.set(1.15, 1.15, 1); g.add(a, b); return g; };
+      S.defs["pw_" + k] = { kind: "pick", hd: 0.5, val: 0, pw: k };
+      const c = el.pw[k] = { on: true, f: -1 };
+      c.el = document.createElement("div"); c.el.className = "run-pwc"; c.el.innerHTML = `<img alt="" src="${cv.toDataURL()}"><i><b></b></i>`; c.bar = c.el.querySelector("b");
+      el.pwBox.appendChild(c.el);
+    }
+    // the flying carpet: woven pattern, tassels at the ends
+    const rc = document.createElement("canvas"); rc.width = 128; rc.height = 192; const g = rc.getContext("2d");
+    g.fillStyle = "#9E1B32"; g.fillRect(0, 0, 128, 192); g.fillStyle = "#F2C14E"; g.fillRect(8, 8, 112, 176); g.fillStyle = "#1B4F8A"; g.fillRect(16, 16, 96, 160);
+    for (let y = 0; y < 5; y++) { g.fillStyle = y % 2 ? "#F2C14E" : "#E5383B"; g.beginPath(); g.moveTo(64, 26 + y * 30); g.lineTo(90, 40 + y * 30); g.lineTo(64, 54 + y * 30); g.lineTo(38, 40 + y * 30); g.fill(); }
+    const ct = new T.CanvasTexture(rc); ct.colorSpace = T.SRGBColorSpace;
+    S.carpet = new T.Group();
+    const rug = new T.Mesh(new T.BoxGeometry(1.5, 0.06, 2.3), new T.MeshStandardMaterial({ map: ct, roughness: 0.9 })); rug.castShadow = true; S.carpet.add(rug);
+    for (const z of [-1.2, 1.2]) for (let i = 0; i < 6; i++) { const f = new T.Mesh(G_BOX, new T.MeshStandardMaterial({ color: 0xF2C14E })); f.scale.set(0.05, 0.03, 0.16); f.position.set(-0.6 + i * 0.24, 0, z); S.carpet.add(f); }
+    S.carpet.visible = false; scene.add(S.carpet);
+    S.shield = new T.Mesh(new T.SphereGeometry(1.15, 24, 16), new T.MeshStandardMaterial({ color: 0x7CC6FF, emissive: 0x2E86E8, emissiveIntensity: 0.6, transparent: true, opacity: 0.22, depthWrite: false, roughness: 0.2 }));
+    S.shield.visible = false; scene.add(S.shield);
+  }
   function prewarm() {
     const temp = [], hidden = [];
     let i = 0;
@@ -177,7 +229,7 @@ const Game = (() => {
       const m = take(type); m.position.set((i % 3 - 1) * 2.5, 0, -14 - Math.floor(i / 3) * 4); i++; temp.push([type, m]);
     }
     const show = (o, z) => { if (!o) return; hidden.push([o, o.visible, o.position.z]); o.visible = true; if (z != null) o.position.z = z; };
-    show(S.portal, -30); show(S.in); show(S.mosque); show(S.sea); if (S.guard) show(S.guard.g);
+    show(S.portal, -30); show(S.in); show(S.mosque); show(S.sea); show(S.carpet); show(S.shield); if (S.guard) show(S.guard.g);
     try { renderer.compile(scene, camera); renderer.render(scene, camera); } catch {}
     for (const [o, v, z] of hidden) { o.visible = v; o.position.z = z; }
     for (const [type, m] of temp) { m.visible = false; (pools[type] || (pools[type] = [])).push(m); }
@@ -198,8 +250,9 @@ const Game = (() => {
       m.v = { dir: new T.Vector3(...m.dir).normalize(), discDir: new T.Vector3(...m.discDir).normalize() };
     }
     if (store.get("run_lowq", false)) { renderer.setPixelRatio(1); renderer.shadowMap.enabled = false; quality.done = true; }   // a slow phone, found in an earlier game
-    S = RunWorld.build(T, C); scene = S.scene; camera = S.camera; P = S.P; HIP = P.hip || 0.83; modelsIn = false;
+    S = RunWorld.build(T, C); scene = S.scene; G_BOX = G_BOX || new T.BoxGeometry(1, 1, 1); camera = S.camera; P = S.P; HIP = P.hip || 0.83; modelsIn = false;
     if (!renderer.shadowMap.enabled) S.sun.castShadow = false;
+    el.pwBox.innerHTML = ""; el.pw = {}; powerUps();
     tmp = { p: new T.Vector3(), l: new T.Vector3(), a: new T.Vector3(), b: new T.Vector3() };
     for (const f of S.flocks) f.birds.forEach((b, j) => {
       if (f.kind === "sky") { const n = f.birds.length, mid = (n - 1) / 2; b.x = -30 - Math.abs(j - mid) * 1.3 - (n === 5 ? 40 : 0); b.z = (n === 5 ? -78 : -50) + (j - mid) * 1.5; b.y = (n === 5 ? 25 : 17) + rnd(-0.4, 0.4); b.vx = n === 5 ? 4.5 : 6.5; }
@@ -354,11 +407,11 @@ const Game = (() => {
     if (!m) { m = S.make[type](); scene.add(m); }
     m.visible = true; return m;
   }
-  function drop(o) { o.m.visible = false; (pools[o.type] || (pools[o.type] = [])).push(o.m); }
+  function drop(o) { o.m.visible = false; o.m.scale.setScalar(1); o.m.position.x = laneX(o.lane); (pools[o.type] || (pools[o.type] = [])).push(o.m); }
   function put(type, l, z, y = 0) {
     const d = S.defs[type], m = take(type);
     m.position.set(laneX(l), y, z);
-    objs.push({ type, def: d, kind: d.kind, hd: d.hd, val: d.val || 0, lane: l, z, y, m, ph: rnd(0, 6) });
+    objs.push({ type, def: d, kind: d.kind, hd: d.hd, val: d.val || 0, lane: l, z, y, m, ph: rnd(0, 6), x: laneX(l) });
   }
   function trail(l, z, n) {
     for (let i = 0; i < n; i++) put(i === n - 1 && Math.random() < 0.22 ? pick(["non", "samsa"]) : "coin", l, z + (n - 1) * 1.2 - i * 2.4, 0.95);
@@ -367,29 +420,42 @@ const Game = (() => {
     const step = speed * 0.14;
     for (let i = 0; i < 5; i++) put("coin", l, z + (2 - i) * step, 1.5 + 1.2 * (1 - Math.pow((i - 2) / 2.4, 2)));
   }
+  function zig(l, z, n) {                 // a coin line that steps across the lanes, inviting a swipe
+    let d = l === 0 ? 1 : l === 2 ? -1 : (Math.random() < 0.5 ? -1 : 1);
+    for (let i = 0; i < n; i++) { if (i && i % 4 === 0) { if (l + d < 0 || l + d > 2) d = -d; l += d; } put("coin", l, z - i * 2.4, 0.95); }
+  }
   function spawnRow(z = FAR) {
     rows++;
-    let gap = 13 + speed * 0.55 + rnd(0, 5);
+    const lv = portalOn ? level + 1 : level;
+    let gap = (lv >= 3 ? 11 + speed * 0.47 : 13 + speed * 0.55) + rnd(0, lv >= 3 ? 3.5 : 5);     // rows come closer together from level 3
+    if (pw.fly > 2.5) { spawnIn = gap; return gap; }    // the road stays empty under the carpet (it fills again just before landing)
+    if (rows > 4 && dist >= nextPow) {          // a power-up in its own lane, coins beside it
+      nextPow = dist + rnd(380, 560);
+      const ks = Object.keys(PW), k = ks[Math.floor(Math.random() * ks.length)], l = Math.floor(Math.random() * 3);
+      put("pw_" + k, l, z, 1.15); trail((l + 1) % 3, z + 4, 6);
+      spawnIn = gap + 6; return gap + 6;
+    }
     // one obstacle per row, so a single swipe to the side always gets past it
     const L = [0, 1, 2].sort(() => Math.random() - 0.5), r = Math.random();
     const next = portalOn ? level + 1 : level, inside = next === 2 || next === 4;     // no cars in the bazaar or on the promenade
     const low = () => pick(["barrier", "crates", "melons", "teleshka"]), full = () => pick(inside ? ["meat", "cart"] : ["damas", "damas", "cart", "meat"]);
     if (rows < 4) { put(pick(["barrier", "crates", "sedan"]), L[0], z); trail(L[1], z, 5); }
-    else if (r < 0.26) { put(low(), L[0], z); r < 0.13 ? arc(L[0], z) : trail(L[1], z, 5); }
-    else if (r < 0.42) { put("banner", L[0], z); trail(L[1], z, 5); }
-    else if (r < 0.64) { put(full(), L[0], z); trail(L[1], z, 6); }
+    else if (r < 0.26) { put(low(), L[0], z); r < 0.13 ? arc(L[0], z) : trail(L[1], z, 7); if (next >= 3 && Math.random() < 0.45) put("banner", L[2], z); }
+    else if (r < 0.42) { put("banner", L[0], z); trail(L[1], z, 7); if (next >= 3 && Math.random() < 0.45) put(low(), L[2], z); }
+    else if (r < 0.64) { put(full(), L[0], z); Math.random() < 0.4 ? zig(L[1], z + 6, 9) : trail(L[1], z, 7); if (next >= 3 && Math.random() < 0.5) put(pick(["banner", low()]), L[2], z); }
     else if (inside && r < 0.92) { put(pick(["banner", low()]), L[0], z); arc(L[0], z); trail(L[1], z, 4); }
     else if (r < 0.78) { put("sedan", L[0], z); for (let i = 0; i < 3; i++) put("coin", L[0], z + 1 - i * 1.2, 2.3); trail(L[1], z, 4); }
     else if (r < 0.92) {        // run over the cars: a plank ramp, then two cars bumper to bumper
       put("ramp", L[0], z); put("sedan", L[0], z - 3.8); put("sedan", L[0], z - 8.05);
       for (let i = 0; i < 6; i++) put("coin", L[0], z - 2.4 - i * 1.5, 2.3);
       trail(L[1], z - 4, 4); gap += 9;
-    } else { trail(L[0], z, 4); trail(L[1], z - 11, 4); put(pick(["non", "samsa"]), L[2], z - 5, 0.95); gap += 6; }
+    } else { zig(L[0], z, 10); put(pick(["non", "samsa"]), L[2], z - 5, 0.95); gap += 6; }
     spawnIn = gap;
     return gap;
   }
   // would this obstacle hit the runner in their current pose?
   function hits(o) {
+    if (pw.fly > 0 || (pw.jump > 0 && py - gy > 2.2 && o.kind !== "plat")) return false;
     if (dbl && py - gy > 0.9 && o.kind !== "plat") return false;      // after a ninja jump nothing can stop him
     if (o.kind === "full") return py < (o.def.top || 99);
     if (o.kind === "low") return py < 0.5;
@@ -416,7 +482,8 @@ const Game = (() => {
       sfx("jump", 1.3); buzz("medium"); return;
     }
     const over = gy > 0.3 || objs.some((o) => o.lane === lane && !o.gone && o.kind !== "pick" && o.kind !== "ramp" && o.z < 0 && o.z > -(speed * 0.6 + 2));
-    vy = JUMP; py += 0.03; grounded = false; jumpAt = time; jumpBuf = 0; rollT = 0;
+    vy = pw.jump > 0 ? JUMP * 1.4 : JUMP; py += 0.03; grounded = false; jumpAt = time; jumpBuf = 0; rollT = 0;
+    if (pw.jump > 0) burst(px, 0.2, 0, "#7CF29A", 12, 2.6);
     if (over && Math.random() < 1 / 3) flipT = 0.55;      // one jump in three off a car or over an obstacle is a quick back flip
     sfx("jump"); buzz("light");
     if (games <= 3 && !tipB) { tipB = true; tip("Havoda yana yuqoriga suring: ninja sakrash"); }
@@ -461,17 +528,33 @@ const Game = (() => {
     sfx("near"); buzz("medium"); burst(px, 1.2, 0, "#FFE08A", 10, 3); pop("Zo'r! +3", "gold"); bump();
   }
   function collect(o) {
-    o.gone = true; coins += o.val;
+    if (o.def.pw) { o.gone = true; return power(o.def.pw); }
+    o.fly = 0; o.gone = true; const v = o.val * (pw.x2 > 0 ? 2 : 1); coins += v;
     combo = time - comboAt < 0.6 ? combo + 1 : 1; comboAt = time;
     buzz("select"); bump();
     burst(laneX(o.lane), o.y, o.z, "#FFD45A", o.val > 1 ? 12 : 5, 2.4);
-    if (o.val > 1) { buzz("soft"); pop(`+${o.val}`, "gold"); }
+    if (o.val > 1) { buzz("soft"); pop(`+${v}`, "gold"); }
     if (combo === 10 || combo === 20) { coins += 5; reward(`Combo x${combo}! +5`); }
+  }
+  function power(k) {
+    pw[k] = PW[k][0];
+    if (k === "fly") {                // up on the flying carpet, with a long line of coins in the air
+      vy = 0; rollT = 0; trick = null; ninjaT = flipT = 0;
+      let l = lane;
+      const gapC = Math.max(3, speed * 0.2), z0 = -(speed * 0.8 + 8);      // starts once he is up there
+      for (let i = 0; i < 28; i++) { if (i % 8 === 7) l = clamp(l + (Math.random() < 0.5 ? -1 : 1), 0, 2); put("coin", l, z0 - i * gapC, FLY_H + 1.0); }
+    }
+    sfx("trick"); reward(PW[k][1] + "!"); burst(px, py + 1.2, 0, POWC[k], 22, 3.6);
+  }
+  function shieldHit() {              // the shield takes the hit instead of a heart
+    pw.shield = 0; invuln = 1.4; shake = 0.35; speed = Math.max(V0, speed * 0.92);
+    sfx("bump"); buzz("warning"); flash("#7CC6FF", 0.35); burst(px, py + 1.1, 0, "#9AD8FF", 30, 4.2); pop("Qalqon saqladi!", "gold");
   }
   function act(dir) {
     if (dir === "T") return doTrick();
     if (state !== "play") return;
     if (trick) { trick = null; safe = 0.4; }
+    if (pw.fly > 0 && (dir === "U" || dir === "D")) return;     // on the carpet only left and right
     if (dir === "L") move(-1); else if (dir === "R") move(1); else if (dir === "U") doJump(); else doRoll();
   }
   function onKey(e) {
@@ -614,8 +697,22 @@ const Game = (() => {
     }
     for (const c of S.clouds) { c.position.x += dt * 1.5; if (c.position.x > 380) c.position.x = -380; }
     for (let i = objs.length - 1; i >= 0; i--) {
-      const o = objs[i]; o.z += ds; o.m.position.z = o.z;
-      if (o.kind === "pick") o.m.rotation.y = time * 4 + o.ph;
+      const o = objs[i]; o.z += ds;
+      if (o.fly != null) {             // a taken coin jumps up, spins fast and shrinks away
+        o.fly += dt; const q = o.fly / 0.24;
+        o.m.position.set(o.x + (px - o.x) * q, o.y + q * 1.6, o.z * (1 - q)); o.m.scale.setScalar(Math.max(0.01, 1 - q * q)); o.m.rotation.y = time * 18;
+        if (q >= 1) { o.m.scale.setScalar(1); o.fly = null; drop(o); objs.splice(i, 1); }
+        continue;
+      }
+      if (o.kind === "pick") {
+        o.m.rotation.y = time * 4 + o.ph;
+        if (pw.magnet > 0 && o.type === "coin" && !o.gone && o.z > -24 && o.z < 1.5) {     // the magnet pulls coins from every lane
+          const k = 1 - Math.exp(-dt * 9); o.x += (px - o.x) * k; o.y += (py + 0.95 - o.y) * k; o.z -= o.z * k * 0.7;
+          o.m.position.x = o.x; o.m.position.y = o.y;
+        }
+        if (o.def.pw) o.m.position.y = o.y + Math.sin(time * 3 + o.ph) * 0.15;
+      }
+      o.m.position.z = o.z;
       if (o.gone || o.z > GONE) { drop(o); objs.splice(i, 1); }
     }
   }
@@ -637,15 +734,19 @@ const Game = (() => {
     const ds = v * dt;
     if (playing) {
       runT += dt;
-      speed = Math.min(VMAX, speed + dt * (0.05 + 0.3 * (1 - (speed - V0) / (VMAX - V0))));   // builds up gently, then eases towards top speed
-      pace += ((portalOn && gateObj.position.z > -75 ? 0.55 : 1) - pace) * (1 - Math.exp(-dt * 1.5));
+      const cap = vcap();
+      if (speed < cap) speed = Math.min(cap, speed + dt * (level >= 3 ? 0.55 : 0.05 + 0.3 * (1 - (speed - V0) / (cap - V0))));   // gentle at first, a steady push from level 3
+      pace = 1;                      // full speed straight through the gates
       dist += v * dt;
       if (calm > 0 && (calm -= dt) <= 0) fillRoad();
       if (dist >= nextBoost) boost();
       if (LEVELS[level + 1] && !portalOn && dist >= LEVELS[level + 1][0] - 150) openPortal();
       px += (laneX(lane) - px) * (1 - Math.exp(-dt * 16));
+      for (const k in pw) if (pw[k] > 0 && (pw[k] -= dt) <= 0) { pw[k] = 0; if (k === "fly") { invuln = Math.max(invuln, 1.6); vy = 0; } }
       gy = groundAt();
-      if (py > gy + 0.02 || vy > 0) {
+      flyK += ((pw.fly > 0 ? 1 : 0) - flyK) * (1 - Math.exp(-dt * 3));
+      if (pw.fly > 0) { grounded = false; dbl = true; vy = 0; py += (FLY_H - py) * (1 - Math.exp(-dt * 5)); }
+      else if (py > gy + 0.02 || vy > 0) {
         grounded = false; vy -= GRAV * dt; py += vy * dt;
         if (py <= gy && vy <= 0) { py = gy; vy = 0; grounded = true; dbl = false; burst(px, gy + 0.1, 0, "#D8C7A8", 6, 1.6); if (fastFall) { fastFall = false; startRoll(); } }
       } else { grounded = true; dbl = false; py = py < gy ? Math.min(gy, py + 12 * dt) : gy; }
@@ -675,7 +776,7 @@ const Game = (() => {
     if (want !== moodIdx) { moodIdx = want; if (playing && level === 1) pop(MOODS[want].name); }
     applyMood(1 - Math.exp(-raw * 1.4));
     weather(dt, ds); particles(dt, ds); birds(dt, ds); pose(dt); cam(raw);
-    const fx = Math.round((playing ? clamp((speed - 26) / 12, 0, 0.25) + punch * 0.3 : 0) * 50) / 50;   // speed lines, kept faint
+    const fx = Math.round((playing ? clamp((speed - 28) / 14, 0, 0.3) + punch * 0.3 : 0) * 50) / 50;   // speed lines, kept faint
     if (fx !== speedFx) { speedFx = fx; el.speed.style.opacity = fx; }
     if (trans) fadeStep(raw);
     if (ar && ar.on) arApply();
@@ -685,13 +786,13 @@ const Game = (() => {
     for (const o of objs) {
       if (o.gone || o.done || o.kind === "ramp") continue;
       const dx = Math.abs(laneX(o.lane) - px);
-      if (o.kind === "pick") { if (Math.abs(o.z) < 1.1 && dx < 0.95 && Math.abs(o.y - (py + 0.9)) < 1.25) collect(o); continue; }
+      if (o.kind === "pick") { if (Math.abs(o.z) < 1.1 && Math.abs(o.x - px) < 0.95 && Math.abs(o.y - (py + 0.9)) < 1.25) collect(o); continue; }
       const near = o.z + o.hd > -0.4 && o.z - o.hd < 0.4;
       if (near && !o.seen) {
         o.seen = true;       // a last-moment jump, roll or dodge counts as a near miss
         o.nm = (o.lane === lane && ((o.kind === "low" && time - jumpAt < 0.16) || (o.kind === "high" && time - rollAt < 0.14))) || (o.kind === "full" && o.lane === prevLane && o.lane !== lane && time - laneAt < 0.26);
       }
-      if (near && dx < 0.85 && invuln <= 0 && safe <= 0 && !trick && hits(o)) return crash();
+      if (near && dx < 0.85 && invuln <= 0 && safe <= 0 && !trick && hits(o)) return pw.shield > 0 ? shieldHit() : crash();
       if (o.z - o.hd > 0.4) { o.done = true; if (o.nm) nearMiss(); }
     }
   }
@@ -732,6 +833,8 @@ const Game = (() => {
       sr = 1.75 + Math.sin(time * 5) * 0.3; fr = 0.55 + Math.sin(time * 5 + 1) * 0.25; zr = 0.15 + Math.sin(time * 2.3) * 0.3; hy = time % 6 > 5.2 ? 1.2 : 0;
     } else if (startle) {
       hl = hr = 0; kl = kr = 0.1; lean = 0; pivY = HIP + 0.1; sl = sr = 2.5; zl = -0.6; zr = 0.6; fl = fr = 0.4; hy = 1.3;
+    } else if (pw.fly > 0 && state === "play") {
+      pivY = HIP * 0.62; lean = -0.12 + Math.sin(time * 2.4) * 0.05; hl = hr = 1.45; kl = kr = 2.3; sl = sr = 0.5; zl = -1.25; zr = 1.25; fl = fr = 0.35; twist = Math.sin(time * 1.7) * 0.12;
     } else if (!grounded && state === "play") {
       pivY = HIP; lean = -0.06;
       if (vy > 0) { hl = 1.15; kl = 1.35; hr = -0.55; kr = 1.2; sl = 2.1; sr = 1.9; zl = -0.3; zr = 0.3; fl = fr = 0.5; }
@@ -763,6 +866,8 @@ const Game = (() => {
     A.g.visible = invuln <= 0 || Math.floor(time * 16) % 2 === 0;
     S.can.visible = menu || startle; S.bottle.visible = false;
     S.blob.position.set(px, gy + 0.02, A.g.position.z); S.blob.scale.setScalar(Math.max(0.4, 1 - (py - gy) * 0.3));
+    S.carpet.visible = flyK > 0.05 && pw.fly > 0; if (S.carpet.visible) { S.carpet.position.set(px, py + 0.04, A.g.position.z); S.carpet.rotation.set(Math.sin(time * 3.1) * 0.06, A.yaw * 0.5, Math.sin(time * 2.3) * 0.08 - (laneX(lane) - px) * 0.15); }
+    S.shield.visible = pw.shield > 0 && (pw.shield > 2.5 || Math.floor(time * 8) % 2 === 0); if (S.shield.visible) { S.shield.position.set(px, py + 0.95, A.g.position.z); S.shield.rotation.y = time; }
     S.dizzy.visible = crashT > 0.35;
     if (S.dizzy.visible) { S.dizzy.position.set(px, 0.9, A.g.position.z + 1.0); S.dizzy.rotation.y = time * 5; }
   }
@@ -771,8 +876,8 @@ const Game = (() => {
     camX += (px * 0.62 - camX) * k;
     shake = Math.max(0, shake - raw * 1.7); punch = Math.max(0, punch - raw * 1.3);
     kick += ((state === "play" ? clamp((speed - V0) / (VMAX - V0), 0, 1) * 7 : 0) - kick) * k;
-    const p = tmp.p.set(camX + (Math.random() - 0.5) * shake * 0.8, CAM_Y + py * 0.25 + (Math.random() - 0.5) * shake * 0.6, CAM_Z);
-    const l = tmp.l.set(camX * 1.2, 1.3 + py * 0.2, -10);
+    const p = tmp.p.set(camX + (Math.random() - 0.5) * shake * 0.8, CAM_Y + py * 0.25 + flyK * 3.6 + (Math.random() - 0.5) * shake * 0.6, CAM_Z);
+    const l = tmp.l.set(camX * 1.2, 1.3 + py * 0.2 + flyK * 3.9, -10);
     // opening scene: looking at the wall from the road
     if (introK > 0.002) { const e = sm(introK); p.lerp(tmp.a.set(3.9, 1.6, 0.6), e); l.lerp(tmp.b.set(-3.5, -0.3, 0.2), e); }
     camera.position.copy(p); camera.lookAt(l);
@@ -876,7 +981,7 @@ const Game = (() => {
   function enterLevel(n) {
     level = n; portalOn = false; showWorld(n);
     for (const o of objs) o.gone = true;
-    spawnIn = 1e9; calm = 2.8;
+    spawnIn = 1e9; calm = 1.4;
     trail(lane, -14, 8); trail(lane, -38, 6);
     coins += 50; bump(); buzz("success");
     el.title.innerHTML = `<small>${n}-bosqich</small><b>${LEVELS[n][1]}</b><span>+50 tanga</span>`;
@@ -915,6 +1020,7 @@ const Game = (() => {
     if (level !== 1 || portalOn) backToStreet();
     lane = prevLane = first ? 0 : 1; px = first ? -2.55 : 0; py = vy = gy = 0; grounded = true; fastFall = false;
     rollT = lowT = jumpBuf = invuln = stumbleT = crashT = nmSlow = shake = 0;
+    for (const k in pw) pw[k] = 0; nextPow = 260; flyK = 0;
     laneAt = jumpAt = rollAt = lastWave = -9; trick = wave = eat = rest = null; nextEat = 12; dbl = false; ninjaT = flipT = safe = 0; combo = 0; tipA = tipB = false; ts = 1;
     P.pivot.rotation.set(0, 0, 0); P.g.position.set(px, 0, 0); P.yaw = P.tilt = 0; P.g.rotation.y = first ? Math.PI / 2 : 0;
     S.apple.visible = S.bottle.visible = S.bag.visible = false;
