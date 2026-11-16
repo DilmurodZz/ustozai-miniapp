@@ -81,11 +81,15 @@ const Game = (() => {
 
   /* ---------- DOM shell ---------- */
   const LOADING = `<div class="run-spin"></div><p>Yuklanmoqda…</p>`;
+  // the picture behind the loading spinner: a tiny blurred copy is inlined so something shows at once, the real one (76 KB, cached offline) fades in over it
+  const SPLASH_TINY = "data:image/webp;base64,UklGRqIAAABXRUJQVlA4IJYAAAAwBQCdASoSACAAPu1ip02ppaMiMBgMATAdiWoAnTKAALznNy1gO5LQrcukY4JmUGWlgADN4AARbsv31WVjBIJ7INPuge02bR6DYDyZvGkeG8NE93MdF4EZ2xc+QA9QwO4aAMASd18oZOoNpXwsNWYv6M+Gt7uhR+sfEqxAso2jdEX37BUZj66VA64Hm8MBFKMqjJeEKAA=";
+  function hideSplash() { const sp = root && root.querySelector(".run-splash"); if (!sp) return; root.classList.remove("loading"); sp.classList.add("gone"); setTimeout(() => sp.remove(), 700); }
   function mount() {
     root = document.createElement("div");
-    root.className = "run";
+    root.className = "run loading";
     root.innerHTML = `
       <canvas class="run-cv"></canvas>
+      <div class="run-splash" style="background-image:url(${SPLASH_TINY})"><img alt="" src="img/loading.webp" decoding="async" fetchpriority="high" onload="this.classList.add('in')"></div>
       <div class="run-flash"></div>
       <div class="run-speed"></div>
       <div class="run-title"></div>
@@ -108,7 +112,7 @@ const Game = (() => {
     alive = true; state = "load"; moodOverride = null;
     net = typeof Duo !== "undefined" && Duo.S.playing && Duo.linked ? { host: Duo.host, name: (Duo.friend && Duo.friend.name) || "Do'st" } : null;
     NL = net ? 4 : 3;
-    card(LOADING);
+    card(LOADING, {}, "loading");
     init();
   }
   function unmount() {
@@ -298,6 +302,7 @@ const Game = (() => {
     play();
     last = performance.now();
     raf = requestAnimationFrame(loop);
+    hideSplash();
     if (net) netStart();
     else { const sv = store.get("run_save", null); if (sv && Date.now() - sv.t < 12 * 3600e3 && state === "play") askResume(sv); else if (state === "play") startPanel(); }
   }
