@@ -44,12 +44,13 @@ const Game = (() => {
   let level = 1, portalOn = false, nextBoost = 300, punch = 0, speedFx = -1;
   let pace = 1, gateObj = null, trans = null, calm = 0;
   // power-ups: seconds left of each, and where the next one appears
-  const PW = { magnet: [10, "Magnit"], x2: [15, "2x tanga"], jump: [10, "Super sakrash"], fly: [7, "Uchar gilam"], shield: [20, "Qalqon"] }, FLY_H = 5.2;
-  const pw = { magnet: 0, x2: 0, jump: 0, fly: 0, shield: 0 };
+  const PW = { x2: [15, "2x tanga"], jump: [10, "Super sakrash"], fly: [7, "Uchar gilam"], shield: [20, "Qalqon"] }, FLY_H = 5.2;
+  const pw = { x2: 0, jump: 0, fly: 0, shield: 0 };
   let nextPow = 260, flyK = 0, G_BOX = null;
   // energy: runs down all the time (faster on later levels), coins and food fill it; empty = he collapses (a crash)
-  const DRAIN = [0, 1 / 26, 1 / 23, 1 / 18, 1 / 15];
+  const DRAIN = [0, 1 / 20, 1 / 18, 1 / 14, 1 / 11];
   let energy = 1, enWarn = 0;
+  let moment = null, lastSnapT = 0, momentURL = null;     // the most spectacular moment of this run, for the picture at the end
   let nextWagon = 700, tubeK = 0, inTube = null;     // the train wagon to run through
   const feed = (a) => { energy = Math.min(1, energy + a); };    // slow-down near a gate, the fade through it, the quiet start of a new level
   let dbl = false, ninjaT = 0, ninjaK = 0, flipT = 0, safe = 0, ar = null;     // second jump used, ninja flip timer, no-crash window after a trick, AR view
@@ -61,7 +62,8 @@ const Game = (() => {
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const laneX = (l) => (l - 1) * LANE;
   const best = () => store.get("run_best", 0);
-  const slotMood = () => Math.floor(Date.now() / SLOT_MS) % MOODS.length;
+  let moodStart = Date.now();
+  const slotMood = () => Math.floor((Date.now() - moodStart) / SLOT_MS) % MOODS.length;     // 0 = sunny day first
   const num = (v) => String(v).replace(".", ",");
   const score = () => Math.floor(dist) + coins * 10;
   const sfx = (n, p) => RunAudio.sfx(n, p);
@@ -197,14 +199,13 @@ const Game = (() => {
   }
   // Draws one of everything once, out of sight of the player, so the phone prepares every shader, texture and
   // buffer now instead of stalling the first time each thing comes into view.
-  const POWC = { magnet: "#E5383B", x2: "#F4A300", jump: "#22B455", fly: "#8B3FD9", shield: "#2E86E8" };
+  const POWC = { x2: "#F4A300", jump: "#22B455", fly: "#8B3FD9", shield: "#2E86E8" };
   function powIcon(k) {
     const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d");
     const gr = g.createRadialGradient(54, 46, 8, 64, 64, 62); gr.addColorStop(0, "#fff"); gr.addColorStop(0.25, POWC[k]); gr.addColorStop(1, POWC[k]);
     g.fillStyle = gr; g.beginPath(); g.arc(64, 64, 58, 0, 7); g.fill(); g.lineWidth = 7; g.strokeStyle = "#fff"; g.stroke();
     g.fillStyle = g.strokeStyle = "#fff"; g.lineCap = g.lineJoin = "round";
-    if (k === "magnet") { g.lineWidth = 17; g.beginPath(); g.arc(64, 58, 22, Math.PI, 0, true); g.moveTo(42, 58); g.lineTo(42, 40); g.moveTo(86, 58); g.lineTo(86, 40); g.stroke(); g.fillStyle = "#cfd6e0"; g.fillRect(33, 30, 18, 12); g.fillRect(77, 30, 18, 12); }
-    else if (k === "x2") { g.font = "900 54px system-ui, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("x2", 64, 68); }
+    if (k === "x2") { g.font = "900 54px system-ui, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("x2", 64, 68); }
     else if (k === "jump") { g.lineWidth = 12; for (const y of [50, 74]) { g.beginPath(); g.moveTo(40, y + 12); g.lineTo(64, y - 10); g.lineTo(88, y + 12); g.stroke(); } }
     else if (k === "fly") { g.beginPath(); g.moveTo(28, 52); g.quadraticCurveTo(64, 38, 100, 52); g.lineTo(100, 80); g.quadraticCurveTo(64, 66, 28, 80); g.closePath(); g.fill();
       g.fillStyle = POWC.fly; g.beginPath(); g.moveTo(64, 50); g.lineTo(76, 61); g.lineTo(64, 72); g.lineTo(52, 61); g.fill(); g.fillStyle = "#fff"; for (let i = 0; i < 6; i++) g.fillRect(30 + i * 13, 82, 4, 9); }
@@ -270,7 +271,7 @@ const Game = (() => {
       if (f.kind === "sky") { const n = f.birds.length, mid = (n - 1) / 2; b.x = -30 - Math.abs(j - mid) * 1.3 - (n === 5 ? 40 : 0); b.z = (n === 5 ? -78 : -50) + (j - mid) * 1.5; b.y = (n === 5 ? 25 : 17) + rnd(-0.4, 0.4); b.vx = n === 5 ? 4.5 : 6.5; }
       else resetPigeon(b, -40 - j * 0.7);
     });
-    moodIdx = slotMood();
+    moodStart = Date.now(); moodIdx = slotMood();
     const m = MOODS[moodIdx];
     cur = { dir: m.v.dir.clone(), discDir: m.v.discDir.clone() };
     for (const c of COL) cur[c] = m.c[c].clone();
@@ -439,7 +440,7 @@ const Game = (() => {
   function spawnRow(z = FAR) {
     rows++;
     const lv = portalOn ? level + 1 : level;
-    let gap = (lv >= 3 ? 11 + speed * 0.47 : 13 + speed * 0.55) + rnd(0, lv >= 3 ? 3.5 : 5);     // rows come closer together from level 3
+    let gap = (lv >= 4 ? 10 + speed * 0.42 : lv >= 3 ? 11 + speed * 0.47 : 13 + speed * 0.55) + rnd(0, lv >= 3 ? 3.5 : 5);     // rows come closer together from level 3, closest by the sea
     if (pw.fly > 2.5) { spawnIn = gap; return gap; }    // the road stays empty under the carpet (it fills again just before landing)
     if (S.wagonReady && lv !== 2 && rows > 6 && dist >= nextWagon) {
       nextWagon = dist + rnd(650, 950);
@@ -448,6 +449,19 @@ const Game = (() => {
       put("wagonWall", 1, zc);
       trail(l, z + 7, 4); trail(l, zc + 1.5, 5); put("samsa", l, zc - 4.5, 0.95);
       spawnIn = gap + 15; return gap + 15;
+    }
+    if (lv >= 4 && rows > 4 && Math.random() < 0.35) {      // the seaside's own tricky rows
+      const L = [0, 1, 2].sort(() => Math.random() - 0.5);
+      if (Math.random() < 0.5) {        // roll, then jump, in the same lane, with a stall beside it: one lane free
+        const d = speed * 0.85 + 4;     // room to finish the roll before the jump
+        put("banner", L[0], z); put(pick(["barrier", "crates", "melons"]), L[0], z - d); put(pick(["meat", "cart"]), L[1], z - d / 2);
+        trail(L[0], z - d / 2, 5); arc(L[0], z - d); trail(L[2], z - d / 2, 6);
+        spawnIn = gap + d; return gap + d;
+      }
+      // a slalom: stalls in turn on two lanes, coins weaving between them
+      put(pick(["meat", "cart"]), L[0], z); put(pick(["meat", "cart"]), L[1], z - 11); put(pick(["meat", "cart"]), L[0], z - 22);
+      trail(L[1], z + 1, 4); trail(L[0], z - 11, 4); trail(L[1], z - 22, 4);
+      spawnIn = gap + 22; return gap + 22;
     }
     if (rows > 4 && dist >= nextPow) {          // a power-up in its own lane, coins beside it
       nextPow = dist + rnd(380, 560);
@@ -460,9 +474,9 @@ const Game = (() => {
     const next = portalOn ? level + 1 : level, inside = next === 2 || next === 4;     // no cars in the bazaar or on the promenade
     const low = () => pick(["barrier", "crates", "melons", "teleshka"]), full = () => pick(inside ? ["meat", "cart"] : ["damas", "damas", "cart", "meat"]);
     if (rows < 4) { put(pick(["barrier", "crates", "sedan"]), L[0], z); trail(L[1], z, 5); }
-    else if (r < 0.26) { put(low(), L[0], z); r < 0.17 ? arc(L[0], z) : trail(L[1], z, 7); if (next >= 3 && Math.random() < 0.45) put("banner", L[2], z); }
-    else if (r < 0.42) { put("banner", L[0], z); trail(L[1], z, 7); if (next >= 3 && Math.random() < 0.45) put(low(), L[2], z); }
-    else if (r < 0.64) { put(full(), L[0], z); const q = Math.random(); q < 0.35 ? zig(L[1], z + 6, 9) : q < 0.7 ? (trail(L[0], z + 13, 4), trail(L[1], z - 3, 5)) : trail(L[1], z, 7); if (next >= 3 && Math.random() < 0.5) put(pick(["banner", low()]), L[2], z); }
+    else if (r < 0.26) { put(low(), L[0], z); r < 0.17 ? arc(L[0], z) : trail(L[1], z, 7); if (next >= 3 && Math.random() < (next >= 4 ? 0.7 : 0.45)) put("banner", L[2], z); }
+    else if (r < 0.42) { put("banner", L[0], z); trail(L[1], z, 7); if (next >= 3 && Math.random() < (next >= 4 ? 0.7 : 0.45)) put(low(), L[2], z); }
+    else if (r < 0.64) { put(full(), L[0], z); const q = Math.random(); q < 0.35 ? zig(L[1], z + 6, 9) : q < 0.7 ? (trail(L[0], z + 13, 4), trail(L[1], z - 3, 5)) : trail(L[1], z, 7); if (next >= 3 && Math.random() < (next >= 4 ? 0.75 : 0.5)) put(pick(["banner", low()]), L[2], z); }
     else if (inside && r < 0.92) { put(pick(["banner", low()]), L[0], z); arc(L[0], z); trail(L[1], z, 4); }
     else if (r < 0.78) { put("sedan", L[0], z); for (let i = 0; i < 3; i++) put("coin", L[0], z + 1 - i * 1.2, 2.3); trail(L[1], z, 4); }
     else if (r < 0.92) {        // run over the cars: a plank ramp, then two cars bumper to bumper
@@ -553,7 +567,7 @@ const Game = (() => {
     if (inside && inTube !== o) { inTube = o; o.been = true; sfx("swish"); buzz("medium"); burst(px, 1.4, -2, "#FFE08A", 18, 2.6); }
     if (!inside && inTube === o) {
       inTube = null;
-      if (o.z - o.hd > 0) { coins += 20; feed(0.2); punch = 0.5; reward("Yulduzli vagon! +20"); burst(px, 1.3, -1, "#FFD45A", 30, 4.5); burst(px, 1.8, -1, "#9AD8FF", 20, 3.5); }
+      if (o.z - o.hd > 0) { offer("wagon", 6.8); coins += 20; feed(0.2); punch = 0.5; reward("Yulduzli vagon! +20"); burst(px, 1.3, -1, "#FFD45A", 30, 4.5); burst(px, 1.8, -1, "#9AD8FF", 20, 3.5); }
     }
     if (o.z - o.hd > 0.4) o.done = true;
   }
@@ -746,10 +760,6 @@ const Game = (() => {
       }
       if (o.kind === "pick") {
         o.m.rotation.y = time * 4 + o.ph;
-        if (pw.magnet > 0 && o.type === "coin" && !o.gone && o.z > -24 && o.z < 1.5) {     // the magnet pulls coins from every lane
-          const k = 1 - Math.exp(-dt * 9); o.x += (px - o.x) * k; o.y += (py + 0.95 - o.y) * k; o.z -= o.z * k * 0.7;
-          o.m.position.x = o.x; o.m.position.y = o.y;
-        }
         if (o.def.pw) o.m.position.y = o.y + Math.sin(time * 3 + o.ph) * 0.15;
       }
       o.m.position.z = o.z;
@@ -800,6 +810,7 @@ const Game = (() => {
       if (jumpBuf > 0) { jumpBuf -= dt; if (grounded) doJump(); }
       if (invuln > 0) invuln -= dt;
       if (safe > 0) safe -= dt;
+      momentWatch();
       if (ninjaT > 0) ninjaT -= dt;
       if (flipT > 0) flipT -= dt;
       if (trick && ((trick.t += dt) >= trick.dur || (grounded && trick.t > 0.12))) endTrick();
@@ -843,7 +854,8 @@ const Game = (() => {
         o.nm = (o.lane === lane && ((o.kind === "low" && time - jumpAt < 0.16) || (o.kind === "high" && time - rollAt < 0.14))) || (o.kind === "full" && o.lane === prevLane && o.lane !== lane && time - laneAt < 0.26);
       }
       if (near && dx < 0.85 && invuln <= 0 && safe <= 0 && !trick && hits(o)) return pw.shield > 0 ? shieldHit() : crash();
-      if (o.z - o.hd > 0.4) { o.done = true; if (o.nm) nearMiss(); }
+      if (o.nm && !o.snap && Math.abs(o.z) < o.hd + 0.3) o.snap = takeSnap("near");
+      if (o.z - o.hd > 0.4) { o.done = true; if (o.nm) { nearMiss(); offer("near", 6.5, o.snap); } }
     }
   }
   function pose(dt) {
@@ -1071,6 +1083,7 @@ const Game = (() => {
     if (level !== 1 || portalOn) backToStreet();
     lane = prevLane = first ? 0 : 1; px = first ? -2.55 : 0; py = vy = gy = 0; grounded = true; fastFall = false;
     rollT = lowT = jumpBuf = invuln = stumbleT = crashT = nmSlow = shake = 0;
+    moment = null; lastSnapT = 0; momentURL = null;
     for (const k in pw) pw[k] = 0; nextPow = 260; flyK = 0; nextWagon = 700; tubeK = 0; inTube = null; energy = 1; enWarn = 0; shown.e = -1;
     laneAt = jumpAt = rollAt = lastWave = -9; trick = wave = eat = rest = null; nextEat = 12; dbl = false; ninjaT = flipT = safe = 0; combo = 0; tipA = tipB = false; ts = 1;
     P.pivot.rotation.set(0, 0, 0); P.g.position.set(px, 0, 0); P.yaw = P.tilt = 0; P.g.rotation.y = first ? Math.PI / 2 : 0;
@@ -1086,7 +1099,7 @@ const Game = (() => {
     const back = state; state = "help"; RunAudio.music(false);
     const done = () => { store.set("run_help", 1); el.kuch.classList.remove("spot"); hideCard(); state = back; RunAudio.music(true); last = performance.now(); buzz("medium"); };
     el.kuch.classList.add("spot"); buzz("light");
-    card(`<div class="toon-step">1 / 2</div>
+    card(`<div class="toon-step"><i class="on"></i><i></i></div>
       <div class="toon-ico">${ic("zap")}</div>
       <h2>Tanga yig', kuchli bo'l!</h2>
       <div class="toon-bar"><i class="g"></i><i class="y"></i><i class="r"></i></div>
@@ -1095,7 +1108,7 @@ const Game = (() => {
       { next: () => {
         el.kuch.classList.remove("spot"); buzz("light");
         const row = (a, c, t) => `<div class="toon-ctl"><span class="toon-key ${c}">${a}</span><b>${t}</b></div>`;
-        card(`<div class="toon-step">2 / 2</div>
+        card(`<div class="toon-step"><i></i><i class="on"></i></div>
           <h2>Boshqarish</h2>
           <div class="toon-grid">
             ${row(ARROW.L + ARROW.R, "k1", "Chap, o'ng")}
@@ -1187,6 +1200,133 @@ const Game = (() => {
     trail(lane, -14, 5);
     state = "play"; last = performance.now();
   }
+  /* ---------- the best moment: remembered during the run, filmed as a still at the end ---------- */
+  const BONES = ["pivot", "body", "head", "sL", "eL", "sR", "eR", "hL", "kL", "hR", "kR"];
+  const CAPTION = { near: "Juda yaqin edi!", ninja: "Ninja sakrash!", flip: "Havoda salto!", wagon: "Yulduzli vagondan!", fly: "Uchar gilamda!", trick: "Havoda akrobatika!", run: "Oldinga, to'xtamay!" };
+  function takeSnap(kind) {
+    return {
+      kind, level, mood: moodIdx, px, py, gz: P.g.position.z, fly: pw.fly > 0, shield: pw.shield > 0,
+      bones: BONES.map((b) => [P[b].rotation.x, P[b].rotation.y, P[b].rotation.z, P[b].position.y]),
+      objs: objs.filter((o) => !o.gone && o.fly == null && o.z > -34 && o.z < 7 && S.make[o.type]).map((o) => ({ type: o.type, x: o.x, y: o.y, z: o.z, sx: o.m.scale.x })),
+    };
+  }
+  function offer(kind, sc, sn) {
+    sc += level * 0.6 + speed / 20 + Math.random() * 0.3;
+    if (moment && moment.score >= sc) return;
+    moment = sn || takeSnap(kind); moment.kind = kind; moment.score = sc;
+  }
+  const overObstacle = () => objs.some((o) => !o.gone && o.kind !== "pick" && o.kind !== "tube" && Math.abs(o.x - px) < 1 && Math.abs(o.z) < o.hd + 1.2);
+  function momentWatch() {           // called every frame while running
+    if (ninjaT > 0.27 && ninjaT < 0.33) offer("ninja", overObstacle() ? 8 : 4);
+    if (flipT > 0.24 && flipT < 0.3) offer("flip", overObstacle() ? 7.5 : 3.5);
+    if (trick && trick.air && trick.t > trick.dur * 0.42 && trick.t < trick.dur * 0.5) offer("trick", 4.5);
+    if (pw.fly > 3.4 && pw.fly < 3.5) offer("fly", 5);
+    if (!moment && time - lastSnapT > 2 && grounded) { lastSnapT = time; moment = takeSnap("run"); moment.score = 0; }
+  }
+  // Rebuilds the remembered moment, films it from a dramatic angle at 1080x1920 and finishes it like a film still.
+  function filmMoment() {
+    const sn = moment; if (!sn || !renderer || (ar && ar.on)) return null;
+    const keep = { lvl: level, mood: moodIdx, vis: objs.map((o) => o.m.visible), bones: BONES.map((b) => [P[b].rotation.clone(), P[b].position.y]),
+      g: P.g.position.clone(), gv: P.g.visible, cam: camera.position.clone(), q: camera.quaternion.clone(), fov: camera.fov, asp: camera.aspect,
+      extra: [S.blob, S.dizzy, S.partsMesh, S.bag, S.apple, S.carpet, S.shield, S.guard && S.guard.g].filter(Boolean).map((o) => [o, o.visible]) };
+    const temp = [];
+    try {
+      for (const o of objs) o.m.visible = false;
+      for (const [o] of keep.extra) o.visible = false;
+      if (sn.level !== level) showWorld(sn.level);
+      moodIdx = sn.level === 3 ? 1 : sn.mood; applyMood(1);
+      for (const t of sn.objs) {
+        const m = take(t.type); m.position.set(t.x, t.y, t.z); m.scale.x = t.sx; temp.push([t.type, m]);
+        if (t.type === "wagon") { const f = m.getObjectByName("doorF"), b = m.getObjectByName("doorB"); if (f) f.rotation.y = -1.75; if (b) b.rotation.y = 1.75; }
+      }
+      BONES.forEach((b, i) => { const v = sn.bones[i]; P[b].rotation.set(v[0], v[1], v[2]); if (b === "pivot") P[b].position.y = v[3]; });
+      P.g.position.set(sn.px, sn.py, sn.gz); P.g.visible = true;
+      if (sn.fly) { S.carpet.visible = true; S.carpet.position.set(sn.px, sn.py + 0.04, sn.gz); }
+      if (sn.shield) { S.shield.visible = true; S.shield.position.set(sn.px, sn.py + 0.95, sn.gz); }
+      S.blob.visible = true; S.blob.position.set(sn.px, 0.02, sn.gz);
+      // the camera: several film angles are tried; one with a clear view of the runner is kept
+      const R = new T.Vector3(sn.px, sn.py, sn.gz), air = sn.py > 0.6, aim = new T.Vector3(R.x, R.y + 1.0, R.z);
+      const solid = sn.objs.filter((t) => !/coin|non|samsa|pw_|wagonWall/.test(t.type)).map((t) => ({ p: new T.Vector3(t.x, 1.0, t.z), r: t.type === "wagon" ? 3.4 : Math.max(1.0, (S.defs[t.type] || {}).hd || 1) + 0.4 }));
+      const clear = (c) => solid.every((o) => {
+        if (c.distanceTo(o.p) < o.r + 0.3) return false;
+        const d = aim.clone().sub(c), t = clamp(o.p.clone().sub(c).dot(d) / d.lengthSq(), 0, 1);
+        return c.clone().addScaledVector(d, t).distanceTo(o.p) > o.r * 0.85;
+      }) && Math.abs(c.x) < 3.9;
+      const sd = Math.random() < 0.5 ? -1 : 1;
+      const base = air
+        ? [[1.4, 0.35 - R.y, -4.6, 0.9, 38], [-1.4, 0.35 - R.y, -4.6, 0.9, 38], [3.4, 0.5 - R.y * 0.5, -1.2, 0.85, 36], [-3.4, 0.5 - R.y * 0.5, -1.2, 0.85, 36], [1.6, 1.2, 3.8, 1.0, 40], [-1.6, 1.2, 3.8, 1.0, 40]]
+        : sn.kind === "wagon" ? [[0.6, 0.9, -4.4, 1.15, 42], [-0.6, 0.9, -4.4, 1.15, 42], [1.4, 1.4, 4.0, 1.1, 40]]
+        : [[1.8, 0.75, 3.9, 1.0, 36], [-1.8, 0.75, 3.9, 1.0, 36], [1.5, 0.55, -4.2, 1.0, 36], [-1.5, 0.55, -4.2, 1.0, 36], [3.5, 0.9, -0.8, 1.0, 34], [-3.5, 0.9, -0.8, 1.0, 34]];
+      const order = sd > 0 ? base : base.map((b) => [-b[0], ...b.slice(1)]);
+      let sh = order[0], cpos = null;
+      for (const b of order) { const c = new T.Vector3(R.x + b[0], Math.max(0.2, R.y + b[1]), R.z + b[2]); if (clear(c)) { sh = b; cpos = c; break; } }
+      if (!cpos) { sh = [0.4, 2.6, 5.5, 1.0, 42]; cpos = new T.Vector3(R.x + 0.4, R.y + 2.6, R.z + 5.5); }
+      camera.position.copy(cpos);
+      camera.lookAt(R.x, R.y + sh[3], R.z);
+      camera.fov = sh[4]; camera.aspect = 1080 / 1920; camera.updateProjectionMatrix();
+      renderer.setPixelRatio(1); renderer.setSize(1080, 1920, false);
+      renderer.render(scene, camera);
+      const shot = document.createElement("canvas"); shot.width = 1080; shot.height = 1920;
+      shot.getContext("2d").drawImage(el.cv, 0, 0, 1080, 1920);
+      return finishStill(shot, sn);
+    } catch { return null; }
+    finally {
+      for (const [t, m] of temp) { m.visible = false; (pools[t] || (pools[t] = [])).push(m); }
+      objs.forEach((o, i) => { o.m.visible = keep.vis[i]; });
+      for (const [o, v] of keep.extra) o.visible = v;
+      BONES.forEach((b, i) => { P[b].rotation.copy(keep.bones[i][0]); if (b === "pivot") P[b].position.y = keep.bones[i][1]; });
+      P.g.position.copy(keep.g); P.g.visible = keep.gv;
+      if (sn.level !== keep.lvl) showWorld(keep.lvl);
+      moodIdx = keep.mood;
+      camera.position.copy(keep.cam); camera.quaternion.copy(keep.q); camera.fov = keep.fov; camera.aspect = keep.asp; camera.updateProjectionMatrix();
+      renderer.setPixelRatio(quality.low ? 1 : Math.min(window.devicePixelRatio || 1, 1.5)); W = 0; resize();
+    }
+  }
+  // Film look: soft zoom blur towards the edges, teal-and-orange grade, vignette, the title, the player and the caption.
+  function finishStill(shot, sn) {
+    const Wd = 1080, Hd = 1920, c = document.createElement("canvas"); c.width = Wd; c.height = Hd; const g = c.getContext("2d");
+    g.drawImage(shot, 0, 0);
+    const blur = document.createElement("canvas"); blur.width = Wd; blur.height = Hd; const b = blur.getContext("2d");
+    for (let i = 1; i <= 5; i++) { const k = 1 + i * 0.012; b.globalAlpha = 1 / i; b.drawImage(shot, (Wd - Wd * k) / 2, (Hd - Hd * k) / 2, Wd * k, Hd * k); }
+    b.globalAlpha = 1; b.globalCompositeOperation = "destination-in";
+    let gr = b.createRadialGradient(Wd / 2, Hd * 0.48, Hd * 0.18, Wd / 2, Hd * 0.48, Hd * 0.62); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,1)");
+    b.fillStyle = gr; b.fillRect(0, 0, Wd, Hd); g.drawImage(blur, 0, 0);
+    g.globalCompositeOperation = "soft-light";
+    gr = g.createLinearGradient(0, 0, 0, Hd); gr.addColorStop(0, "rgba(255,170,90,0.55)"); gr.addColorStop(0.55, "rgba(255,200,150,0.15)"); gr.addColorStop(1, "rgba(20,90,130,0.6)");
+    g.fillStyle = gr; g.fillRect(0, 0, Wd, Hd);
+    g.globalCompositeOperation = "source-over";
+    gr = g.createRadialGradient(Wd / 2, Hd * 0.46, Hd * 0.3, Wd / 2, Hd * 0.5, Hd * 0.78); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,0.55)");
+    g.fillStyle = gr; g.fillRect(0, 0, Wd, Hd);
+    gr = g.createLinearGradient(0, Hd * 0.62, 0, Hd); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,0.72)");
+    g.fillStyle = gr; g.fillRect(0, Hd * 0.62, Wd, Hd * 0.38);
+    gr = g.createLinearGradient(0, 0, 0, 300); gr.addColorStop(0, "rgba(0,0,0,0.5)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, Wd, 300);
+    const F = "-apple-system, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+    g.textAlign = "center"; g.fillStyle = "#fff"; g.shadowColor = "rgba(0,0,0,0.35)"; g.shadowBlur = 18;
+    g.font = `600 40px ${F}`; g.letterSpacing = "12px"; g.fillText("CHORSU GAME", Wd / 2 + 6, 132); g.letterSpacing = "0px";
+    g.globalAlpha = 0.8; g.font = `400 30px ${F}`; g.fillText(`${sn.level}-bosqich · ${sn.level === 1 ? "Chorsu bozori" : LEVELS[sn.level][1]}`, Wd / 2, 182); g.globalAlpha = 1;
+    g.textAlign = "left";
+    g.font = `700 92px ${F}`; g.fillText(CAPTION[sn.kind] || CAPTION.run, 72, Hd - 300);
+    const who = user.username ? "@" + user.username : user.first_name || "O'yinchi";
+    g.font = `500 44px ${F}`; g.fillText(who, 72, Hd - 218);
+    g.globalAlpha = 0.78; g.font = `400 34px ${F}`; g.fillText(`${Math.floor(dist)} m  ·  ${coins} tanga  ·  ${score()} ball`, 72, Hd - 160);
+    g.globalAlpha = 0.6; g.font = `400 28px ${F}`; g.fillText(`t.me/${BOT}`, 72, Hd - 100); g.globalAlpha = 1;
+    return c.toDataURL("image/jpeg", 0.92);
+  }
+  function showPhoto() {
+    if (!momentURL) return;
+    const v = document.createElement("div"); v.className = "run-photo";
+    v.innerHTML = `<img alt="" src="${momentURL}"><div class="run-photo-bar"><button data-a="share">${ic("send")} Ulashish</button><button data-a="save">${ic("download")} Saqlash</button></div><button class="run-photo-x" data-a="x" aria-label="Yopish">${ic("x")}</button><p>Rasmni bosib turib ham saqlashingiz mumkin</p>`;
+    const file = async () => new File([await (await fetch(momentURL)).blob()], "chorsu-game.jpg", { type: "image/jpeg" });
+    v.querySelector('[data-a="x"]').onclick = () => v.remove();
+    v.querySelector('[data-a="save"]').onclick = () => { const a = document.createElement("a"); a.href = momentURL; a.download = "chorsu-game.jpg"; document.body.appendChild(a); a.click(); a.remove(); };
+    v.querySelector('[data-a="share"]').onclick = async () => {
+      try { const f = await file(); if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: "Chorsu game", text: `Chorsu game'da ${score()} ball!` }); return; } } catch (e) { if (e && e.name === "AbortError") return; }
+      share(score());
+    };
+    root.appendChild(v); buzz("light");
+  }
+
   function gameOver() {
     state = "over"; RunAudio.music(false); applyModels();
     const s = score(), b = best(), isBest = s > b;
@@ -1200,14 +1340,21 @@ const Game = (() => {
       <h2>${isBest ? "Yangi rekord!" : "O'yin tugadi"}</h2>
       <div class="run-score">${s}</div>
       <p>${Math.floor(dist)} m · ${coins} tanga</p>
+      ${moment ? `<button class="run-moment" data-a="photo"><span class="run-moment-img"><i></i></span><span><small>Eng zo'r lahza</small><b>${CAPTION[moment.kind] || CAPTION.run}</b><em>Ko'rish va ulashish</em></span></button>` : ""}
       <div class="run-board">
         <b>Haftalik maktablar reytingi</b>
         ${board.slice(0, 5).map(row).join("")}${mine >= 5 ? row(me, mine) : ""}
       </div>
       <button class="btn-primary" data-a="play">${ic("refresh")} Qayta o'ynash</button>
       <button class="btn-ghost" data-a="share">Do'stlarni chaqirish</button>`,
-      { play, share: () => share(s) });
+      { play, share: () => share(s), photo: showPhoto });
     if (isBest) { buzz("success"); confetti(28); }
+    if (moment) setTimeout(() => {          // film the moment just after the results appear
+      if (!alive || state !== "over") return;
+      momentURL = filmMoment();
+      const im = root.querySelector(".run-moment-img");
+      if (im && momentURL) im.innerHTML = `<img alt="" src="${momentURL}">`; else if (!momentURL) { const b = root.querySelector(".run-moment"); if (b) b.remove(); }
+    }, 120);
   }
   function share(s) {
     const link = `https://t.me/${BOT}?start=run_${user.id}`;
@@ -1227,7 +1374,7 @@ const Game = (() => {
   const _info = () => ({ state, dist: Math.floor(dist), coins, hearts, speed: Math.round(speed), py: +py.toFixed(2), trick: trick && trick.name, eat: !!eat, level, objs: objs.length, calls: renderer && renderer.info.render.calls });
   const _set = (o) => { if (o.wagon) nextWagon = 0; if (o.energy != null) energy = o.energy; if (o.dist != null) { dist = o.dist; nextBoost = Math.ceil(dist / 300) * 300; } if (o.eat != null) nextEat = o.eat; if (o.rest != null) nextRest = o.rest; };
 
-  return { mount, unmount, play, pause, exit, onBack, _sim, _mood, _act: act, _info, _set, _freeze: (f) => { frozen = f; }, _rig: () => ({ P, S, T, camera }), _put: (type, z) => { for (const o of objs) if (o.z < 5 && o.z > -70) { o.gone = true; o.m.visible = false; } spawnIn = Math.max(spawnIn, 70); put(type, lane, z); } };
+  return { mount, unmount, play, pause, exit, onBack, _end: () => gameOver(), _moment: () => moment && moment.kind, _sim, _mood, _act: act, _info, _set, _freeze: (f) => { frozen = f; }, _rig: () => ({ P, S, T, camera }), _put: (type, z) => { for (const o of objs) if (o.z < 5 && o.z > -70) { o.gone = true; o.m.visible = false; } spawnIn = Math.max(spawnIn, 70); put(type, lane, z); } };
 })();
 
 const SCHOOL_BOARD = [

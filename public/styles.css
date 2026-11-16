@@ -394,27 +394,40 @@ a { color: inherit; text-decoration: none; }
 @keyframes kuchpulse { 50% { transform: scale(1.06); box-shadow: 0 0 0 4px rgba(220,38,38,.25), 0 4px 14px -6px rgba(18,24,41,.5); } }
 .run.over .run-kuch { display: none; }
 
-/* first-game help panels: cartoon style */
-.run-ov.toon { background: rgba(18,24,41,.45); }
-.run-ov.toon .run-card { position: relative; border: 3px solid #1E1B4B; border-radius: 28px; box-shadow: 0 8px 0 #1E1B4B, 0 24px 50px -16px rgba(0,0,0,.55); background: linear-gradient(#FFFDF4, #FFF6DC); padding: 26px 18px 20px; animation: toonpop .45s cubic-bezier(.2,1.6,.4,1); }
-.run-ov.toon h2 { font-size: 25px; font-weight: 900; color: #1E1B4B; margin: 8px 0 12px; letter-spacing: -.3px; }
-.run-ov.toon p { color: #3B3560; font-weight: 600; font-size: 15.5px; margin: 12px 0 16px; }
-.toon-step { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #FFD23F; color: #1E1B4B; border: 3px solid #1E1B4B; border-radius: 999px; padding: 3px 14px; font-weight: 900; font-size: 13px; }
-.toon-ico { width: 64px; height: 64px; margin: 4px auto 0; border-radius: 20px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #4ADE80, #16A34A); color: #fff; border: 3px solid #1E1B4B; box-shadow: 0 5px 0 #1E1B4B; animation: toonbob 1.4s ease-in-out infinite; }
-.toon-ico .ic { width: 34px; height: 34px; }
-.toon-bar { display: flex; height: 22px; border: 3px solid #1E1B4B; border-radius: 999px; overflow: hidden; margin: 0 6px; }
-.toon-bar i { flex: 1; } .toon-bar .g { background: #4ADE80; flex: 1.6; } .toon-bar .y { background: #FDE047; } .toon-bar .r { background: #F87171; flex: .7; }
-.toon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 4px 0 18px; }
-.toon-ctl { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px; border: 3px solid #1E1B4B; border-radius: 18px; background: #fff; box-shadow: 0 4px 0 #1E1B4B; }
+/* first-game help panels: soft and calm */
+.run-ov.toon { background: rgba(20,18,16,.32); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.run-ov.toon .run-card { position: relative; max-width: 340px; border: 0; border-radius: 30px; background: rgba(255,252,247,.96); box-shadow: 0 24px 60px -24px rgba(40,30,20,.45), 0 1px 0 rgba(255,255,255,.8) inset; padding: 30px 22px 22px; animation: toonin .4s cubic-bezier(.2,.8,.2,1); }
+.run-ov.toon h2 { font-size: 22px; font-weight: 500; color: #2B2620; margin: 14px 0 8px; letter-spacing: -.2px; }
+.run-ov.toon p { color: #7A7167; font-weight: 400; font-size: 15px; line-height: 1.5; margin: 14px 4px 22px; }
+.toon-step { display: flex; justify-content: center; gap: 6px; margin-bottom: 4px; }
+.toon-step i { width: 6px; height: 6px; border-radius: 3px; background: #E3DCD2; transition: width .3s; } .toon-step i.on { width: 18px; background: #C9A27A; }
+.toon-ico { width: 58px; height: 58px; margin: 0 auto; border-radius: 18px; display: flex; align-items: center; justify-content: center; background: #EAF4E6; color: #4E8A47; }
+.toon-ico .ic { width: 28px; height: 28px; }
+.toon-bar { height: 8px; border-radius: 4px; margin: 4px 18px 0; background: linear-gradient(90deg, #8CCB86 0%, #8CCB86 45%, #F1D27A 62%, #EFA08C 100%); }
+.toon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 20px; }
+.toon-ctl { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 16px; background: #F5F0E9; text-align: left; }
 .toon-ctl:last-child { grid-column: 1 / -1; }
-.toon-ctl b { font-size: 13.5px; font-weight: 800; color: #1E1B4B; line-height: 1.2; }
-.toon-key { display: flex; gap: 2px; align-items: center; justify-content: center; min-width: 46px; height: 46px; padding: 0 6px; border-radius: 14px; color: #fff; border: 3px solid #1E1B4B; }
-.toon-key svg { width: 26px; height: 26px; }
-.toon-key.k1 { background: #3B82F6; } .toon-key.k2 { background: #22C55E; } .toon-key.k3 { background: #A855F7; } .toon-key.k4 { background: #F97316; } .toon-key.k5 { background: #EC4899; }
-.toon-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 54px; border: 3px solid #1E1B4B; border-radius: 18px; background: linear-gradient(#FFD23F, #FFB000); color: #1E1B4B; font: inherit; font-size: 19px; font-weight: 900; box-shadow: 0 6px 0 #1E1B4B; cursor: pointer; }
-.toon-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #1E1B4B; }
-.toon-btn .ic { width: 22px; height: 22px; }
-.run-kuch.spot { animation: kuchspot 1s ease-in-out infinite; }
-@keyframes kuchspot { 50% { transform: scale(1.12); box-shadow: 0 0 0 6px rgba(255,210,63,.75), 0 4px 14px -6px rgba(18,24,41,.5); } }
-@keyframes toonpop { from { transform: scale(.6) rotate(-3deg); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes toonbob { 50% { transform: translateY(-5px) rotate(-4deg); } }
+.toon-ctl b { font-size: 13.5px; font-weight: 500; color: #4A4239; line-height: 1.25; }
+.toon-key { display: flex; gap: 1px; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 4px; border-radius: 11px; flex-shrink: 0; }
+.toon-key svg { width: 18px; height: 18px; }
+.toon-key.k1 { background: #E3ECF8; color: #4F76B0; } .toon-key.k2 { background: #E4F1E1; color: #4E8A47; } .toon-key.k3 { background: #ECE6F5; color: #7B62A8; } .toon-key.k4 { background: #F8E8DD; color: #B8744A; } .toon-key.k5 { background: #F6E3E8; color: #A85A72; }
+.toon-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 50px; border: 0; border-radius: 16px; background: #2B2620; color: #FFFCF7; font: inherit; font-size: 16px; font-weight: 500; cursor: pointer; transition: transform .15s, opacity .15s; }
+.toon-btn:active { transform: scale(.98); opacity: .9; }
+.toon-btn .ic { width: 18px; height: 18px; }
+.run-kuch.spot { animation: kuchspot 1.8s ease-in-out infinite; }
+@keyframes kuchspot { 50% { box-shadow: 0 0 0 6px rgba(201,162,122,.35), 0 4px 14px -6px rgba(18,24,41,.4); } }
+@keyframes toonin { from { transform: scale(.96) translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.run-moment { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 14px; padding: 8px; border: 0; border-radius: 18px; background: var(--bg); text-align: left; font: inherit; cursor: pointer; }
+.run-moment-img { width: 54px; height: 96px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: linear-gradient(110deg, #e9e4dc 30%, #f6f2ec 50%, #e9e4dc 70%); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+.run-moment-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.run-moment small { display: block; font-size: 12px; color: var(--muted); } .run-moment b { display: block; font-size: 16px; font-weight: 600; margin: 2px 0; } .run-moment em { font-style: normal; font-size: 13px; color: var(--p1); }
+@keyframes shimmer { to { background-position: -200% 0; } }
+.run-photo { position: absolute; inset: 0; z-index: 9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); background: rgba(10,10,12,.92); animation: fade .25s ease; }
+.run-photo img { max-width: 100%; max-height: calc(100% - 130px); border-radius: 18px; box-shadow: 0 20px 50px -20px rgba(0,0,0,.8); -webkit-touch-callout: default; }
+.run-photo-bar { display: flex; gap: 10px; width: 100%; max-width: 340px; }
+.run-photo-bar button { flex: 1; height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; font: inherit; font-size: 15px; font-weight: 500; background: rgba(255,255,255,.14); color: #fff; cursor: pointer; }
+.run-photo-bar button:first-child { background: #fff; color: #111; }
+.run-photo-bar .ic { width: 18px; height: 18px; }
+.run-photo p { margin: 0; font-size: 12px; color: rgba(255,255,255,.5); }
+.run-photo-x { position: absolute; top: calc(14px + var(--tg-safe-top, 0px)); right: 14px; width: 40px; height: 40px; border-radius: 20px; border: 0; background: rgba(255,255,255,.14); color: #fff; display: flex; align-items: center; justify-content: center; }
