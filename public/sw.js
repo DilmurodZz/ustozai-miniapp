@@ -1,5 +1,5 @@
 // Offline cache: the app shell, the 3D library and the models work without internet after the first visit.
-const CACHE = "ustozai-v26";
+const CACHE = "ustozai-v27";
 const FILES = ["./", "index.html", "styles.css", "data.js", "app.js", "game.js", "duo.js", "run-world.js", "run-audio.js", "logo.png", "img/loading.webp",
   "lib/three.module.min.js", "lib/GLTFLoader.js", "lib/BufferGeometryUtils.js", "lib/meshopt_decoder.module.js", "lib/peerjs.min.js",
   "music/track1.m4a", "music/track2.m4a", "music/track3.m4a", "models/damas.glb", "models/tree1.glb", "models/tree2.glb", "models/mosque.glb", "models/city.glb", "models/wagon.glb"];
