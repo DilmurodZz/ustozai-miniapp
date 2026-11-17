@@ -121,7 +121,7 @@ const compassSVG = `<svg class="compass" viewBox="0 0 200 200" aria-hidden="true
   <circle cx="100" cy="100" r="5" fill="#fff" stroke="var(--p1)" stroke-width="2.5"/></svg>`;
 
 /* ---------- tab bar ---------- */
-const TABS = [["#/", "Asosiy", "home"], ["#/kurslar", "Kurslar", "play"], ["#/tanlov", "Tanlov", "trophy"], ["#/kashf", "Kashf et", "compass"], ["#/profil", "Profil", "user"]];
+const TABS = [["#/", "Asosiy", "home"], ["#/kurslar", "Kurslar", "play"], ["#/tanlov", "Tanlov", "trophy"], ["#/profil", "Profil", "user"]];
 function renderTabs(route) {
   const hidden = ["#/kompas", "#/natija", "#/oyin", "#/duo"].includes(route);
   tabbar.classList.toggle("hide", hidden);
@@ -133,20 +133,23 @@ window.goBack = () => { if (typeof Game !== "undefined" && gameOn && Game.onBack
 
 /* ---------- screens ---------- */
 function Home() {
-  const tiles = [["cap", "Kurslar", "#/kurslar"], ["gamepad", "O'yin", "#/oyin"], ["book", "Mutolaa", "#/mutolaa"], ["trophy", "Tanlov", "#/tanlov"], ["tag", "Chegirmalar", "#/chegirma"], ["grid", "Vositalar", "#/vositalar"]];
+  const tiles = [["game", "O'yin", "#/oyin", "k1"], ["trophy", "Tanlov", "#/tanlov", "k2"], ["sale", "Top 20 chegirmalar", "#/chegirma", "k3"], ["tools", "Foydali vositalar", "#/vositalar", "k4"]];
   const res = store.get("result");
   return `
-  <div class="topbar"><div class="brand"><img class="logo" src="logo.png" alt="">Ustoz AI</div></div>
-  <a class="hero" href="#/kompas">
-    <span class="hero-tag">90 soniya</span>
+  <div class="topbar"><div class="brand"><img class="logo" src="logo.png" alt="">USTOZ AI</div></div>
+  <a class="hero2" href="#/kompas">
+    <img class="hero2-art" src="img/hero-compass.webp" alt="" decoding="async">
+    <span class="hero2-tag">90 soniya</span>
     <h3>Kasb Kompasi</h3>
-    <p>O'zingga mos kasb va kurslarni top</p>
-    ${compassSVG}
-    <span class="btn-white">Boshlash ${ic("chev")}</span>
+    <p>O'zingizga mos kasb va kurslarni toping</p>
+    <span class="btn-orange">Boshlash ${ic("chev")}</span>
   </a>
-  <div class="grid">${tiles.map(([i, l, h], n) => `<a class="tile t${n + 1}" href="${h}">${chip(i, "c" + (n + 1))}${l}</a>`).join("")}</div>
-  <a class="list-item duo-link" href="#/duo">${chip("users", "sm")}<span>Do'st bilan o'ynash<small>Chorsu game, ikki kishi</small></span>${ic("chev", "chev")}</a>
-  ${res ? `<div class="section-title">Sening natijang</div>
+  <a class="banner" href="#/kurslar">
+    <img src="img/ic-courses.webp" alt="" decoding="async"><span class="banner-sep"></span><b>Kurslar</b><span class="banner-go">${ic("chev")}</span>
+    <svg class="banner-wave" viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 38 C70 18 130 52 210 34 S340 14 400 30 V60 H0Z" fill="rgba(255,255,255,.55)"/><path d="M0 48 C80 34 150 58 230 46 S350 32 400 42 V60 H0Z" fill="rgba(120,140,255,.18)"/></svg>
+  </a>
+  <div class="grid4">${tiles.map(([i, l, h, k]) => `<a class="tile4 ${k}" href="${h}"><img src="img/ic-${i}.webp" alt="" decoding="async"><span>${l}</span></a>`).join("")}</div>
+  ${res ? `<div class="section-title">Sizning natijangiz</div>
     <a class="list-item" href="#/natija">${chip(PERSONAS[res].icon, "sm")}${PERSONAS[res].name}${ic("chev", "chev")}</a>` : ""}`;
 }
 
@@ -216,7 +219,7 @@ function Natija() {
     <span class="res-icon">${ic(p.icon)}</span>
   </div>
   <div class="res-body">
-    <div class="pre">Sening tiping</div>
+    <div class="pre">Sizning tipingiz</div>
     <h2>${p.name}</h2>
     <p>${p.desc}</p>
     <div class="stats">
@@ -253,7 +256,7 @@ function Tanlov() {
   const pod = (r, i, cls) => `<div class="pod ${cls}"><div class="av">${ic(LB_ICON[lbTab])}</div><b>${esc(short(r[0]))}</b><small>${fmt(r[1])} ball</small><div class="stand">${i + 1}</div></div>`;
   return `${navbar("Tanlov")}
   <div class="lb-head">
-    ${chip("trophy", "lg solid")}<h2>Zamonaviy kasblar tanlovi</h2><p>Maktab va OTMlar o'rtasida hududiy reyting</p>
+    <img class="zkt-logo" src="img/zkt-logo.png" alt="Zamonaviy kasblar tanlovi"><p>Maktab va OTMlar o'rtasida hududiy reyting</p>
     <div class="podium">${pod(top[1], 1, "second")}${pod(top[0], 0, "first")}${pod(top[2], 2, "third")}</div>
   </div>
   <div class="seg">${[["viloyat", "Viloyat"], ["maktab", "Maktab"], ["otm", "OTM"]].map(([k, l]) => `<button class="${k === lbTab ? "on" : ""}" onclick="setLb('${k}')">${l}</button>`).join("")}</div>
@@ -277,7 +280,7 @@ function Profil() {
     <small>${user.username ? "@" + esc(user.username) : "Ustoz AI o'quvchisi"}</small>
   </div>
   <div class="card box">
-    <h4>${ic("palette")} Ilova rangi</h4><p>O'zingga yoqqan rangni tanla</p>
+    <h4>${ic("palette")} Ilova rangi</h4><p>O'zingizga yoqqan rangni tanlang</p>
     <div class="swatches">${Object.entries(THEMES).map(([k, [l, a, b]]) => `<button class="sw ${k === theme ? "on" : ""}" onclick="pickTheme('${k}')"><i style="background:linear-gradient(135deg,${a},${b})"></i>${l}</button>`).join("")}</div>
   </div>
   <div class="card box">
@@ -315,7 +318,7 @@ function DuoScreen() {
       <input id="duo-name" maxlength="16" placeholder="Ismingiz" value="${esc(runnerName())}" autocomplete="off">
       <div class="run-colors">${RUN_COLORS.map((c) => `<button data-c="${c}" class="${c === (runnerColor() || RUN_COLORS[0]) ? "on" : ""}" style="background:${c}" aria-label="Rang"></button>`).join("")}</div>
     </div>
-    <div class="duo-code"><small>Sening koding</small><b id="duo-me">· · · ·</b><button class="icon-btn" id="duo-new" aria-label="Yangi kod">${ic("refresh")}</button></div>
+    <div class="duo-code"><small>Sizning kodingiz</small><b id="duo-me">· · · ·</b><button class="icon-btn" id="duo-new" aria-label="Yangi kod">${ic("refresh")}</button></div>
     <div class="duo-join"><input id="duo-in" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Do'stingning kodi" autocomplete="off"><button class="btn-primary" id="duo-go">Ulanish</button></div>
     <div class="duo-st" id="duo-st"></div>
     <button class="btn-primary duo-start" id="duo-start" hidden>${ic("play")} Boshlash</button>
@@ -374,6 +377,18 @@ if (tg) {
   try { tg.BackButton.onClick(goBack); } catch {}
   try { const top = tg.contentSafeAreaInset?.top + tg.safeAreaInset?.top; if (top) document.documentElement.style.setProperty("--tg-safe-top", top + "px"); } catch {}
 }
+// A short, calm intro the very first time someone opens the Mini App; never again after that.
+(function intro() {
+  if (store.get("intro_seen", false)) return;
+  store.set("intro_seen", true);
+  const el = document.createElement("div");
+  el.className = "intro";
+  el.innerHTML = `<div class="intro-in"><img src="logo.png" alt=""><b>USTOZ AI</b><span>Kelajak kasbingizni toping</span><i><em></em></i></div>`;
+  document.body.appendChild(el);
+  const done = () => { if (el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => el.remove(), 600); };
+  el.onclick = done;
+  setTimeout(done, 2300);
+})();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 if (!location.hash) location.replace("#/");
 render();
