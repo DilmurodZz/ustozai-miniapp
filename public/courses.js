@@ -40,14 +40,12 @@ const Kurslar = (() => {
       </div>
       <div class="km-tools">
         <label class="km-search">${ic("search")}<input id="km-q" placeholder="Kurs yoki ustoz nomi" value="${esc(query)}" autocomplete="off"></label>
-        <div class="km-sort">${[["popular", "Ommabop"], ["demand", "Talab bo'yicha"], ["salary", "Maosh bo'yicha"]].map(([k, l]) => `<button class="${k === sort ? "on" : ""}" onclick="kSort('${k}')">${l}</button>`).join("")}</div>
       </div>`;
     if (!data) return head + skeleton;
     const ql = query.trim().toLowerCase();
     let list = data.courses.filter((c) => !ql || c.title.toLowerCase().includes(ql) || (c.teacher || "").toLowerCase().includes(ql));
     const G = data.groups;
-    if (sort === "demand") list = [...list].sort((a, b) => G[b.g].share - G[a.g].share || (b.students || 0) - (a.students || 0));
-    if (sort === "salary") list = [...list].sort((a, b) => (G[b.g].median || 0) - (G[a.g].median || 0) || (b.students || 0) - (a.students || 0));
+    list = [...list].sort((a, b) => (G[a.g].schoolOrMed - G[b.g].schoolOrMed) || G[b.g].share - G[a.g].share || (b.students || 0) - (a.students || 0));
     return head + `<div class="kc-list">${list.map((c) => {
       const g = G[c.g];
       return `<a class="kc" href="#/kurs/${c.id}">
@@ -56,7 +54,7 @@ const Kurslar = (() => {
           <b>${esc(c.title)}</b>
           <small>${esc(c.teacher || "Ustoz AI")}</small>
           <span class="kc-meta">${c.rating ? `<i class="star">${ic("star")}${n1(c.rating)}</i>` : ""}${c.students ? `<i>${ic("user")}${fmt(c.students)}</i>` : ""}${c.lessons ? `<i>${ic("play")}${c.lessons} dars</i>` : ""}</span>
-          ${g.schoolOrMed ? `<span class="kc-tag info">Bilim uchun</span>` : `<span class="kc-tag ${demandTone(g.share)}">${demandWord(g.share)}: ${n1(g.share)}%</span>`}
+          ${g.schoolOrMed ? `<span class="kc-tag info">Bilim uchun</span>` : `<span class="kc-tag ${demandTone(g.share)}">Talab: ${n1(g.share)}%, ${fmt(g.related)} ta ish</span>`}
         </span></a>`;
     }).join("") || `<p class="note">Hech narsa topilmadi</p>`}</div>`;
   }
