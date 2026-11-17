@@ -310,17 +310,19 @@ function DuoScreen() {
   const sv = Duo.S.resume;
   return `${navbar("Do'st bilan o'ynash")}
   <div class="card duo">
-    <div class="duo-head">${chip("users", "lg")}<h2>Ikki kishilik poyga</h2><p>Kodingni do'stingga yubor yoki uning kodini kirit. Uzoqda bo'lsangiz ham birga yugurasiz.</p></div>
+    <div class="duo-head">${chip("users", "lg")}<h2>Do'stingizni taklif qiling va birgalikda vaqt o'tkazing :)</h2></div>
     ${sv ? `<div class="duo-save">Saqlangan o'yin: ${sv.dist} m · ${sv.coins} tanga</div>` : ""}
     <div class="duo-me">
+      <small class="duo-label">Ismingiz</small>
       <input id="duo-name" maxlength="16" placeholder="Ismingiz" value="${esc(runnerName())}" autocomplete="off">
+      <small class="duo-label">O'yinchingiz rangini tanlang</small>
       <div class="run-colors">${RUN_COLORS.map((c) => `<button data-c="${c}" class="${c === (runnerColor() || RUN_COLORS[0]) ? "on" : ""}" style="background:${c}" aria-label="Rang"></button>`).join("")}</div>
     </div>
     <div class="duo-code"><small>Sizning kodingiz</small><b id="duo-me">· · · ·</b><button class="icon-btn" id="duo-new" aria-label="Yangi kod">${ic("refresh")}</button></div>
-    <div class="duo-join"><input id="duo-in" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Do'stingning kodi" autocomplete="off"><button class="btn-primary" id="duo-go">Ulanish</button></div>
+    <div class="duo-join"><input id="duo-in" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Do'stingizning kodi" autocomplete="off"><button class="btn-primary btn-green" id="duo-go">Ulanish</button></div>
     <div class="duo-st" id="duo-st"></div>
     <button class="btn-primary duo-start" id="duo-start" hidden>${ic("play")} Boshlash</button>
-    <p class="duo-note">Ikkalangiz ham internetda bo'lishingiz kerak</p>
+    <p class="duo-note">Ikkalangiz ham onlayn bo'lishingiz kerak</p>
   </div>`;
 }
 let duoSubs = [];
@@ -331,8 +333,8 @@ function bindDuo() {
     if (!$("duo-me")) return;
     const st = Duo.S.status, f = Duo.friend;
     $("duo-me").textContent = Duo.code ? Duo.code.split("").join(" ") : "· · · ·";
-    const txt = { idle: "", opening: "Kod tayyorlanmoqda…", ready: "Kod tayyor. Do'stingni kut yoki uning kodini kirit.", dialing: "Ulanmoqda…", linked: f ? `Ulandi: ${esc(f.name)}` : "Ulandi", lost: "Aloqa uzildi, qayta ulanmoqda…", error: "Ulanib bo'lmadi" }[st] || "";
-    $("duo-st").innerHTML = `<span class="dot ${st}"></span>${txt}${Duo.S.error && st !== "linked" ? `<small>${esc(Duo.S.error)}</small>` : ""}`;
+    const txt = { idle: "", opening: "Kod tayyorlanmoqda…", ready: "Kod tayyor. Do'stingizni kuting yoki uning kodini kiriting.", dialing: "Ulanmoqda…", linked: f ? `Ulandi: ${esc(f.name)}` : "Ulandi", lost: "Aloqa uzildi, qayta ulanmoqda…", error: "Ulanib bo'lmadi" }[st] || "";
+    $("duo-st").innerHTML = `<span class="net ${st}">${ic("wifi")}</span>${txt}${Duo.S.error && st !== "linked" ? `<small>${esc(Duo.S.error)}</small>` : ""}`;
     $("duo-start").hidden = st !== "linked";
   };
   duoSubs.forEach((u) => u()); duoSubs = [Duo.on("status", paint), Duo.on("friend", paint), Duo.on("msg", (m) => { if (m.t === "start" && location.hash === "#/duo") launch(); })];

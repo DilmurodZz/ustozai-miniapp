@@ -589,3 +589,17 @@ body.fit .banner img { width: clamp(64px, 10vh, 96px); height: clamp(64px, 10vh,
 body.fit .grid4 { flex: none; margin-top: clamp(10px, 3vh, 30px); }
 body.fit .tile4 { min-height: clamp(104px, 19.5vh, 176px); padding: clamp(10px, 1.8vh, 16px) 4px; }
 body.fit .tile4 img { max-width: clamp(48px, 8vh, 70px); }
+
+/* friend screen: labels, green connect button, Wi-Fi status icon */
+.duo-head h2 { font-size: 20px; line-height: 1.3; margin: 12px 4px 16px; }
+.duo-label { display: block; margin: 0 0 6px; font-size: 12.5px; color: var(--muted); text-align: left; padding-left: 4px; }
+.duo-me .run-colors { justify-content: flex-start; padding-left: 4px; }
+.btn-green { background: linear-gradient(180deg, #22C55E, #16A34A) !important; box-shadow: 0 10px 20px -10px rgba(22,163,74,.7) !important; }
+.duo-st .net { display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; color: #94A3B8; }
+.duo-st .net .ic { width: 20px; height: 20px; stroke-width: 2.2; }
+.duo-st .net.linked { color: #16A34A; } .duo-st .net.ready, .duo-st .net.dialing, .duo-st .net.opening { color: #F59E0B; } .duo-st .net.error, .duo-st .net.lost { color: #EF4444; }
+.duo-me .run-colors { flex-wrap: nowrap; gap: 7px; }
+.duo-me .run-colors button { width: 30px; height: 30px; flex-shrink: 0; }
+.duo-st { flex-wrap: nowrap; text-align: left; justify-content: flex-start; padding: 0 4px; line-height: 1.35; }
+.duo-st .net { flex-shrink: 0; }
+.duo-join input::placeholder { letter-spacing: 0; font-size: 15px; }
