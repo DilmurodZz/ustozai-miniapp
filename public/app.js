@@ -151,7 +151,7 @@ function Home() {
 `;
 }
 
-let quiz = { i: 0, scores: {} };
+let quiz = store.get("quiz_state", { i: 0, scores: {} });
 function Kompas() {
   if (quiz.i >= QUIZ.length) quiz = { i: 0, scores: {} };
   const q = QUIZ[quiz.i], next = QUIZ[quiz.i + 1];
@@ -193,14 +193,14 @@ window.answer = (yes) => {
   if (yes) for (const [k, v] of Object.entries(QUIZ[quiz.i].t)) quiz.scores[k] = (quiz.scores[k] || 0) + v;
   if (card) { card.style.transform = `translateX(${yes ? 500 : -500}px) rotate(${yes ? 25 : -25}deg)`; card.style.opacity = 0; }
   setTimeout(() => {
-    quiz.i++;
+    quiz.i++; store.set("quiz_state", quiz);
     if (quiz.i >= QUIZ.length) {
       const order = ["data", "code", "design", "mkt", "ai"];
       const best = order.reduce((a, b) => ((quiz.scores[b] || 0) > (quiz.scores[a] || 0) ? b : a), "data");
       const total = Object.values(quiz.scores).reduce((a, b) => a + b, 0) || 1;
       store.set("result", best);
       store.set("match", Math.min(97, Math.round(60 + ((quiz.scores[best] || 0) / total) * 90)));
-      quiz = { i: 0, scores: {} };
+      quiz = { i: 0, scores: {} }; store.set("quiz_state", quiz);
       try { tg.HapticFeedback.notificationOccurred("success"); } catch {}
       location.replace("#/natija");
     } else render();
@@ -350,6 +350,22 @@ const ROUTES = {
   "#/duo": DuoScreen, "#/chegirma": () => Soon("chegirma"), "#/vositalar": () => Soon("vositalar"), "#/kashf": () => Soon("kashf"),
 };
 let gameOn = false;
+const pageState = store.get("page_state", {});
+function savePage() {
+  const h = location.hash || "#/", st = pageState[h] || {};
+  st.y = window.scrollY;
+  st.f = {}; document.querySelectorAll("#app input[id], #app textarea[id]").forEach((el) => { st.f[el.id] = el.value; });
+  pageState[h] = st; store.set("page_state", pageState);
+}
+function restorePage() {
+  const st = pageState[location.hash || "#/"]; if (!st) return;
+  for (const id in st.f || {}) { const el = document.getElementById(id); if (el && !el.value) el.value = st.f[id]; }
+  requestAnimationFrame(() => window.scrollTo(0, st.y || 0));
+}
+window.addEventListener("input", () => savePage());
+window.addEventListener("pagehide", savePage);
+document.addEventListener("visibilitychange", () => { if (document.hidden) savePage(); });
+let lastHash = location.hash;
 function render() {
   const route = ROUTES[location.hash] ? location.hash : location.hash.startsWith("#/kurs/") ? "#/kurs" : "#/";
   if (gameOn && route !== "#/oyin") { Game.unmount(); gameOn = false; }
@@ -362,7 +378,7 @@ function render() {
   if (route === "#/duo") bindDuo(); else if (duoSubs.length) { duoSubs.forEach((u) => u()); duoSubs = []; }
   try { route === "#/" ? tg.BackButton.hide() : tg.BackButton.show(); } catch {}
 }
-window.addEventListener("hashchange", () => { window.scrollTo(0, 0); render(); });
+window.addEventListener("hashchange", () => { const nh = location.hash; const cur = nh; location.hash; pageState[lastHash] = Object.assign(pageState[lastHash] || {}, { y: window.scrollY }); store.set("page_state", pageState); lastHash = cur; window.scrollTo(0, 0); render(); restorePage(); });
 
 function esc(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }

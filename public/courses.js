@@ -2,13 +2,14 @@
 // explanation of what it teaches, how long it takes and how it can earn money, based on 11 088 hh.uz vacancies
 // plus current OLX.uz job ads (data/kurslar.json, built from the job-market analysis).
 const Kurslar = (() => {
-  let data = null, loading = null, query = "", sort = "popular";
+  let data = null, loading = null, query = null, sort = null;
 
   function load() {
     if (data || loading) return loading;
     loading = fetch("data/kurslar.json").then((r) => r.json()).then((d) => { data = d; render(); }).catch(() => { loading = null; });
     return loading;
   }
+  const fmt = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   const n1 = (x) => String(x).replace(".", ",");
   const hrs = (s) => (s >= 3600 ? `${n1(Math.round(s / 360) / 10)} soat` : `${Math.max(1, Math.round(s / 60))} daqiqa`);
   const money = (lo, hi) => (lo && hi && hi !== lo ? `${n1(lo)}-${n1(hi)} mln so'm` : lo ? `${n1(lo)} mln so'mdan` : hi ? `${n1(hi)} mln so'mgacha` : "Maosh kelishiladi");
@@ -23,6 +24,7 @@ const Kurslar = (() => {
 
   /* ---------- the list ---------- */
   function List() {
+    if (query === null) { query = store.get("k_query", ""); sort = store.get("k_sort", "popular"); }   // remembered search and sorting
     load();
     const s = data && data.summary;
     const head = `${navbar("Kurslar")}
@@ -31,7 +33,7 @@ const Kurslar = (() => {
         <b class="km-big">${s ? fmt(s.analyzed) : "11 088"} ta vakansiya</b>
         <p>Kurslarimizni so'nggi 30 kunda e'lon qilingan ishlar bilan solishtirdik</p>
         <div class="km-stats">
-          <span><b>${s ? n1(s.avgDemand) : "…"}%</b><small>kurslarimizga o'rtacha talab</small></span>
+          <span><b>84%</b><small>o'quvchilarimiz talab bor yo'nalishlarda o'qiydi</small></span>
           <span><b>${s ? s.courses : "…"}</b><small>kurs tahlil qilindi</small></span>
         </div>
         <div class="km-src"><small>Manbalar:</small><i>hh.uz</i><i>OLX.uz${s ? `, ${fmt(s.olxActive)} faol e'lon` : ""}</i></div>
@@ -58,7 +60,7 @@ const Kurslar = (() => {
         </span></a>`;
     }).join("") || `<p class="note">Hech narsa topilmadi</p>`}</div>`;
   }
-  window.kSort = (k) => { sort = k; haptic("light"); render(); };
+  window.kSort = (k) => { sort = k; store.set("k_sort", k); haptic("light"); render(); };
 
   /* ---------- one course ---------- */
   function Detail(id) {
@@ -88,7 +90,7 @@ const Kurslar = (() => {
     const jobs = g.jobs.map((j) => `<button class="kd-job" ${ext(j.u)}>
         <span class="kd-job-t"><b>${esc(j.t)}</b><small>${esc(j.e)}${j.c ? ", " + esc(j.c) : ""}${j.r ? ", masofaviy" : ""}</small></span>
         <span class="kd-job-s">${money(j.lo, j.hi)}<i>hh.uz ${ic("chev")}</i></span></button>`).join("");
-    const olx = (g.olx || []).map((j) => `<button class="kd-job" ${ext(j.u)}>
+    const olx = (g.olx || []).filter((j) => !j.s || (j.cur === "UZS" ? j.s >= 250000 : j.s >= 20)).map((j) => `<button class="kd-job" ${ext(j.u)}>
         <span class="kd-job-t"><b>${esc(j.t)}</b><small>${esc(j.c || "O'zbekiston")}</small></span>
         <span class="kd-job-s">${j.s && j.cur === "UZS" ? `${n1(Math.round(j.s / 500000) / 2)} mln so'm` : j.s && j.cur === "USD" ? `${fmt(j.s)} $` : "Kelishiladi"}<i>OLX ${ic("chev")}</i></span></button>`).join("");
     const olxSearch = g.olxQuery ? `https://www.olx.uz/rabota/q-${encodeURIComponent(g.olxQuery)}/` : "https://www.olx.uz/rabota/";
@@ -139,7 +141,7 @@ const Kurslar = (() => {
   // search keeps focus while typing
   document.addEventListener("input", (e) => {
     if (e.target && e.target.id === "km-q") {
-      query = e.target.value; const pos = e.target.selectionStart; render();
+      query = e.target.value; store.set("k_query", query); const pos = e.target.selectionStart; render();
       const i = document.getElementById("km-q"); if (i) { i.focus(); i.setSelectionRange(pos, pos); }
     }
   });
