@@ -671,6 +671,7 @@ body.fit .tile4 img { max-width: clamp(48px, 8vh, 70px); }
 .kd-pay span { padding: 12px; border-radius: 14px; background: #ECFDF3; }
 .kd-pay small { display: block; font-size: 12px; color: #3F6B52; }
 .kd-pay b { font-size: 19px; font-weight: 800; color: #15803D; }
+.kd-src { margin: -6px 0 12px; font-size: 12px; color: var(--muted, #64748B); }
 .kd-jobs { display: flex; flex-direction: column; gap: 6px; }
 .kd-job { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); font: inherit; text-align: left; cursor: pointer; }
 .kd-job:active { background: var(--bg); }
