@@ -49,7 +49,7 @@ const Kurslar = (() => {
         <div class="km-top"><span class="km-ic">${ic("chart")}</span><span>Mehnat bozori tahlili</span></div>
         <b class="km-big">${s ? fmt(s.analyzed) : "11,088"} ta vakansiya tahlil qilindi</b>
         <div class="km-stats">
-          <span><i class="km-si">${ic("users")}</i><em><b>${s ? s.studentsHighDemand : "35"}%</b><small>o'quvchilarimiz oyiga 100 tadan ortiq ish o'rni bor kurslarda o'qiydi</small></em></span>
+          <span><i class="km-si">${ic("users")}</i><em><b>${s ? s.studentsHighDemand : "33"}%</b><small>o'quvchilarimiz eng talabgir kurslarimizda o'qiydi</small></em></span>
           <span><i class="km-si">${ic("briefcase")}</i><em><b>${s ? s.courses : "119"}</b><small>kurs tahlil qilindi</small></em></span>
         </div>
         <div class="km-src"><small>Manbalar:</small><i>${ic("globe")}hh.uz</i><i>${ic("globe")}OLX.uz</i></div>
