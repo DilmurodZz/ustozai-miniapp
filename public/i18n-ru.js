@@ -366,4 +366,12 @@ Object.assign(I18N.ru, {
 "Barcha hududlar": "Все регионы",
 "Tanlov sayti: zamonaviykasblar2026.uz": "Сайт конкурса: zamonaviykasblar2026.uz",
 "G'oliblar ro'yxati tanlov saytidan avtomatik olinadi: yangi g'oliblar e'lon qilinishi bilan shu yerda ham chiqadi.": "Список победителей берётся с сайта конкурса автоматически: новые победители появятся здесь сразу после объявления.",
+// tanlov pictures
+"Bosh sovrin": "Главный приз",
+"Ismingizni bosing: tabrik rasmingizni yuklab oling yoki do'stlaringizga ulashing": "Нажмите на своё имя: скачайте поздравительную картинку или поделитесь с друзьями",
+"Tabrik rasmi tayyorlanmoqda…": "Готовим поздравительную картинку…",
+"Rasmni yuklab olish": "Скачать картинку",
+"Storiga joylash": "Опубликовать в истории",
+"Rasm tayyorlanmadi": "Не удалось подготовить картинку",
+"Rasm bot bilan chatingizga yuborildi": "Картинка отправлена в чат с ботом",
 });

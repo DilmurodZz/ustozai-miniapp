@@ -70,7 +70,7 @@ const Kurslar = (() => {
     return head + `<div class="kc-list">${list.map((c, i) => {
       const g = G[c.g];
       return `<a class="kc" href="#/kurs/${c.id}">
-        <span class="kc-img"><em class="kc-n">${i + 1}</em>${c.image ? `<img src="${esc(img(c.image, 256))}" alt="" loading="lazy" decoding="async">` : ""}</span>
+        <em class="kc-n">${i + 1}</em><span class="kc-img">${c.image ? `<img src="${esc(img(c.image, 256))}" alt="" loading="lazy" decoding="async">` : ""}</span>
         <span class="kc-body">
           <b class="notr">${esc(c.title)}</b>
           <small class="notr">${esc(c.teacher || "Ustoz AI")}</small>

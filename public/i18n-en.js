@@ -366,4 +366,12 @@ Object.assign(I18N.en, {
 "Barcha hududlar": "All regions",
 "Tanlov sayti: zamonaviykasblar2026.uz": "Contest site: zamonaviykasblar2026.uz",
 "G'oliblar ro'yxati tanlov saytidan avtomatik olinadi: yangi g'oliblar e'lon qilinishi bilan shu yerda ham chiqadi.": "The winners list comes from the contest site automatically: new winners show up here as soon as they are announced.",
+// tanlov pictures
+"Bosh sovrin": "Grand prize",
+"Ismingizni bosing: tabrik rasmingizni yuklab oling yoki do'stlaringizga ulashing": "Tap your name to download your congratulation picture or share it with friends",
+"Tabrik rasmi tayyorlanmoqda…": "Making the congratulation picture…",
+"Rasmni yuklab olish": "Download the picture",
+"Storiga joylash": "Post to your story",
+"Rasm tayyorlanmadi": "Couldn't make the picture",
+"Rasm bot bilan chatingizga yuborildi": "The picture was sent to your chat with the bot",
 });

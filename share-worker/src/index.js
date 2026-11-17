@@ -167,13 +167,18 @@ async function sendFile(req, env, url, origin) {
     const form = new FormData();
     form.append("chat_id", String(user.id));
     form.append("caption", (url.searchParams.get("c") || "").slice(0, 300));
-    form.append("disable_content_type_detection", "true");
-    form.append("document", new Blob([body], { type: type[0] }), name);
-    const msg = await tg(env.BOT_TOKEN, "sendDocument", form);
+    // a picture (the contest congratulation) goes as a photo, so it shows as an image in the chat
+    const photo = ext === "png" && url.searchParams.get("as") === "photo";
+    if (photo) form.append("photo", new Blob([body], { type: type[0] }), name);
+    else { form.append("disable_content_type_detection", "true"); form.append("document", new Blob([body], { type: type[0] }), name); }
+    const msg = await tg(env.BOT_TOKEN, photo ? "sendPhoto" : "sendDocument", form);
     // the same file, ready for Telegram's own "send to a chat" window
     const prep = new FormData();
     prep.append("user_id", String(user.id));
-    prep.append("result", JSON.stringify({ type: "document", id: "f" + Date.now(), title: name, document_file_id: msg.document.file_id }));
+    const cap = (url.searchParams.get("c") || "").slice(0, 300);
+    prep.append("result", JSON.stringify(photo
+      ? { type: "photo", id: "p" + Date.now(), photo_file_id: msg.photo[msg.photo.length - 1].file_id, caption: cap }
+      : { type: "document", id: "f" + Date.now(), title: name, document_file_id: msg.document.file_id }));
     prep.append("allow_user_chats", "true"); prep.append("allow_group_chats", "true"); prep.append("allow_channel_chats", "true");
     const pm = await tg(env.BOT_TOKEN, "savePreparedInlineMessage", prep).catch(() => null);
     return json({ ok: true, id: pm && pm.id }, 200, origin);

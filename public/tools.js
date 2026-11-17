@@ -199,7 +199,7 @@ const Tools = (() => {
     const soon = [["calc", T("DTM ball kalkulyatori va OTM kirish ballari")], ["mic", T("IELTS ball kalkulyatori va AI speaking sherigi")], ["clock", T("Imtihonlarga qolgan vaqt")], ["cap", T("Grant va stipendiyalar qidiruvi")]];
     return `${navbar(T("Foydali vositalar"))}
     <a class="card tool-cv" href="#/cv">
-      <div class="tool-top"><em class="tool-n">1</em>${chip("file", "solid")}<span><b>${T("CV, rezyume va obyektivka")}</b><small>${T("Bepul, 3 tilda")}</small></span><em class="tool-free">${T("Bepul")}</em></div>
+      <div class="tool-top">${chip("file", "solid")}<span><b>${T("CV, rezyume va obyektivka")}</b><small>${T("Bepul, 3 tilda")}</small></span><em class="tool-n">1</em></div>
       <p class="tool-hook">${T("Professional CV, rezyume va obyektivkani 10 daqiqada bepul tayyorlang. Keyin sizga qancha ish mos kelishini ko'ring va shu zahoti ariza topshiring.")}</p>
       <ul class="tool-steps">
         <li>${chip("pen", "sm")}<span>${T("Tayyor namunalar bilan qadamma-qadam to'ldiring")}</span></li>
@@ -216,7 +216,7 @@ const Tools = (() => {
       <button class="btn-primary" onclick="openTg('https://t.me/poyezdbilet24_bot')">${ic("send")} ${T("Botni ochish")}</button>
     </div>
     <div class="section-title">${T("Tez kunda")}</div>
-    <div class="card soon-list">${soon.map(([i, t], n) => `<div><em class="tool-n sm">${n + 3}</em>${chip(i, "sm")}<span>${t}</span></div>`).join("")}</div>`;
+    <div class="card soon-list">${soon.map(([i, t], n) => `<div>${chip(i, "sm")}<span>${t}</span><em class="tool-n sm">${n + 3}</em></div>`).join("")}</div>`;
   }
 
   const field = (path, label, val, opt = {}) => `<label class="cvf ${opt.cls || ""}"><small>${label}</small>${opt.area

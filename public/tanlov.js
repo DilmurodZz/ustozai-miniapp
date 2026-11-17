@@ -1,18 +1,19 @@
 // "Tanlov": winners of Zamonaviy kasblar tanlovi 2026, live from the competition site's database
 // (zamonaviykasblar2026.uz publishes them from its admin panel; the share server passes on only public fields).
 // Three directions (grafik dizayn, mobilografiya, veb-sayt), three stages (tuman, viloyat, respublika),
-// a road map of the stages toward the Changan prize, filters by region and a search by name or district.
+// a road map of the stages toward the Changan prize, filters by region, a search by name or district,
+// and a congratulation picture for every winner that they can save or share.
 const Contest = (() => {
-  const SITE = "https://zamonaviykasblar2026.uz";
+  const SITE = "https://zamonaviykasblar2026.uz", BOT = "@ustozaiminibot";
   const DIRS = () => [
-    { k: "design", name: T("Grafik dizayn"), long: T("Eng yaxshi grafik dizayn"), icon: "palette", c: "#7C3AED" },
-    { k: "mobile", name: T("Mobilografiya"), long: T("Eng yaxshi mobilografiya ishi"), icon: "camera", c: "#F2600C" },
-    { k: "web", name: T("Veb-sayt"), long: T("Eng yaxshi veb-sayt"), icon: "code", c: "#2748F5" },
+    { k: "design", name: T("Grafik dizayn"), long: T("Eng yaxshi grafik dizayn"), icon: "palette", c: "#7C3AED", uz: "Grafik dizayn" },
+    { k: "mobile", name: T("Mobilografiya"), long: T("Eng yaxshi mobilografiya ishi"), icon: "camera", c: "#F2600C", uz: "Mobilografiya" },
+    { k: "web", name: T("Veb-sayt"), long: T("Eng yaxshi veb-sayt"), icon: "code", c: "#2748F5", uz: "Veb-sayt" },
   ];
   const STAGES = () => [
-    { k: "tuman", name: T("Tuman"), long: T("Tuman (shahar) bosqichi"), icon: "pin" },
-    { k: "hududiy", name: T("Viloyat"), long: T("Viloyat bosqichi"), icon: "map" },
-    { k: "respublika", name: T("Respublika"), long: T("Respublika bosqichi"), icon: "trophy" },
+    { k: "tuman", name: T("Tuman"), long: T("Tuman (shahar) bosqichi"), icon: "pin", uz: "TUMAN" },
+    { k: "hududiy", name: T("Viloyat"), long: T("Viloyat bosqichi"), icon: "map", uz: "VILOYAT" },
+    { k: "respublika", name: T("Respublika"), long: T("Respublika bosqichi"), icon: "trophy", uz: "RESPUBLIKA" },
   ];
   // all regions, so a region without winners yet still shows in the filter
   const REGIONS = ["Andijon viloyati", "Buxoro viloyati", "Farg'ona viloyati", "Jizzax viloyati", "Namangan viloyati", "Navoiy viloyati", "Qashqadaryo viloyati",
@@ -36,38 +37,52 @@ const Contest = (() => {
   const count = (f) => all().filter(f).length;
 
   /* ---------- the road map: Tuman -> Viloyat -> Respublika -> Changan ---------- */
+  // one drawing (viewBox 360 x 220) holds the road; the stops and the car sit on it at the same points
+  const PTS = [[44, 184], [140, 146], [228, 104]], END = [306, 70];
+  const SEG = ["M0 208 C 14 200, 28 190, 44 184", "M44 184 C 80 170, 104 166, 140 146", "M140 146 C 172 128, 196 112, 228 104", "M228 104 C 256 96, 280 84, 306 72"];
   function roadMap() {
     const st = STAGES(), n = st.map((s) => count((w) => w.s === s.k));
-    // a stage is done when the next one has winners, "now" when it has its own winners or is the first
-    const status = st.map((s, i) => n[i + 1] > 0 ? "done" : n[i] > 0 || i === 0 ? "now" : "next");
-    const xs = [40, 128, 216];
+    // the furthest stage that already has winners is "now"; the ones before it are done
+    let cur = 0; n.forEach((v, i) => { if (v > 0) cur = i; });
+    const status = st.map((s, i) => i < cur ? "done" : i === cur ? "now" : "next");
+    const pos = (p) => `left:${(p[0] / 360) * 100}%;top:${(p[1] / 220) * 100}%`;
     return `<div class="zk-map">
-      <svg class="zk-road" viewBox="0 0 360 120" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M6 74 C 18 74, 22 40, 40 40 S 104 76, 128 76 S 194 40, 216 40 S 268 70, 296 66 L 334 60" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="16" stroke-linecap="round"/>
-        <path d="M6 74 C 18 74, 22 40, 40 40 S 104 76, 128 76 S 194 40, 216 40 S 268 70, 296 66 L 334 60" fill="none" stroke="#fff" stroke-width="2.4" stroke-dasharray="7 7" stroke-linecap="round" opacity=".9"/>
+      <svg class="zk-road" viewBox="0 0 360 220" aria-hidden="true">
+        <defs>
+          <linearGradient id="zkg" x1="0" x2="1"><stop offset="0" stop-color="#FFE7A3"/><stop offset="1" stop-color="#F5A524"/></linearGradient>
+          <radialGradient id="zkglow"><stop offset="0" stop-color="#FFC861" stop-opacity=".75"/><stop offset="1" stop-color="#FFC861" stop-opacity="0"/></radialGradient>
+          <filter id="zkblur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
+        </defs>
+        <ellipse cx="${END[0]}" cy="${END[1] - 14}" rx="62" ry="44" fill="url(#zkglow)"/>
+        ${SEG.map((d) => `<path d="${d}" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="16" stroke-linecap="round"/>`).join("")}
+        ${SEG.map((d, i) => i <= cur ? `<path d="${d}" fill="none" stroke="#FFC861" stroke-width="7" stroke-linecap="round" filter="url(#zkblur)" opacity=".8"/><path d="${d}" fill="none" stroke="url(#zkg)" stroke-width="3.5" stroke-linecap="round"/>`
+          : `<path d="${d}" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2" stroke-dasharray="5 6" stroke-linecap="round"/>`).join("")}
+        <ellipse cx="${END[0]}" cy="${END[1] + 2}" rx="34" ry="5" fill="rgba(0,0,0,.35)"/>
       </svg>
-      ${st.map((s, i) => `<button class="zk-stop ${status[i]} ${stage === s.k ? "on" : ""}" style="left:${(xs[i] / 360) * 100}%" onclick="zkStage('${s.k}')">
-          <i>${status[i] === "done" ? ic("check") : ic(s.icon)}</i><b>${i + 1}. ${s.name}</b><small>${n[i] ? T("{n} g'olib", { n: fmtN(n[i]) }) : T("kutilmoqda")}</small></button>`).join("")}
-      <div class="zk-car"><img src="img/changan.webp" alt="Changan UNI-E" decoding="async"><small>Changan UNI-E</small></div>
-    </div>
-    <p class="zk-prize">${ic("trophy")} ${T("Respublika bosqichida har bir yo'nalish g'olibi Changan UNI-E avtomobilini yutadi.")}</p>`;
+      <div class="zk-car" style="${pos(END)}"><img src="img/changan.webp" alt="Changan UNI-E" decoding="async"></div>
+      <span class="zk-lab car" style="${pos(END)}"><b>Changan UNI-E</b><small>${T("Bosh sovrin")}</small></span>
+      ${st.map((s, i) => `<button class="zk-stop ${status[i]} ${stage === s.k ? "on" : ""}" style="${pos(PTS[i])}" onclick="zkStage('${s.k}')" aria-label="${s.long}">
+          <i>${status[i] === "done" ? ic("check") : ic(s.icon)}</i>
+          <span class="zk-lab ${i === 0 ? "up" : "down"}"><b>${i + 1}. ${s.name}</b><small>${n[i] ? T("{n} g'olib", { n: fmtN(n[i]) }) : T("kutilmoqda")}</small></span></button>`).join("")}
+    </div>`;
   }
 
   /* ---------- the list ---------- */
   function listHTML() {
     const q = fold(query);
-    let rows = all().filter((w) => w.d === dir && w.s === stage && (!region || w.r === region) && (!q || fold(w.n).includes(q) || fold(w.t).includes(q) || fold(w.r).includes(q)));
+    const rows = all().map((w, i) => [w, i]).filter(([w]) => w.d === dir && w.s === stage && (!region || w.r === region) && (!q || fold(w.n).includes(q) || fold(w.t).includes(q) || fold(w.r).includes(q)));
     if (!data) return failed ? `<p class="note">${T("Ma'lumotni yuklab bo'lmadi. Internetni tekshirib, qayta oching.")}</p>` : `<div class="busy-in"><div class="run-spin"></div></div>`;
     if (!rows.length) {
       const none = !count((w) => w.s === stage);
       return `<div class="zk-empty">${chip(none ? "clock" : "search", "lg")}<p>${none ? T("Bu bosqich g'oliblari hali e'lon qilinmagan. Natijalar e'lon qilinishi bilan shu yerda paydo bo'ladi.") : T("Hech narsa topilmadi")}</p></div>`;
     }
-    rows.sort((a, b) => a.r.localeCompare(b.r) || a.p - b.p || a.t.localeCompare(b.t) || a.n.localeCompare(b.n));
-    const groups = {}; rows.forEach((w) => (groups[w.r] = groups[w.r] || []).push(w));
+    rows.sort(([a], [b]) => a.r.localeCompare(b.r) || a.p - b.p || a.t.localeCompare(b.t) || a.n.localeCompare(b.n));
+    const groups = {}; rows.forEach((x) => (groups[x[0].r] = groups[x[0].r] || []).push(x));
     const medal = (p) => `<span class="zk-medal p${p}">${p}</span>`;
-    return `<p class="zk-found">${T("{n} ta g'olib", { n: fmtN(rows.length) })}</p>` + Object.entries(groups).map(([r, ws]) => `<section class="zk-group">
+    return `<p class="zk-found">${T("{n} ta g'olib", { n: fmtN(rows.length) })}</p>
+      <p class="zk-hint">${ic("image")} ${T("Ismingizni bosing: tabrik rasmingizni yuklab oling yoki do'stlaringizga ulashing")}</p>` + Object.entries(groups).map(([r, ws]) => `<section class="zk-group">
       <h4><span>${esc(r)}</span><em>${ws.length}</em></h4>
-      ${ws.map((w) => `<div class="zk-row">${medal(w.p)}<span class="notr"><b>${esc(w.n)}</b><small>${esc(w.t || r)}</small></span></div>`).join("")}
+      ${ws.map(([w, i]) => `<button class="zk-row" onclick="zkCongrats(${i})">${medal(w.p)}<span class="notr"><b>${esc(w.n)}</b><small>${esc(w.t || r)}</small></span><i class="zk-share">${ic("share")}</i></button>`).join("")}
     </section>`).join("");
   }
   const refreshList = () => { const el = document.getElementById("zk-list"); if (el) el.innerHTML = listHTML(); };
@@ -78,7 +93,7 @@ const Contest = (() => {
     const regions = [...new Set([...REGIONS, ...all().map((w) => w.r)])].sort((a, b) => a.localeCompare(b));
     return `${navbar(T("Tanlov"))}
     <div class="zk-hero">
-      <img class="zk-logo" src="img/zkt-logo.png" alt="Zamonaviy kasblar tanlovi 2026">
+      <img class="zk-logo" src="img/zk-logo-w.png" alt="Zamonaviy kasblar tanlovi 2026">
       ${roadMap()}
     </div>
     <div class="zk-dirs">${d.map((x) => `<button class="zk-dir ${x.k === dir ? "on" : ""}" style="--dc:${x.c}" onclick="zkDir('${x.k}')">
@@ -98,5 +113,125 @@ const Contest = (() => {
   window.zkRegion = (r) => { region = r; store.set("zk_region", r); haptic("light"); refreshList(); };
   // the search keeps focus while typing: only the list below is redrawn
   document.addEventListener("input", (e) => { if (e.target && e.target.id === "zk-q") { query = e.target.value; clearTimeout(refreshList.t); refreshList.t = setTimeout(refreshList, 150); } });
-  return { Screen, load };
+
+  /* ---------- the congratulation picture (1080 x 1350, red and gold) ---------- */
+  const imgCache = {};
+  const loadImg = (src) => imgCache[src] || (imgCache[src] = new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = src; }));
+  // letter-spaced text drawn one letter at a time (canvas letterSpacing is missing on older phones)
+  function spaced(ctx, text, x, y, gap) {
+    const ws = [...text].map((ch) => ctx.measureText(ch).width), total = ws.reduce((a, b) => a + b, 0) + gap * (ws.length - 1);
+    let cx = x - total / 2; const al = ctx.textAlign; ctx.textAlign = "left";
+    [...text].forEach((ch, i) => { ctx.fillText(ch, cx, y); cx += ws[i] + gap; }); ctx.textAlign = al;
+  }
+  const fit = (ctx, text, max, size, weight, style = "") => { let s = size; do { ctx.font = `${style} ${weight} ${s}px Inter, sans-serif`; s -= 2; } while (ctx.measureText(text).width > max && s > 24); };
+  function round(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+  function gold(ctx, y0, y1) { const g = ctx.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, "#FFF1C1"); g.addColorStop(.45, "#FFD06A"); g.addColorStop(1, "#D98E1C"); return g; }
+  // a laurel branch: leaves along an arc, mirrored for the right side
+  function laurel(ctx, cx, cy, side) {
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(side, 1); ctx.fillStyle = gold(ctx, -130, 130); ctx.strokeStyle = "#E9B54A"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(70, 0, 120, Math.PI * .62, Math.PI * 1.32); ctx.stroke();
+    for (let i = 0; i < 7; i++) {
+      const a = Math.PI * (.66 + i * .095), x = 70 + 120 * Math.cos(a), y = 120 * Math.sin(a);
+      [-1, 1].forEach((s) => { ctx.save(); ctx.translate(x, y); ctx.rotate(a + Math.PI / 2 + s * .55); ctx.beginPath(); ctx.ellipse(0, -16, 8, 18, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); });
+    }
+    ctx.restore();
+  }
+  function trophy(ctx, x, y, s) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = gold(ctx, -40, 40); ctx.strokeStyle = gold(ctx, -40, 40); ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(-26, -36); ctx.lineTo(26, -36); ctx.quadraticCurveTo(26, 6, 0, 12); ctx.quadraticCurveTo(-26, 6, -26, -36); ctx.fill();
+    ctx.beginPath(); ctx.arc(-26, -22, 12, Math.PI * .5, Math.PI * 1.5); ctx.stroke(); ctx.beginPath(); ctx.arc(26, -22, 12, -Math.PI * .5, Math.PI * .5); ctx.stroke();
+    ctx.fillRect(-5, 10, 10, 16); round(ctx, -20, 26, 40, 10, 3); ctx.fill(); ctx.restore();
+  }
+  async function poster(w) {
+    const W = 1080, H = 1350, c = document.createElement("canvas"); c.width = W; c.height = H; const ctx = c.getContext("2d");
+    try { await Promise.all(["400", "600", "800"].map((wt) => document.fonts.load(`${wt} 40px Inter`))); } catch {}
+    const [logo, car] = await Promise.all([loadImg("img/zk-logo-w.png"), loadImg("img/changan.webp")]);
+    const st = STAGES(), si = Math.max(0, st.findIndex((s) => s.k === w.s)), dirx = DIRS().find((x) => x.k === w.d) || DIRS()[0];
+    // sky: deep red with a gold sunrise behind the next stage
+    let g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#22040B"); g.addColorStop(.5, "#6E0D1C"); g.addColorStop(1, "#B0172A"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    g = ctx.createRadialGradient(800, 930, 10, 800, 930, 560); g.addColorStop(0, "rgba(255,196,92,.85)"); g.addColorStop(.35, "rgba(255,120,60,.35)"); g.addColorStop(1, "rgba(255,90,60,0)"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 90; i++) { ctx.fillStyle = `rgba(255,236,210,${.15 + rnd() * .5})`; ctx.beginPath(); ctx.arc(rnd() * W, rnd() * 560, rnd() * 2.2 + .4, 0, 7); ctx.fill(); }
+    // mountains
+    const ridge = (pts, col) => { ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(0, H); pts.forEach(([x, y]) => ctx.lineTo(x, y)); ctx.lineTo(W, H); ctx.closePath(); ctx.fill(); };
+    ridge([[0, 1000], [140, 930], [260, 980], [420, 900], [560, 960], [700, 880], [820, 930], [960, 870], [1080, 920]], "rgba(70,8,20,.75)");
+    ridge([[0, 1120], [180, 1050], [330, 1100], [520, 1010], [700, 1080], [860, 1000], [1080, 1060]], "rgba(40,4,12,.92)");
+    // the glowing road up to the next stage
+    const road = () => { ctx.beginPath(); ctx.moveTo(150, H + 20); ctx.bezierCurveTo(260, 1180, 620, 1200, 560, 1090); ctx.bezierCurveTo(500, 990, 760, 1010, 820, 950); };
+    ctx.lineCap = "round"; road(); ctx.strokeStyle = "rgba(20,2,6,.55)"; ctx.lineWidth = 46; ctx.stroke();
+    ctx.save(); ctx.shadowColor = "#FFB347"; ctx.shadowBlur = 30; road(); ctx.strokeStyle = gold(ctx, 950, 1350); ctx.lineWidth = 12; ctx.stroke(); ctx.restore();
+    road(); ctx.setLineDash([16, 18]); ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.lineWidth = 3; ctx.stroke(); ctx.setLineDash([]);
+    // the next stage: a glowing stand with a cup, or the car for a national winner
+    const last = si >= 2, sy = last ? 1000 : 900;
+    if (last) { const cw = 300, ch = cw * car.height / car.width; ctx.save(); ctx.shadowColor = "rgba(0,0,0,.5)"; ctx.shadowBlur = 24; ctx.drawImage(car, 825 - cw / 2, sy - ch + 14, cw, ch); ctx.restore(); }
+    ctx.save(); ctx.shadowColor = "rgba(255,170,60,.9)"; ctx.shadowBlur = 40;
+    g = ctx.createLinearGradient(0, sy, 0, sy + 80); g.addColorStop(0, "#FF9A3D"); g.addColorStop(1, "#D9480F"); ctx.fillStyle = g; round(ctx, 680, sy, 290, 92, 22); ctx.fill(); ctx.restore();
+    ctx.strokeStyle = "rgba(255,230,170,.9)"; ctx.lineWidth = 3; round(ctx, 680, sy, 290, 92, 22); ctx.stroke();
+    ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.font = "600 22px Inter, sans-serif"; spaced(ctx, last ? "BOSH SOVRIN" : "KEYINGI BOSQICH", 825, sy + 36, 3);
+    ctx.font = "800 34px Inter, sans-serif"; ctx.fillText(last ? "CHANGAN UNI-E" : st[si + 1].uz, 825, sy + 76);
+    if (!last) trophy(ctx, 825, 845, 1.5);
+    // header: logo, title, laurels
+    const lw = 330; ctx.drawImage(logo, (W - lw) / 2, 58, lw, lw * logo.height / logo.width);
+    ctx.fillStyle = "rgba(255,240,220,.9)"; ctx.font = "500 26px Inter, sans-serif"; spaced(ctx, "ZAMONAVIY KASBLAR TANLOVINING", W / 2, 248, 6);
+    ctx.save(); ctx.shadowColor = "rgba(0,0,0,.45)"; ctx.shadowBlur = 14; ctx.shadowOffsetY = 4; ctx.fillStyle = gold(ctx, 270, 470);
+    fit(ctx, st[si].uz + " BOSQICHI", 700, 84, 800); ctx.fillText(st[si].uz + " BOSQICHI", W / 2, 340);
+    ctx.font = "800 128px Inter, sans-serif"; ctx.fillText("G‘OLIBI", W / 2, 466); ctx.restore();
+    laurel(ctx, 175, 370, 1); laurel(ctx, W - 175, 370, -1);
+    // divider with a small cup
+    g = ctx.createLinearGradient(240, 0, 840, 0); g.addColorStop(0, "rgba(255,208,106,0)"); g.addColorStop(.5, "#FFD06A"); g.addColorStop(1, "rgba(255,208,106,0)");
+    ctx.fillStyle = g; ctx.fillRect(240, 512, 600, 3); trophy(ctx, W / 2, 516, .55);
+    // name plate
+    ctx.save(); ctx.shadowColor = "rgba(0,0,0,.5)"; ctx.shadowBlur = 30; ctx.fillStyle = "rgba(34,4,11,.78)"; round(ctx, 110, 580, 860, 250, 30); ctx.fill(); ctx.restore();
+    ctx.strokeStyle = gold(ctx, 580, 830); ctx.lineWidth = 3; round(ctx, 110, 580, 860, 250, 30); ctx.stroke();
+    // the place medal on top of the plate
+    ctx.save(); ctx.shadowColor = "rgba(255,180,60,.8)"; ctx.shadowBlur = 24; ctx.fillStyle = gold(ctx, 540, 620); ctx.beginPath(); ctx.arc(W / 2, 580, 40, 0, 7); ctx.fill(); ctx.restore();
+    ctx.fillStyle = "#6E0D1C"; ctx.font = "800 40px Inter, sans-serif"; ctx.fillText(String(w.p || 1), W / 2, 594);
+    ctx.fillStyle = "#fff"; fit(ctx, w.n, 780, 66, 800, "italic"); ctx.fillText(w.n, W / 2, 690);
+    ctx.fillStyle = "#FFD98A"; const place = [w.t, w.r].filter(Boolean).join(", "); fit(ctx, place, 780, 32, 500); ctx.fillText(place, W / 2, 742);
+    ctx.fillStyle = "rgba(255,255,255,.78)"; ctx.font = "600 27px Inter, sans-serif"; ctx.fillText(`${dirx.uz} yo‘nalishi  ·  ${w.p || 1}-o‘rin`, W / 2, 792);
+    // footer: where the picture comes from
+    ctx.fillStyle = "rgba(0,0,0,.35)"; round(ctx, W / 2 - 170, H - 82, 340, 50, 25); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.92)"; ctx.font = "600 24px Inter, sans-serif"; ctx.fillText("Ustoz AI  ·  " + BOT, W / 2, H - 48);
+    return c;
+  }
+
+  let shown = null;
+  window.zkCongrats = async (i) => {
+    const w = all()[i]; if (!w) return; haptic("light"); shown = null;
+    sheet(`<div class="zk-cg"><div class="zk-cg-img"><div class="run-spin"></div></div>
+      <b class="notr">${esc(w.n)}</b><small>${T("Tabrik rasmi tayyorlanmoqda…")}</small></div>`);
+    try {
+      const c = await poster(w); shown = { c, w };
+      const box = document.querySelector(".zk-cg"); if (!box) return;
+      box.innerHTML = `<img class="zk-cg-img" src="${c.toDataURL("image/jpeg", .82)}" alt="">
+        <button class="btn-primary zk-red" onclick="zkSend('chat')">${ic("share")} ${T("Do'stlarga ulashish")}</button>
+        <button class="btn-ghost" onclick="zkSend('dl')">${ic("download")} ${T("Rasmni yuklab olish")}</button>
+        ${tg && tg.shareToStory ? `<button class="btn-ghost" onclick="zkSend('story')">${ic("sparkles")} ${T("Storiga joylash")}</button>` : ""}`;
+    } catch (e) { closeSheet(); toast(T("Rasm tayyorlanmadi")); }
+  };
+  window.zkSend = async (mode) => {
+    if (!shown) return; const { c, w } = shown;
+    const blob = await new Promise((ok) => c.toBlob(ok, "image/png"));
+    const name = "Tabrik " + w.n.replace(/[^\p{L}\p{N} ]/gu, "").trim();
+    if (!tg || !tg.initData) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name + ".png"; a.click(); return; }
+    const caption = `${w.n}: Zamonaviy kasblar tanlovi, ${(STAGES().find((s) => s.k === w.s) || {}).uz.toLowerCase()} bosqichi g'olibi. Tabriklaymiz!\n${BOT}`;
+    const q = `t=png&as=photo&n=${encodeURIComponent(name)}&c=${encodeURIComponent(caption)}`;
+    const busy = document.createElement("div"); busy.className = "busy"; busy.innerHTML = `<div class="run-spin"></div><p>${T("Fayl tayyorlanmoqda…")}</p>`; document.body.appendChild(busy);
+    try {
+      if (mode === "dl" || mode === "story") {
+        const r = await (await fetch(SHARE_API + "/file?m=dl&" + q, { method: "POST", headers: { "X-Init-Data": tg.initData }, body: blob })).json();
+        if (!r.url) throw new Error(r.error || "server");
+        if (mode === "story") tg.shareToStory(r.url, { text: caption.slice(0, 200) });
+        else if (tg.downloadFile) tg.downloadFile({ url: r.url, file_name: r.name });
+      } else {
+        const r = await (await fetch(SHARE_API + "/file?" + q, { method: "POST", headers: { "X-Init-Data": tg.initData }, body: blob })).json();
+        if (!r.ok) throw new Error(r.error || "server");
+        try { tg.HapticFeedback.notificationOccurred("success"); } catch {}
+        if (r.id && tg.shareMessage) tg.shareMessage(r.id); else toast(T("Rasm bot bilan chatingizga yuborildi"));
+      }
+      track("#/tanlov");
+    } catch (e) { toast(T("Fayl tayyorlanmadi: {e}", { e: e.message || e })); }
+    finally { busy.remove(); }
+  };
+  return { Screen, load, _poster: poster };
 })();
