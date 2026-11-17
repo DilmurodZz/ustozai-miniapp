@@ -1,5 +1,7 @@
 const tg = window.Telegram && window.Telegram.WebApp;
 const BOT = "ustozaiminibot";
+// share server for the best-moment picture (share-worker/); empty until it is deployed
+const SHARE_API = "";
 const app = document.getElementById("app");
 const tabbar = document.getElementById("tabbar");
 

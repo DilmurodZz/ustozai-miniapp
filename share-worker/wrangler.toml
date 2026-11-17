@@ -1,0 +1,6 @@
+name = "chorsu-share"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# The bot token is stored as a secret, never in this file:
+#   npx wrangler secret put BOT_TOKEN

@@ -54,7 +54,7 @@ const Game = (() => {
   let NL = 3, net = null, fr = null, outbox = [], netApplying = false, offT = 0, offPos = 0, hostB = null, lastSend = 0, lastDown = -9;
   let rdy = { me: false, fr: false, replied: false }, cdT = 0, cdN = 0, saveT = 0, netCard = "";
   const STEP = 3;
-  let moment = null, lastSnapT = 0, momentURL = null;     // the most spectacular moment of this run, for the picture at the end
+  let moment = null, lastSnapT = 0, momentURL = null, momentCanvas = null, momentPng = null;     // the most spectacular moment of this run, for the picture at the end
   let nextWagon = 700, tubeK = 0, inTube = null;     // the train wagon to run through
   const feed = (a) => { energy = Math.min(1, energy + a); };    // slow-down near a gate, the fade through it, the quiet start of a new level
   let dbl = false, ninjaT = 0, ninjaK = 0, flipT = 0, safe = 0, ar = null;     // second jump used, ninja flip timer, no-crash window after a trick, AR view
@@ -1117,7 +1117,7 @@ const Game = (() => {
     if (level !== 1 || portalOn) backToStreet();
     lane = prevLane = first ? 0 : 1; px = first ? -2.55 : 0; py = vy = gy = 0; grounded = true; fastFall = false;
     rollT = lowT = jumpBuf = invuln = stumbleT = crashT = nmSlow = shake = 0;
-    moment = null; lastSnapT = 0; momentURL = null;
+    moment = null; lastSnapT = 0; momentURL = null; momentCanvas = null; momentPng = null;
     for (const k in pw) pw[k] = 0; nextPow = 260; flyK = 0; nextWagon = 700; tubeK = 0; inTube = null; energy = 1; enWarn = 0; shown.e = -1;
     laneAt = jumpAt = rollAt = lastWave = -9; trick = wave = eat = rest = null; nextEat = 12; dbl = false; ninjaT = flipT = safe = 0; combo = 0; tipA = tipB = false; ts = 1;
     P.pivot.rotation.set(0, 0, 0); P.g.position.set(px, 0, 0); P.yaw = P.tilt = 0; P.g.rotation.y = first ? Math.PI / 2 : 0;
@@ -1567,18 +1567,37 @@ const Game = (() => {
     g.font = `500 44px ${F}`; g.fillText(who, 72, Hd - 218);
     g.globalAlpha = 0.78; g.font = `400 34px ${F}`; g.fillText(`${Math.floor(dist)} m  ·  ${coins} tanga  ·  ${score()} ball`, 72, Hd - 160);
     g.globalAlpha = 0.6; g.font = `400 28px ${F}`; g.fillText(`t.me/${BOT}`, 72, Hd - 100); g.globalAlpha = 1;
-    return c.toDataURL("image/jpeg", 0.92);
+    momentCanvas = c;                  // kept for the full-quality PNG
+    return c.toDataURL("image/jpeg", 0.9);
   }
   function showPhoto() {
     if (!momentURL) return;
     const v = document.createElement("div"); v.className = "run-photo";
     v.innerHTML = `<img alt="" src="${momentURL}"><div class="run-photo-bar"><button data-a="share">${ic("send")} Ulashish</button><button data-a="save">${ic("download")} Saqlash</button></div><button class="run-photo-x" data-a="x" aria-label="Yopish">${ic("x")}</button><p>Rasmni bosib turib ham saqlashingiz mumkin</p>`;
-    const file = async () => new File([await (await fetch(momentURL)).blob()], "chorsu-game.jpg", { type: "image/jpeg" });
+    // the picture as a PNG file (made once, then reused)
+    const png = () => momentPng || (momentPng = new Promise((ok) => momentCanvas.toBlob((b) => ok(b), "image/png")));
+    const caption = () => `${myName()} · Chorsu game · ${score()} ball`;
+    const busy = (b, on) => { b.disabled = on; b.classList.toggle("busy", on); };
     v.querySelector('[data-a="x"]').onclick = () => v.remove();
-    v.querySelector('[data-a="save"]').onclick = () => { const a = document.createElement("a"); a.href = momentURL; a.download = "chorsu-game.jpg"; document.body.appendChild(a); a.click(); a.remove(); };
-    v.querySelector('[data-a="share"]').onclick = async () => {
-      try { const f = await file(); if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: "Chorsu game", text: `Chorsu game'da ${score()} ball!` }); return; } } catch (e) { if (e && e.name === "AbortError") return; }
-      share(score());
+    v.querySelector('[data-a="save"]').onclick = async () => {
+      const b = await png(), u = URL.createObjectURL(b), a = document.createElement("a");
+      a.href = u; a.download = "chorsu-game.png"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000);
+    };
+    v.querySelector('[data-a="share"]').onclick = async (e) => {
+      const btn = e.currentTarget; busy(btn, true);
+      try {
+        const blob = await png(), f = new File([blob], "chorsu-game.png", { type: "image/png" });
+        // 1) the phone's own share sheet, where the browser offers it (iPhone, some Android)
+        if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], title: "Chorsu game", text: caption() }); return; } catch (er) { if (er && er.name === "AbortError") return; } }
+        // 2) Telegram: the bot sends the PNG and opens Telegram's "send to a chat" window
+        if (SHARE_API && tg && tg.initData && tg.shareMessage) {
+          const r = await fetch(`${SHARE_API}/share?c=${encodeURIComponent(caption())}`, { method: "POST", headers: { "Content-Type": "image/png", "X-Init-Data": tg.initData }, body: blob });
+          const j = await r.json().catch(() => ({}));
+          if (j.id) { tg.shareMessage(j.id, () => {}); toast("Rasm bot chatiga ham yuborildi"); return; }
+        }
+        toast("Rasmni bosib turing va saqlang, keyin do'stingizga yuboring");
+      } catch { toast("Ulashib bo'lmadi, rasmni saqlab yuboring"); }
+      finally { busy(btn, false); }
     };
     root.appendChild(v); buzz("light");
   }
