@@ -374,19 +374,22 @@ function savePage() {
 function restorePage() {
   const st = pageState[location.hash || "#/"]; if (!st) return;
   for (const id in st.f || {}) { const el = document.getElementById(id); if (el && !el.value) el.value = st.f[id]; }
-  requestAnimationFrame(() => window.scrollTo(0, st.y || 0));
+  window.scrollTo(0, st.y || 0);   // before the first paint, so the page never jumps
 }
 window.addEventListener("input", () => savePage());
 window.addEventListener("pagehide", savePage);
 document.addEventListener("visibilitychange", () => { if (document.hidden) savePage(); });
 let lastHash = location.hash;
+let shownRoute = null;
 function render() {
   const route = ROUTES[location.hash] ? location.hash : location.hash.startsWith("#/kurs/") ? "#/kurs" : "#/";
   if (gameOn && route !== "#/oyin") { Game.unmount(); gameOn = false; }
   document.body.classList.toggle("fit", route === "#/");     // Home fills the screen exactly, no scrolling
+  const newPage = route !== shownRoute; shownRoute = route;
   app.innerHTML = ROUTES[route]();
   if (route === "#/oyin") { Game.mount(); gameOn = true; }
-  app.style.animation = "none"; void app.offsetWidth; app.style.animation = "";
+  // the soft fade plays only when a different page opens, never when the same page refreshes its data
+  if (newPage) { app.classList.remove("enter"); void app.offsetWidth; app.classList.add("enter"); }
   renderTabs(route === "#/kurs" ? "#/kurslar" : route);
   if (route === "#/kompas") bindSwipe();
   if (route === "#/duo") bindDuo(); else if (duoSubs.length) { duoSubs.forEach((u) => u()); duoSubs = []; }
@@ -416,13 +419,10 @@ if (tg) {
   setTimeout(done, 2300);
 })();
 if ("serviceWorker" in navigator) {
-  // when a new version has been published, reload once so the user sees it straight away
-  const hadController = !!navigator.serviceWorker.controller;
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (!hadController || sessionStorage.getItem("uz_reloaded")) return;
-    sessionStorage.setItem("uz_reloaded", "1"); location.reload();
-  });
+  // app files are always fetched fresh (network first), so a new version shows without any reload
   navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((r) => r.update()).catch(() => {});
 }
 if (!location.hash) location.replace("#/");
 render();
+// course data is fetched quietly in the background, so the Kurslar page opens complete in one go
+setTimeout(() => { try { Kurslar.load(); } catch {} }, 400);
