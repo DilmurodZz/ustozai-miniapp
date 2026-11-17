@@ -17,11 +17,11 @@ const Kurslar = (() => {
   const demandTone = (n) => (n >= 300 ? "hi" : n >= 100 ? "up" : n >= 30 ? "mid" : "lo");
   // "Bugun", "Kecha", "3 kun oldin" from a YYYY-MM-DD date; published in the last 3 days counts as new
   const daysAgo = (d) => { const t = new Date(); t.setHours(0, 0, 0, 0); return Math.max(0, Math.round((t - new Date(d + "T00:00:00")) / 864e5)); };
-  const ago = (d) => { const n = daysAgo(d); return n === 0 ? "Bugun" : n === 1 ? "Kecha" : `${n} kun oldin`; };
+  const ago = (d) => { const n = daysAgo(d); return n === 0 ? T("Bugun") : n === 1 ? T("Kecha") : T("{n} kun oldin", { n }); };
   const recent = (d) => daysAgo(d) <= 3;
   let jobFilter = "all", jobLists = { all: [], rem: [] };
   const jobRows = (list) => list.map((j) => `<button class="kd-job" ${ext(j.u)}>
-        <span class="kd-job-t"><b>${esc(j.t)}</b><small>${esc(j.e)}${j.c ? ", " + esc(j.c) : ""}${j.r ? ", masofaviy" : ""}<em class="${recent(j.d) ? "new" : ""}">${ago(j.d)}</em></small></span>
+        <span class="kd-job-t"><b class="notr">${esc(j.t)}</b><small><span class="notr">${esc(j.e)}${j.c ? ", " + esc(j.c) : ""}</span>${j.r ? ", " + T("masofaviy") : ""}<em class="${recent(j.d) ? "new" : ""}">${ago(j.d)}</em></small></span>
         <span class="kd-job-s">${money(j.lo, j.hi)}<i>hh.uz ${ic("chev")}</i></span></button>`).join("");
   window.kJobs = (f) => {
     if (f === jobFilter || !jobLists[f].length) return;
@@ -44,10 +44,10 @@ const Kurslar = (() => {
     if (query === null) { query = store.get("k_query", ""); sort = store.get("k_sort", "popular"); }   // remembered search and sorting
     load();
     const s = data && data.summary;
-    const head = `${navbar("Kurslar")}
+    const head = `${navbar(T("Kurslar"))}
       <div class="km-panel">
         <div class="km-top"><span class="km-ic">${ic("chart")}</span><span>Mehnat bozori tahlili</span></div>
-        <b class="km-big">${s ? fmt(s.analyzed) : "11,088"} ta vakansiya tahlil qilindi</b>
+        <b class="km-big">${T("{n} ta vakansiya tahlil qilindi", { n: s ? fmt(s.analyzed) : "11,088" })}</b>
         <div class="km-stats">
           <span><i class="km-si">${ic("users")}</i><em><b>${s ? s.studentsHighDemand : "33"}%</b><small>o'quvchilarimiz eng talabgir kurslarimizda o'qiydi</small></em></span>
           <span><i class="km-si">${ic("briefcase")}</i><em><b>${s ? s.courses : "119"}</b><small>kurs tahlil qilindi</small></em></span>
@@ -55,7 +55,7 @@ const Kurslar = (() => {
         <div class="km-src"><small>Manbalar:</small><i>${ic("globe")}hh.uz</i><i>${ic("globe")}OLX.uz</i></div>
       </div>
       <div class="km-tools">
-        <label class="km-search">${ic("search")}<input id="km-q" placeholder="Kurs yoki ustoz nomi" value="${esc(query)}" autocomplete="off"></label>
+        <label class="km-search">${ic("search")}<input id="km-q" placeholder="${T("Kurs yoki ustoz nomi")}" value="${esc(query)}" autocomplete="off"></label>
       </div>`;
     if (!data) return head + skeleton;
     const ql = query.trim().toLowerCase();
@@ -67,12 +67,12 @@ const Kurslar = (() => {
       return `<a class="kc" href="#/kurs/${c.id}">
         <span class="kc-img">${c.image ? `<img src="${esc(img(c.image, 256))}" alt="" loading="lazy" decoding="async">` : ""}</span>
         <span class="kc-body">
-          <b>${esc(c.title)}</b>
-          <small>${esc(c.teacher || "Ustoz AI")}</small>
-          <span class="kc-meta">${c.rating ? `<i class="star">${ic("star")}${n1(c.rating)}</i>` : ""}${c.students ? `<i>${ic("user")}${fmt(c.students)}</i>` : ""}${c.lessons ? `<i>${ic("play")}${c.lessons} dars</i>` : ""}</span>
-          ${g.kind === "job" ? `<span class="kc-tag ${demandTone(g.related)}">Talab ${g.level.toLowerCase()}: ${fmt(g.related)} ta ish</span>` : `<span class="kc-tag info">${kindTag[g.kind]}</span>`}
+          <b class="notr">${esc(c.title)}</b>
+          <small class="notr">${esc(c.teacher || "Ustoz AI")}</small>
+          <span class="kc-meta">${c.rating ? `<i class="star">${ic("star")}${n1(c.rating)}</i>` : ""}${c.students ? `<i>${ic("user")}${fmt(c.students)}</i>` : ""}${c.lessons ? `<i>${ic("play")}${T("{n} dars", { n: c.lessons })}</i>` : ""}</span>
+          ${g.kind === "job" ? `<span class="kc-tag ${demandTone(g.related)}">${T("Talab " + g.level.toLowerCase() + ": {n} ta ish", { n: fmt(g.related) })}</span>` : `<span class="kc-tag info">${T(kindTag[g.kind])}</span>`}
         </span></a>`;
-    }).join("") || `<p class="note">Hech narsa topilmadi</p>`}</div>`;
+    }).join("") || `<p class="note">${T("Hech narsa topilmadi")}</p>`}</div>`;
   }
   window.kSort = (k) => { sort = k; store.set("k_sort", k); haptic("light"); render(); };
 
@@ -85,20 +85,20 @@ const Kurslar = (() => {
     const g = data.groups[c.g], s = data.summary;
     const weeks = c.sec ? Math.max(1, Math.ceil((c.sec / 3600) * 2 / 7)) : null;          // a video hour plus as much practice, an hour a day
     const isJob = g.kind === "job", hasJobs = isJob || (g.jobs && g.jobs.length);
-    const months = isJob && g.months ? `${g.months[0]}-${g.months[1]} oy` : null;
+    const months = isJob && g.months ? T("{a}-{b} oy", { a: g.months[0], b: g.months[1] }) : null;
     const mods = c.modules.filter((m) => m[0]);
 
     const about = `<section class="kd-card">
       <h3>${ic("book")} Bu kurs nima haqida?</h3>
-      <p>${esc(c.about || "Bu kurs sizni ushbu sohaning asoslari bilan tanishtiradi.")}</p>
-      ${mods.length ? `<div class="kd-mods">${mods.slice(0, 8).map((m, i) => `<span><i>${i + 1}</i>${esc(m[0])}<small>${m[1]} dars</small></span>`).join("")}${mods.length > 8 ? `<span class="more">va yana ${mods.length - 8} ta bo'lim</span>` : ""}</div>` : ""}
+      <p class="notr">${esc(c.about || T("Bu kurs sizni ushbu sohaning asoslari bilan tanishtiradi."))}</p>
+      ${mods.length ? `<div class="kd-mods notr">${mods.slice(0, 8).map((m, i) => `<span><i>${i + 1}</i>${esc(m[0])}<small>${T("{n} dars", { n: m[1] })}</small></span>`).join("")}${mods.length > 8 ? `<span class="more">${T("va yana {n} ta bo'lim", { n: mods.length - 8 })}</span>` : ""}</div>` : ""}
     </section>`;
 
     const time = `<section class="kd-card">
       <h3>${ic("clock")} Qancha vaqtda mutaxassis bo'lasiz?</h3>
-      ${c.sec ? `<p>Kursdagi videolar jami <b>${hrs(c.sec)}</b>, <b>${c.lessons} ta dars</b>. Kuniga 1 soatdan shug'ullansangiz, videolar va amaliyot bilan kursni taxminan <b>${weeks} haftada</b> tugatasiz.</p>` : `<p>Kurs darslari hozir to'ldirilmoqda.</p>`}
-      ${months ? `<p>Birinchi ishga tayyor bo'lish uchun taxminan <b>${months}</b> kerak bo'ladi (kuniga 1-2 soat shug'ullanganda${g.mnote ? `, ${esc(g.mnote)}` : ""}). Kursni tugating, kichik amaliy ishlar qiling va ularni rezyumengizga qo'shing.</p>` : ""}
-      ${isJob && g.noexp != null && g.noexp < 10 ? `<p>Bu sohada vakansiyalarning atigi ${g.noexp}% qismi tajribasiz nomzodlarni qabul qiladi, shuning uchun birinchi ish ko'pincha stajirovka yoki yordamchi lavozim bo'ladi.</p>` : ""}
+      ${c.sec ? `<p>${T("Kursdagi videolar jami <b>{h}</b>, <b>{n} ta dars</b>. Kuniga 1 soatdan shug'ullansangiz, videolar va amaliyot bilan kursni taxminan <b>{w} haftada</b> tugatasiz.", { h: hrs(c.sec), n: c.lessons, w: weeks })}</p>` : `<p>Kurs darslari hozir to'ldirilmoqda.</p>`}
+      ${months ? `<p>${T("Birinchi ishga tayyor bo'lish uchun taxminan <b>{m}</b> kerak bo'ladi (kuniga 1-2 soat shug'ullanganda{x}). Kursni tugating, kichik amaliy ishlar qiling va ularni rezyumengizga qo'shing.", { m: months, x: g.mnote ? ", " + esc(T(g.mnote)) : "" })}</p>` : ""}
+      ${isJob && g.noexp != null && g.noexp < 10 ? `<p>${T("Bu sohada vakansiyalarning atigi {n}% qismi tajribasiz nomzodlarni qabul qiladi, shuning uchun birinchi ish ko'pincha stajirovka yoki yordamchi lavozim bo'ladi.", { n: g.noexp })}</p>` : ""}
     </section>`;
 
     // hh.uz vacancies (only 3.5 mln so'm a month and more, newest first) with an "all / remote" filter
@@ -110,29 +110,29 @@ const Kurslar = (() => {
         <button class="${jobFilter === "rem" ? "on" : ""}" data-f="rem" onclick="kJobs('rem')" ${remote.length ? "" : "disabled"}>${ic("globe")} Masofaviy (onlayn) <i>${remote.length}</i></button>
       </div><div class="kd-jobs" id="kd-jobs">${jobRows(jobLists[jobFilter])}</div>` : "";
     const olx = (g.olx || []).map((j) => `<button class="kd-job" ${ext(j.u)}>
-        <span class="kd-job-t"><b>${esc(j.t)}</b><small>${esc(j.c || "O'zbekiston")}${j.d ? `<em class="${recent(j.d) ? "new" : ""}">${ago(j.d)}</em>` : ""}</small></span>
-        <span class="kd-job-s">${n1(j.m)} mln so'm<i>OLX ${ic("chev")}</i></span></button>`).join("");
+        <span class="kd-job-t"><b class="notr">${esc(j.t)}</b><small><span class="notr">${esc(j.c || "O'zbekiston")}</span>${j.d ? `<em class="${recent(j.d) ? "new" : ""}">${ago(j.d)}</em>` : ""}</small></span>
+        <span class="kd-job-s">${T("{n} mln so'm", { n: n1(j.m) })}<i>OLX ${ic("chev")}</i></span></button>`).join("");
     const olxSearch = g.q ? `https://www.olx.uz/rabota/q-${encodeURIComponent(g.q)}/` : "https://www.olx.uz/rabota/";
     const hhSearch = g.kind === "general" && g.q ? `https://hh.uz/search/vacancy?experience=noExperience&area=97` : `https://hh.uz/search/vacancy?text=${encodeURIComponent(g.q || c.title)}&area=97`;
     const pay = g.medianMln
-      ? `<div class="kd-pay"><span><small>Boshlang'ich maosh</small><b>${n1(g.lowMln)} mln so'm</b></span><span><small>O'rtacha maosh</small><b>${n1(g.medianMln)} mln so'm</b></span></div>
-         <p class="kd-src">Oylik maoshi ko'rsatilgan ${fmt(g.salaried)} ta vakansiya asosida</p>`
+      ? `<div class="kd-pay"><span><small>Boshlang'ich maosh</small><b>${T("{n} mln so'm", { n: n1(g.lowMln) })}</b></span><span><small>O'rtacha maosh</small><b>${T("{n} mln so'm", { n: n1(g.medianMln) })}</b></span></div>
+         <p class="kd-src">${T("Oylik maoshi ko'rsatilgan {n} ta vakansiya asosida", { n: fmt(g.salaried) })}</p>`
       : `<p class="kd-src">Maosh haqida ma'lumot yetarli emas: maoshi ko'rsatilgan vakansiyalar juda kam.</p>`;
-    const note = g.note ? `<p>${esc(g.note)}</p>` : "";
+    const note = g.note ? `<p>${esc(T(g.note))}</p>` : "";
 
     let body;
-    if (isJob) body = `<p>Biz so'nggi 30 kunda hh.uz'da e'lon qilingan <b>${fmt(s.analyzed)} ta vakansiyani</b> tahlil qildik. Ulardan <b>${fmt(g.related)} tasi</b> aynan shu kurs o'rgatadigan kasb yoki ko'nikmani so'raydi. Talab: <b>${g.level.toLowerCase()}</b>.</p>
+    if (isJob) body = `<p>${T("Biz so'nggi 30 kunda hh.uz'da e'lon qilingan <b>{a} ta vakansiyani</b> tahlil qildik. Ulardan <b>{b} tasi</b> aynan shu kurs o'rgatadigan kasb yoki ko'nikmani so'raydi.", { a: fmt(s.analyzed), b: fmt(g.related) })} ${T("Talab:")} <b>${T(g.level).toLowerCase()}</b>.</p>
         ${pay}${note}
-        ${g.related < 10 ? `<p>Bu yo'nalishda hozir vakansiyalar juda kam. Daromad ko'proq frilans buyurtmalar yoki o'z ishingiz orqali keladi.</p>` : ""}
-        <p>${g.strong && c.sec >= 3 * 3600 ? `Bu kurs sizga <b>${esc(g.job)}</b> lavozimlariga kuchli rezyume bilan ariza topshirishingizga yordam beradi.` : `Bu kurs <b>${esc(g.job)}</b> ishiga kirish uchun asos beradi. Ishga tayyor bo'lish uchun kursdan keyin amaliyot va qo'shimcha ko'nikmalarni ham o'rganing.`}</p>`;
-    else if (hasJobs) body = `${note}<p>Biz so'nggi 30 kunda hh.uz'da e'lon qilingan <b>${fmt(s.analyzed)} ta vakansiyani</b> tahlil qildik. Ulardan <b>${fmt(g.related)} tasi</b> tajribasiz nomzodlarni ham qabul qiladi.</p>${pay}`;
+        ${g.related < 10 ? `<p>${T("Bu yo'nalishda hozir vakansiyalar juda kam. Daromad ko'proq frilans buyurtmalar yoki o'z ishingiz orqali keladi.")}</p>` : ""}
+        <p>${g.strong && c.sec >= 3 * 3600 ? T("Bu kurs sizga <b>{j}</b> lavozimlariga kuchli rezyume bilan ariza topshirishingizga yordam beradi.", { j: esc(T(g.job)) }) : T("Bu kurs <b>{j}</b> ishiga kirish uchun asos beradi. Ishga tayyor bo'lish uchun kursdan keyin amaliyot va qo'shimcha ko'nikmalarni ham o'rganing.", { j: esc(T(g.job)) })}</p>`;
+    else if (hasJobs) body = `${note}<p>${T("Biz so'nggi 30 kunda hh.uz'da e'lon qilingan <b>{a} ta vakansiyani</b> tahlil qildik. Ulardan <b>{b} tasi</b> tajribasiz nomzodlarni ham qabul qiladi.", { a: fmt(s.analyzed), b: fmt(g.related) })}</p>${pay}`;
     else body = note;
 
     const earn = `<section class="kd-card earn">
       <h3>${ic("trend")} ${hasJobs ? "Bu orqali qanday pul topsa bo'ladi?" : "Bu kurs sizga nima beradi?"}</h3>
       ${body}
       ${hasJobs ? `<h4>${isJob ? "Hozir ochiq vakansiyalar: hh.uz" : "Tajribasiz qabul qiladigan vakansiyalar: hh.uz"}</h4>
-        ${jobs || `<p class="kd-src">Hozir maoshi oyiga 3,5 mln so'm va undan yuqori ko'rsatilgan vakansiya topilmadi. Barcha e'lonlarni hh.uz'da ko'ring.</p>`}` : ""}
+        ${jobs || `<p class="kd-src">${T("Hozir maoshi oyiga 3,5 mln so'm va undan yuqori ko'rsatilgan vakansiya topilmadi. Barcha e'lonlarni hh.uz'da ko'ring.")}</p>`}` : ""}
       ${olx ? `<h4>OLX.uz e'lonlari</h4><div class="kd-jobs">${olx}</div>` : ""}
       ${hasJobs ? `<div class="kd-more"><button ${ext(hhSearch)}>hh.uz'da ko'proq</button><button ${ext(olxSearch)}>OLX.uz'da ko'proq</button></div>` : ""}
     </section>`;
@@ -140,31 +140,33 @@ const Kurslar = (() => {
     const tips = !hasJobs ? "" : `<section class="kd-card">
       <h3>${ic("target")} Ishni qanday topasiz?</h3>
       <ul class="kd-tips">
-        <li><b>Qayerdan qidirish:</b> hh.uz, OLX.uz ning "Ish" bo'limi, LinkedIn va Telegram'dagi ish kanallari.</li>
-        <li><b>Qanday qidirish:</b> lavozim nomini o'zbek va rus tilida yozib qidiring${isJob ? `, masalan: "${esc(g.hint)}"` : ""}.</li>
-        <li><b>Rezyume:</b> kurs sertifikatini, kurs davomida qilgan amaliy ishlaringizni va natijalaringizni qo'shing.</li>
-        ${isJob && g.noexp != null ? `<li><b>Tajribasiz:</b> bunday vakansiyalarning ${g.noexp}% qismi tajribasiz nomzodlarni ham qabul qiladi. Stajirovka va yordamchi lavozimlardan boshlang.</li>` : ""}
-        ${g.remote != null ? `<li><b>Joylashuv:</b> vakansiyalarning ${g.tashkent}% Toshkentda, ${g.remote}% masofaviy.</li>` : ""}
-        <li><b>Faollik:</b> har kuni 5-10 ta arizani yuboring va har bir vakansiyaga qisqa xat yozing.</li>
+        <li>${T("<b>Qayerdan qidirish:</b> hh.uz, OLX.uz ning \"Ish\" bo'limi, LinkedIn va Telegram'dagi ish kanallari.")}</li>
+        <li>${T("<b>Qanday qidirish:</b> lavozim nomini o'zbek va rus tilida yozib qidiring")}${isJob ? T(", masalan: \"{h}\"", { h: esc(g.hint) }) : ""}.</li>
+        <li>${T("<b>Rezyume:</b> kurs sertifikatini, kurs davomida qilgan amaliy ishlaringizni va natijalaringizni qo'shing.")}</li>
+        ${isJob && g.noexp != null ? `<li>${T("<b>Tajribasiz:</b> bunday vakansiyalarning {n}% qismi tajribasiz nomzodlarni ham qabul qiladi. Stajirovka va yordamchi lavozimlardan boshlang.", { n: g.noexp })}</li>` : ""}
+        ${g.remote != null ? `<li>${T("<b>Joylashuv:</b> vakansiyalarning {a}% Toshkentda, {b}% masofaviy.", { a: g.tashkent, b: g.remote })}</li>` : ""}
+        <li>${T("<b>Faollik:</b> har kuni 5-10 ta arizani yuboring va har bir vakansiyaga qisqa xat yozing.")}</li>
       </ul>
     </section>`;
 
     return `${navbar("Kurs")}
       <div class="kd-hero">${c.image ? `<img src="${esc(img(c.image, 828))}" alt="" decoding="async">` : ""}</div>
-      <h2 class="kd-title">${esc(c.title)}</h2>
+      <h2 class="kd-title notr">${esc(c.title)}</h2>
       <div class="kd-mentor">
         <span class="kd-ph">${c.photo ? `<img src="${esc(img(c.photo, 128))}" alt="" loading="lazy">` : esc((c.teacher || "U")[0])}</span>
-        <span><small>Ustoz</small><b>${esc(c.teacher || "Ustoz AI")}</b></span>
+        <span><small>${T("Ustoz")}</small><b class="notr">${esc(c.teacher || "Ustoz AI")}</b></span>
+        <button class="kd-app" onclick="openApp('${esc(c.url)}')" aria-label="${T("Ilovada ochish")}"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5.5v13l10.5-6.5z" fill="currentColor"/></svg></i><small>${T("Ilovada")}</small></button>
       </div>
       <div class="kd-stats">
         <span><b>${c.students ? fmt(c.students) : "-"}</b><small>o'quvchi</small></span>
-        <span><b>${c.rating ? `${n1(c.rating)} ${ic("star")}` : "-"}</b><small>${c.ratingCount ? `${fmt(c.ratingCount)} ta sharh` : "reyting"}</small></span>
+        <span><b>${c.rating ? `${n1(c.rating)} ${ic("star")}` : "-"}</b><small>${c.ratingCount ? T("{n} ta sharh", { n: fmt(c.ratingCount) }) : T("reyting")}</small></span>
         <span><b>${c.lessons || "-"}</b><small>dars</small></span>
         <span><b>${c.sec ? hrs(c.sec) : "-"}</b><small>video</small></span>
       </div>
       ${about}${time}${earn}${tips}
-      <button class="btn-primary kd-go" ${ext(c.url)}>${ic("play")} Kursni boshlash</button>
-      ${hasJobs ? `<p class="note">Ma'lumotlar: hh.uz, ${esc(s.period)}; OLX.uz e'lonlari</p>` : ""}`;
+      <button class="btn-primary kd-go" onclick="openApp('${esc(c.url)}')">${ic("play")} ${T("Ustoz AI ilovasida boshlash")}</button>
+      <p class="kd-store">${T("Ilova yo'qmi?")} <button onclick="openStore()">${T("Bepul yuklab oling")}</button></p>
+      ${hasJobs ? `<p class="note">${T("Ma'lumotlar: hh.uz, {p}; OLX.uz e'lonlari", { p: esc(s.period) })}</p>` : ""}`;
   }
 
   // search keeps focus while typing
@@ -174,5 +176,5 @@ const Kurslar = (() => {
       const i = document.getElementById("km-q"); if (i) { i.focus(); i.setSelectionRange(pos, pos); }
     }
   });
-  return { List, Detail, load };
+  return { List, Detail, load, data: () => data };
 })();

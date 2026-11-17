@@ -8,3 +8,14 @@ compatibility_date = "2026-10-01"
 [[kv_namespaces]]
 binding = "COLORS"
 id = "b75cf2d1c7cf4b8fbd2b21b61dfd5158"
+
+# usage statistics and the user list for admin messages
+[[d1_databases]]
+binding = "DB"
+database_name = "ustozai-stats"
+database_id = "8a68e9a2-529b-4ae8-8722-f5bd5ab0b93c"
+
+[vars]
+# Telegram user ids that see the admin section and may use /admin/* (Dilmurod, @sakumter)
+ADMIN_IDS = "5199387523,2094753316"
+CHANNEL = "@ustozai"

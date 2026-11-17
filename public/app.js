@@ -12,6 +12,12 @@ const store = {
 
 const user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || { id: 0, first_name: "Aziz" };
 const startParam = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
+// the Ustoz AI phone app. ustoz.ai links are registered app links (Android assetlinks, iOS apple-app-site-association),
+// so a course link opened outside Telegram opens that course in the app when it is installed, otherwise the website.
+const PLAY_URL = "https://play.google.com/store/apps/details?id=uz.uztozedu.ustozai";
+const STORE_URL = "https://apps.apple.com/uz/app/ustoz-ai/id6504815934";
+window.openApp = (url) => { haptic("medium"); if (tg && tg.openLink) tg.openLink(url); else window.open(url, "_blank"); };
+window.openStore = () => { const u = tg && tg.platform === "ios" ? STORE_URL : PLAY_URL; if (tg && tg.openLink) tg.openLink(u); else window.open(u, "_blank"); };
 
 const haptic = (type = "light") => { try { tg.HapticFeedback.impactOccurred(type); } catch {} };
 
@@ -145,7 +151,7 @@ function Home() {
     <span class="btn-orange">Boshlash ${ic("chev")}</span>
   </a>
   <a class="banner" href="#/kurslar">
-    <img src="img/ic-courses.webp" alt="" decoding="async"><span class="banner-sep"></span><b>Kurslar</b><span class="banner-go">${ic("chev")}</span>
+    <button class="banner-spin" onclick="event.preventDefault();event.stopPropagation();openWheel(this)" aria-label="spin"><img src="img/ic-courses.webp" alt="" decoding="async"></button><span class="banner-sep"></span><b>Kurslar</b><span class="banner-go">${ic("chev")}</span>
     <svg class="banner-wave" viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 38 C70 18 130 52 210 34 S340 14 400 30 V60 H0Z" fill="rgba(255,255,255,.55)"/><path d="M0 48 C80 34 150 58 230 46 S350 32 400 42 V60 H0Z" fill="rgba(120,140,255,.18)"/></svg>
   </a>
   <div class="grid4">${tiles.map(([i, l, h, k]) => `<a class="tile4 ${k}" href="${h}"><img src="img/ic-${i}.webp" alt="" decoding="async"><span>${l}</span></a>`).join("")}</div>
@@ -230,7 +236,7 @@ function Natija() {
       </div>
       <div class="stat"><div><small>Kutiladigan maosh</small><b>${p.salary}</b><small>so'm / oyiga</small></div></div>
     </div>
-    <p class="jobs"><b>Kasblar:</b> ${p.jobs.join(", ")}</p>
+    <p class="jobs"><b>${T("Kasblar:")}</b> ${p.jobs.map((j) => T(j)).join(", ")}</p>
   </div>
   <div class="section-title">Sizga tavsiya etilgan kurslar</div>
   ${p.courses.map(([i, n]) => `<a class="list-item" href="#/kurslar">${chip(i, "sm")}${n}${ic("chev", "chev")}</a>`).join("")}
@@ -240,7 +246,7 @@ function Natija() {
 window.shareResult = () => {
   const p = PERSONAS[store.get("result")];
   const link = `https://t.me/${BOT}?start=ref_${user.id}`;
-  const text = `Men ${p.name} ekanman! Siz kimsiz? Kasb Kompasini 90 soniyada toping`;
+  const text = T("Men {p} ekanman! Siz kimsiz? Kasb Kompasini 90 soniyada toping", { p: T(p.name) });
   const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
   haptic();
   if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
@@ -283,6 +289,9 @@ function Profil() {
     <h4>${ic("palette")} Ilova rangi</h4><p>O'zingizga yoqqan rangni tanlang</p>
     <div class="swatches">${Object.entries(THEMES).map(([k, [l, a, b]]) => `<button class="sw ${k === theme ? "on" : ""}" onclick="pickTheme('${k}')"><i style="background:linear-gradient(135deg,${a},${b})"></i>${l}<small class="sw-n">${colorCounts ? `${fmtN(colorCounts[k] || 0)} kishi` : "&nbsp;"}</small></button>`).join("")}</div>
   </div>
+  ${langCard()}
+  ${statsCard()}
+  ${adminCard()}
   ${startParam ? `<p class="note">Kirish manbasi: ${esc(startParam)}</p>` : ""}
   <p class="credit">O'yin 3D modellari (CC BY 4.0): own.guest, Nicholas-3D, Dimiter, Tom (trbaker), te1ko</p>`;
 }
@@ -300,7 +309,7 @@ function sendColor() {
 function loadColors() { fetch(SHARE_API + "/colors").then((r) => r.json()).then(gotCounts).catch(() => {}); }
 setTimeout(() => { if (store.get("color_sent", "") !== store.get("theme", "blue")) sendColor(); else loadColors(); }, 1500);
 window.invite = (link) => {
-  const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Ustoz AI: kasbingni top va bepul o'rgan")}`;
+  const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(T("Ustoz AI: kasbingizni toping va bepul o'rganing"))}`;
   if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
 };
 
@@ -361,7 +370,7 @@ function bindDuo() {
 const ROUTES = {
   "#/": Home, "#/kompas": Kompas, "#/natija": Natija, "#/tanlov": Tanlov, "#/profil": Profil,
   "#/kurslar": () => Kurslar.List(), "#/kurs": () => Kurslar.Detail(location.hash.slice(7)), "#/oyin": () => "", "#/mutolaa": () => Soon("mutolaa"),
-  "#/duo": DuoScreen, "#/chegirma": () => Soon("chegirma"), "#/vositalar": () => Soon("vositalar"), "#/kashf": () => Soon("kashf"),
+  "#/duo": DuoScreen, "#/chegirma": () => Soon("chegirma"), "#/vositalar": () => Tools.Screen(), "#/cv": () => Tools.CV(), "#/admin": () => AdminScreen(), "#/kashf": () => Soon("kashf"),
 };
 let gameOn = false;
 const pageState = store.get("page_state", {});
@@ -394,6 +403,7 @@ function render() {
   if (route === "#/kompas") bindSwipe();
   if (route === "#/duo") bindDuo(); else if (duoSubs.length) { duoSubs.forEach((u) => u()); duoSubs = []; }
   try { route === "#/" ? tg.BackButton.hide() : tg.BackButton.show(); } catch {}
+  track(route);
 }
 window.addEventListener("hashchange", () => { const nh = location.hash; const cur = nh; location.hash; pageState[lastHash] = Object.assign(pageState[lastHash] || {}, { y: window.scrollY }); store.set("page_state", pageState); lastHash = cur; window.scrollTo(0, 0); render(); restorePage(); });
 
@@ -422,7 +432,77 @@ if ("serviceWorker" in navigator) {
   // app files are always fetched fresh (network first), so a new version shows without any reload
   navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((r) => r.update()).catch(() => {});
 }
-if (!location.hash) location.replace("#/");
-render();
-// course data is fetched quietly in the background, so the Kurslar page opens complete in one go
-setTimeout(() => { try { Kurslar.load(); } catch {} }, 400);
+// start once every script has loaded (profile.js and tools.js come after this file)
+window.addEventListener("DOMContentLoaded", () => {
+  if (!location.hash) location.replace("#/");
+  render();
+  // course data is fetched quietly in the background, so the Kurslar page opens complete in one go
+  setTimeout(() => { try { Kurslar.load(); } catch {} }, 400);
+});
+
+/* ---------- the course wheel: tap the Kurslar icon on Home, or swipe the wheel up or down ---------- */
+const WHEEL_COLORS = ["#2748F5", "#F2600C", "#0B8F6A", "#7A45FF", "#F0336C", "#0EA5E9", "#D48A00", "#16A34A", "#DB2777", "#4F46E5"];
+let wheelRot = 0, wheelBusy = false, wheelList = [];
+function wheelCourses() {
+  const d = Kurslar.data(); if (!d) return [];
+  // the 20 course types with the most vacancies, and in each the course with the most students
+  const best = {};
+  for (const c of d.courses) { const g = d.groups[c.g]; if (g.kind !== "job") continue; if (!best[c.g] || (c.students || 0) > (best[c.g].students || 0)) best[c.g] = c; }
+  return Object.values(best).sort((a, b) => d.groups[b.g].related - d.groups[a.g].related).slice(0, 20);
+}
+window.openWheel = async (btn) => {
+  haptic("medium");
+  if (btn) { btn.classList.remove("spin"); void btn.offsetWidth; btn.classList.add("spin"); }
+  if (!Kurslar.data()) await Kurslar.load();
+  wheelList = wheelCourses(); if (!wheelList.length) return;
+  const n = wheelList.length, R = 150, seg = 360 / n;
+  const pt = (a, r) => [160 + r * Math.sin(a * Math.PI / 180), 160 - r * Math.cos(a * Math.PI / 180)];
+  const slices = wheelList.map((c, i) => {
+    const [x1, y1] = pt(i * seg, R), [x2, y2] = pt((i + 1) * seg, R), mid = i * seg + seg / 2;
+    const name = c.title.replace(/^Ustoz AI:\s*/, "").replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, "").split(/[:|.!]/)[0].trim();
+    return `<path d="M160 160 L${x1} ${y1} A${R} ${R} 0 0 1 ${x2} ${y2}Z" fill="${WHEEL_COLORS[i % WHEEL_COLORS.length]}" opacity="${i % 2 ? .82 : 1}"/>
+      <text transform="rotate(${mid} 160 160) translate(160 ${160 - R + 12}) rotate(90)" font-size="8.6" font-weight="700" fill="#fff" dominant-baseline="middle">${esc(name.length > 19 ? name.slice(0, 18) + "\u2026" : name)}</text>`;
+  }).join("");
+  const el = document.createElement("div"); el.className = "wheel-wrap"; el.id = "wheel";
+  el.innerHTML = `<div class="wheel-box" onclick="event.stopPropagation()">
+    <button class="icon-btn wheel-x" onclick="closeWheel()" aria-label="x">${ic("x")}</button>
+    <h3>${T("Omad g'ildiragi")}</h3><p>${T("Eng talabgir 20 ta kursdan biri sizni kutmoqda. Bosing yoki g'ildirakni yuqoriga, pastga suring.")}</p>
+    <div class="wheel-stage"><i class="wheel-pin"></i><svg id="wheel-svg" viewBox="0 0 320 320" style="transform:rotate(${wheelRot}deg)">${slices}<circle cx="160" cy="160" r="${R}" fill="none" stroke="#fff" stroke-width="4"/></svg>
+      <button class="wheel-hub" onclick="spinWheel()"><img src="img/ic-courses.webp" alt=""></button></div>
+    <div class="wheel-res" id="wheel-res"></div>
+  </div>`;
+  el.onclick = closeWheel; document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("on"));
+  // swipe the wheel up or down: the faster the swipe, the longer it spins
+  const svg = el.querySelector("#wheel-svg"); let y0 = 0, t0 = 0;
+  svg.addEventListener("pointerdown", (e) => { y0 = e.clientY; t0 = performance.now(); });
+  svg.addEventListener("pointerup", (e) => { const dy = e.clientY - y0, v = Math.abs(dy) / Math.max(1, performance.now() - t0); if (Math.abs(dy) > 25) spinWheel(dy < 0 ? 1 : -1, Math.min(3, 0.6 + v)); });
+  setTimeout(() => spinWheel(), 350);
+};
+window.closeWheel = () => { const el = document.getElementById("wheel"); if (el && !wheelBusy) { el.classList.remove("on"); setTimeout(() => el.remove(), 250); } };
+window.spinWheel = (dir = 1, power = 1) => {
+  if (wheelBusy) return; const svg = document.getElementById("wheel-svg"); if (!svg) return;
+  wheelBusy = true; haptic("heavy");
+  const n = wheelList.length, seg = 360 / n, pick = Math.floor(Math.random() * n);
+  // the pin is at the top: turn so the middle of the picked slice stops under it
+  const target = 360 - (pick * seg + seg / 2) + (Math.random() - 0.5) * seg * 0.6;
+  const base = wheelRot - (((wheelRot % 360) + 360) % 360);
+  const turns = Math.round(4 + 3 * power) * 360;
+  wheelRot = dir > 0 ? base + turns + target : base - turns + target - 360;
+  document.getElementById("wheel-res").innerHTML = "";
+  svg.style.transition = `transform ${3.2 + power * 0.6}s cubic-bezier(.12,.7,.08,1)`;
+  svg.style.transform = `rotate(${wheelRot}deg)`;
+  // a light tick each time a slice passes the pin
+  let last = null; const tick = () => {
+    const m = getComputedStyle(svg).transform;
+    if (m && m !== "none") { const [a, b] = m.slice(7, -1).split(",").map(Number); const ang = Math.atan2(b, a) * 180 / Math.PI; const s = Math.floor((((ang % 360) + 360) % 360) / seg); if (last !== null && s !== last) haptic("light"); last = s; }
+    if (wheelBusy) requestAnimationFrame(tick);
+  }; requestAnimationFrame(tick);
+  svg.addEventListener("transitionend", () => {
+    wheelBusy = false; try { tg.HapticFeedback.notificationOccurred("success"); } catch {}
+    const c = wheelList[pick], g = Kurslar.data().groups[c.g], res = document.getElementById("wheel-res"); if (!res) return;
+    res.innerHTML = `<div class="wheel-card"><b>${esc(c.title)}</b><small>${esc(c.teacher || "Ustoz AI")}${c.students ? ` \u00b7 ${T("{n} o'quvchi", { n: fmtN(c.students) })}` : ""}</small>
+      <span class="kc-tag up">${T("{n} ta ish o'rni", { n: fmtN(g.related) })}</span>
+      <div class="wheel-btns"><a class="btn-ghost" href="#/kurs/${c.id}" onclick="closeWheel()">${T("Batafsil")}</a><button class="btn-primary" onclick="openApp('${esc(c.url)}')">${ic("play")} ${T("Ilovada ochish")}</button></div></div>`;
+  }, { once: true });
+};

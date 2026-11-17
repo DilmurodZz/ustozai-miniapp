@@ -585,7 +585,7 @@ const Game = (() => {
   function graze(d) {
     px += d * 0.55; speed = Math.max(V0 * 0.8, speed * 0.88); shake = 0.3; stumbleT = 0.95;
     sfx("bump"); buzz("warning", 40); buzz("rigid");
-    burst(px + d * 0.5, 1.0, 0, "#FFFFFF", 8, 2.5); pop("Ehtiyot bo'l!", "bad");
+    burst(px + d * 0.5, 1.0, 0, "#FFFFFF", 8, 2.5); pop("Ehtiyot bo'ling!", "bad");
   }
   // inside the wagon: the camera follows him in, the lamps glow, star dust drifts; leaving it pays a bonus
   function tube(o) {
@@ -821,7 +821,7 @@ const Game = (() => {
       if (calm > 0 && (calm -= dt) <= 0) fillRoad();
       if (pw.fly <= 0 && calm <= 0 && !trans) energy -= dt * (DRAIN[level] || DRAIN[4]);
       const band = energy < 0.15 ? 2 : energy < 0.3 ? 1 : 0;
-      if (band > enWarn) { buzz(band === 2 ? "warning" : "light"); if (band === 2) pop("Kuch kam! Tanga yig'", "bad"); }
+      if (band > enWarn) { buzz(band === 2 ? "warning" : "light"); if (band === 2) pop("Kuch kam! Tanga yig'ing", "bad"); }
       enWarn = band;
       if (energy <= 0) { energy = 0; pop("Kuch tugadi!", "bad"); return crash(); }
       if (dist >= nextBoost) boost();
@@ -1145,11 +1145,11 @@ const Game = (() => {
         card(`<div class="toon-step"><i></i><i class="on"></i></div>
           <h2>Boshqarish</h2>
           <div class="toon-grid">
-            ${row(ARROW.L + ARROW.R, "k1", "Chap, o'ng")}
-            ${row(ARROW.U, "k2", "Sakra")}
-            ${row(ARROW.UU, "k3", "2 marta: ninja")}
-            ${row(ARROW.D, "k4", "Sirpan")}
-            ${row(ARROW.T, "k5", "2 marta bos: akrobatika")}
+            ${row(ARROW.L + ARROW.R, "k1", "Chapga, o'ngga")}
+            ${row(ARROW.U, "k2", "Sakrash")}
+            ${row(ARROW.UU, "k3", "2 marta: ninja sakrash")}
+            ${row(ARROW.D, "k4", "Sirpanish")}
+            ${row(ARROW.T, "k5", "2 marta bosing: akrobatika")}
           </div>
           <button class="toon-btn" data-a="go">${ic("play")} O'ynash!</button>`, { go: done }, "toon");
       } }, "toon");
@@ -1164,7 +1164,7 @@ const Game = (() => {
     trail(lane, -15, 7);
     let z = -40; while (z > FAR) z -= spawnRow(z);
     spawnIn = FAR - z;
-    if (first) { state = "intro"; introT = 0; guardT = 0; guardX = -2.4; sfx("whistle"); pop("Hoy, to'xta!", "bad"); }   // the watchman turns up
+    if (first) { state = "intro"; introT = 0; guardT = 0; guardX = -2.4; sfx("whistle"); pop("Hoy, to'xtang!", "bad"); }   // the watchman turns up
     else state = "play";
     last = performance.now();
   }
@@ -1421,7 +1421,7 @@ const Game = (() => {
     const rec = best();
     card(`<div class="st-logo">${ic("gamepad")}</div>
       <h2>Chorsu game</h2>
-      <p>${rec ? `Rekordingiz: ${rec} ball` : "Yugur, tanga yig', to'siqlardan o't"}</p>
+      <p>${rec ? `Rekordingiz: ${rec} ball` : "Yuguring, tanga yig'ing, to'siqlardan o'ting"}</p>
       <button class="st-play" data-a="go" aria-label="O'yinni boshlash"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" fill="currentColor"/></svg></button>
       <span class="st-label">O'yinni boshlash</span>
       <button class="st-duo" data-a="duo"><span class="st-duo-ic">${ic("users")}</span><span class="st-duo-tx">Do'stingiz bilan o'ynang<small>Ikki kishi, uzoqda bo'lsangiz ham</small></span>${ic("chev")}</button>`,
@@ -1560,12 +1560,12 @@ const Game = (() => {
     const F = "-apple-system, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
     g.textAlign = "center"; g.fillStyle = "#fff"; g.shadowColor = "rgba(0,0,0,0.35)"; g.shadowBlur = 18;
     g.font = `600 40px ${F}`; g.letterSpacing = "12px"; g.fillText("CHORSU GAME", Wd / 2 + 6, 132); g.letterSpacing = "0px";
-    g.globalAlpha = 0.8; g.font = `400 30px ${F}`; g.fillText(`${sn.level}-bosqich · ${sn.level === 1 ? "Chorsu bozori" : LEVELS[sn.level][1]}`, Wd / 2, 182); g.globalAlpha = 1;
+    g.globalAlpha = 0.8; g.font = `400 30px ${F}`; g.fillText(`${T("{n}-bosqich", { n: sn.level })} · ${T(sn.level === 1 ? "Chorsu bozori" : LEVELS[sn.level][1])}`, Wd / 2, 182); g.globalAlpha = 1;
     g.textAlign = "left";
-    g.font = `700 92px ${F}`; g.fillText(CAPTION[sn.kind] || CAPTION.run, 72, Hd - 300);
+    g.font = `700 92px ${F}`; g.fillText(T(CAPTION[sn.kind] || CAPTION.run), 72, Hd - 300);
     const who = myName();
     g.font = `500 44px ${F}`; g.fillText(who, 72, Hd - 218);
-    g.globalAlpha = 0.78; g.font = `400 34px ${F}`; g.fillText(`${Math.floor(dist)} m  ·  ${coins} tanga  ·  ${score()} ball`, 72, Hd - 160);
+    g.globalAlpha = 0.78; g.font = `400 34px ${F}`; g.fillText(`${Math.floor(dist)} m  ·  ${T("{n} tanga", { n: coins })}  ·  ${T("{n} ball", { n: score() })}`, 72, Hd - 160);
     g.globalAlpha = 0.6; g.font = `400 28px ${F}`; g.fillText(`t.me/${BOT}`, 72, Hd - 100); g.globalAlpha = 1;
     momentCanvas = c;                  // kept for the full-quality PNG
     return c.toDataURL("image/jpeg", 0.9);
@@ -1576,7 +1576,7 @@ const Game = (() => {
     v.innerHTML = `<img alt="" src="${momentURL}"><div class="run-photo-bar"><button data-a="share">${ic("send")} Ulashish</button><button data-a="save">${ic("download")} Saqlash</button></div><button class="run-photo-x" data-a="x" aria-label="Yopish">${ic("x")}</button><p>Rasmni bosib turib ham saqlashingiz mumkin</p>`;
     // the picture as a PNG file (made once, then reused)
     const png = () => momentPng || (momentPng = new Promise((ok) => momentCanvas.toBlob((b) => ok(b), "image/png")));
-    const caption = () => `${myName()} · Chorsu game · ${score()} ball`;
+    const caption = () => `${myName()} · Chorsu game · ${T("{n} ball", { n: score() })}`;
     const busy = (b, on) => { b.disabled = on; b.classList.toggle("busy", on); };
     v.querySelector('[data-a="x"]').onclick = () => v.remove();
     v.querySelector('[data-a="save"]').onclick = async () => {
@@ -1608,7 +1608,7 @@ const Game = (() => {
     const duoRes = net && net.result;
     const s = score(), b = best(), isBest = s > b;
     if (isBest) store.set("run_best", s);
-    const me = [store.get("school", "Sening maktabing"), myName(), Math.max(s, b)];
+    const me = [store.get("school", T("Sizning maktabingiz")), myName(), Math.max(s, b)];
     const board = [...SCHOOL_BOARD, me].sort((a, c) => c[2] - a[2]), mine = board.indexOf(me);
     const row = (r, i) => `<div class="${r === me ? "me" : ""}"><span>${i + 1}</span><span>${r[1]}<small>${r[0]}</small></span><b>${r[2]}</b></div>`;
     root.classList.add("over");
@@ -1637,7 +1637,7 @@ const Game = (() => {
   }
   function share(s) {
     const link = `https://t.me/${BOT}?start=run_${user.id}`;
-    const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`Chorsu Run'da ${s} ball to'pladim. Meni yenga olasanmi?`)}`;
+    const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(T("Chorsu Run'da {s} ball to'pladim. Meni yenga olasizmi?", { s }))}`;
     if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
   }
   function exit() { if (net) { Duo.send({ t: "bye" }); for (const u of net.subs || []) u(); net = null; Duo.leave(); } if (state !== "over") saveRun(); location.hash = "#/"; }
