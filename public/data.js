@@ -19,32 +19,32 @@ const QUIZ = [
 const PERSONAS = {
   data: {
     name: "Data Detektiv", icon: "search", chips: ["chart", "trend"],
-    desc: "Sen ma'lumotlar ichidan muhim xulosalarni topishni yoqtiradigan, tahliliy fikrlaydigan va muammolarga yechim izlaydigan odamsan.",
-    salary: "8–15 mln", jobs: ["Data analitik", "BI mutaxassisi", "Biznes tahlilchi"],
+    desc: "Siz ma'lumotlar ichidan muhim xulosalarni topishni yoqtiradigan, tahliliy fikrlaydigan va muammolarga yechim izlaydigan insonsiz.",
+    salary: "8-15 mln", jobs: ["Data analitik", "BI mutaxassisi", "Biznes tahlilchi"],
     courses: [["chart", "Ma'lumotlar tahlili va vizualizatsiya"], ["code", "Python bilan ma'lumotlar tahlili"], ["trend", "Biznes tahlilchilik asoslari"]],
   },
   code: {
     name: "Kod Sehrgari", icon: "code", chips: ["laptop", "zap"],
-    desc: "Sen g'oyani kodga aylantirib, ishlaydigan mahsulot yaratishni yaxshi ko'rasan. Mantiq va sabr sening kuchli tomoning.",
-    salary: "10–25 mln", jobs: ["Frontend dasturchi", "Backend dasturchi", "Mobil dasturchi"],
+    desc: "Siz g'oyani kodga aylantirib, ishlaydigan mahsulot yaratishni yaxshi ko'rasiz. Mantiq va sabr sizning kuchli tomoningiz.",
+    salary: "10-25 mln", jobs: ["Frontend dasturchi", "Backend dasturchi", "Mobil dasturchi"],
     courses: [["globe", "Web dasturlash: HTML, CSS, JavaScript"], ["code", "Python dasturlash noldan"], ["phone", "Mobil ilovalar yaratish"]],
   },
   design: {
     name: "Raqamli Me'mor", icon: "palette", chips: ["pen", "sparkles"],
-    desc: "Sen go'zallik va qulaylikni his qilasan. Odamlar foydalanadigan ekranlarni chiroyli va tushunarli qilish sening iste'doding.",
-    salary: "7–18 mln", jobs: ["UI/UX dizayner", "Grafik dizayner", "Motion dizayner"],
+    desc: "Siz go'zallik va qulaylikni his qilasiz. Odamlar foydalanadigan ekranlarni chiroyli va tushunarli qilish sizning iste'dodingiz.",
+    salary: "7-18 mln", jobs: ["UI/UX dizayner", "Grafik dizayner", "Motion dizayner"],
     courses: [["palette", "Figma: UI/UX dizayn asoslari"], ["image", "Grafik dizayn va brending"], ["video", "Video montaj va motion dizayn"]],
   },
   mkt: {
     name: "Trend Ovchisi", icon: "megaphone", chips: ["trend", "target"],
-    desc: "Sen odamlarni tushunasan va ularni nima qiziqtirishini oldindan sezasan. Brendlarni mashhur qilish sening ishing.",
-    salary: "6–15 mln", jobs: ["SMM mutaxassisi", "Digital marketolog", "Kontent meyker"],
+    desc: "Siz odamlarni tushunasiz va ularni nima qiziqtirishini oldindan sezasiz. Brendlarni mashhur qilish sizning ishingiz.",
+    salary: "6-15 mln", jobs: ["SMM mutaxassisi", "Digital marketolog", "Kontent meyker"],
     courses: [["megaphone", "SMM va kontent marketing"], ["target", "Target reklama: Instagram va Telegram"], ["pen", "Kopirayting va storytelling"]],
   },
   ai: {
     name: "AI Kashfiyotchisi", icon: "bot", chips: ["sparkles", "zap"],
-    desc: "Sen yangi texnologiyalarni birinchilardan bo'lib sinab ko'rasan va AI yordamida ishni 10 barobar tez bajarish yo'lini topasan.",
-    salary: "12–30 mln", jobs: ["AI muhandis", "Prompt muhandis", "Avtomatlashtirish mutaxassisi"],
+    desc: "Siz yangi texnologiyalarni birinchilardan bo'lib sinab ko'rasiz va AI yordamida ishni 10 barobar tez bajarish yo'lini topasiz.",
+    salary: "12-30 mln", jobs: ["AI muhandis", "Prompt muhandis", "Avtomatlashtirish mutaxassisi"],
     courses: [["bot", "Sun'iy intellekt vositalari bilan ishlash"], ["sparkles", "Machine Learning asoslari"], ["zap", "No-code avtomatlashtirish"]],
   },
 };
@@ -71,9 +71,9 @@ const LEADERBOARD = {
 };
 
 const SOON = {
-  kurslar: { i: "cap", t: "Kurslar", d: "Ustoz AI kurslari shu yerda bo'ladi, internetsiz ko'rish uchun yuklab olish bilan.", items: [["download", "Offline paketlar: bir marta yuklab ol, internetsiz ko'r"], ["bot", "Kursdan so'ra: AI faqat dars materialidan javob beradi"], ["file", "Sertifikat va CV'ga avtomatik qo'shish"]] },
+  kurslar: { i: "cap", t: "Kurslar", d: "Ustoz AI kurslari shu yerda bo'ladi, internetsiz ko'rish uchun yuklab olish bilan.", items: [["download", "Offline paketlar: bir marta yuklab oling, internetsiz ko'ring"], ["bot", "Kursdan so'rang: AI faqat dars materialidan javob beradi"], ["file", "Sertifikat va CV'ga avtomatik qo'shish"]] },
   mutolaa: { i: "book", t: "5 daqiqalik mutolaa", d: "Har kuni bitta kitob qisqachasi, foydali maqola va talabalar uchun yangiliklar.", items: [["star", "Mashhur insonlarning haqiqiy hikoyalari"], ["news", "Grant, olimpiada va DTM yangiliklari"], ["offline", "Hammasi internetsiz o'qiladi"]] },
   chegirma: { i: "tag", t: "Talabalar chegirmalari", d: "Talabalar uchun 50 dan ortiq chegirma bir joyda.", items: [["cup", "Kafe va fastfud"], ["laptop", "Noutbuk va texnika, muddatli to'lov"], ["plane", "Aviachiptalar va poyezd chiptalari"], ["wifi", "Talaba internet paketlari"]] },
   vositalar: { i: "grid", t: "Talaba vositalari", d: "Har kuni kerak bo'ladigan foydali vositalar.", items: [["calc", "DTM ball kalkulyatori va OTM kirish ballari"], ["mic", "IELTS ball kalkulyatori va AI speaking sherigi"], ["clock", "Imtihonlarga qolgan vaqt"], ["file", "CV yaratish: PDF va Word formatida"], ["cap", "Grant va stipendiyalar qidiruvi"]] },
-  kashf: { i: "compass", t: "Kashf et", d: "O'qish yo'lingdagi har bir qadam uchun xizmatlar.", items: [["pen", "IELTS / CEFR imtihoniga yozilish"], ["globe", "Xorijda o'qish bo'yicha maslahat"], ["plane", "Aviachipta va poyezd chiptalari"], ["card", "Talaba bank kartasi"], ["briefcase", "IT Park va ish beruvchilar vakansiyalari"]] },
+  kashf: { i: "compass", t: "Kashf eting", d: "O'qish yo'lingizdagi har bir qadam uchun xizmatlar.", items: [["pen", "IELTS / CEFR imtihoniga yozilish"], ["globe", "Xorijda o'qish bo'yicha maslahat"], ["plane", "Aviachipta va poyezd chiptalari"], ["card", "Talaba bank kartasi"], ["briefcase", "IT Park va ish beruvchilar vakansiyalari"]] },
 };

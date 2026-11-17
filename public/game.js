@@ -1135,9 +1135,9 @@ const Game = (() => {
     el.kuch.classList.add("spot"); buzz("light");
     card(`<div class="toon-step"><i class="on"></i><i></i></div>
       <div class="toon-ico">${ic("zap")}</div>
-      <h2>Tanga yig', kuchli bo'l!</h2>
+      <h2>Tanga yig'ing, kuchli bo'ling!</h2>
       <div class="toon-bar"><i class="g"></i><i class="y"></i><i class="r"></i></div>
-      <p>Yuqoridagi chiziq bu sening kuching. Tanga yig'sang to'ladi, tugasa yiqilasan!</p>
+      <p>Yuqoridagi chiziq: sizning kuchingiz. Tanga yig'sangiz to'ladi, tugasa yiqilasiz!</p>
       <button class="toon-btn" data-a="next">Tushundim</button>`,
       { next: () => {
         el.kuch.classList.remove("spot"); buzz("light");

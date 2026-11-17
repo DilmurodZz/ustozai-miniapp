@@ -232,7 +232,7 @@ function Natija() {
     </div>
     <p class="jobs"><b>Kasblar:</b> ${p.jobs.join(", ")}</p>
   </div>
-  <div class="section-title">Senga tavsiya etilgan kurslar</div>
+  <div class="section-title">Sizga tavsiya etilgan kurslar</div>
   ${p.courses.map(([i, n]) => `<a class="list-item" href="#/kurslar">${chip(i, "sm")}${n}${ic("chev", "chev")}</a>`).join("")}
   <div style="margin-top:16px"><button class="btn-primary" onclick="shareResult()">${ic("send")} Do'stlarga ulashish</button></div>
   <button class="btn-ghost" onclick="quiz={i:0,scores:{}};location.hash='#/kompas'">Qaytadan topshirish</button>`;
@@ -240,7 +240,7 @@ function Natija() {
 window.shareResult = () => {
   const p = PERSONAS[store.get("result")];
   const link = `https://t.me/${BOT}?start=ref_${user.id}`;
-  const text = `Men ${p.name} ekanman! Sen kimsan? Kasb Kompasini 90 soniyada top`;
+  const text = `Men ${p.name} ekanman! Siz kimsiz? Kasb Kompasini 90 soniyada toping`;
   const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
   haptic();
   if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
@@ -262,7 +262,7 @@ function Tanlov() {
   <div class="card lb-list">${rows.map((r, i) => `<div class="lb-row ${r[0] === me ? "me" : ""}">
     <span class="rank ${i < 3 ? "r" + (i + 1) : ""}">${i + 1}</span>
     <span class="lb-name"><b>${esc(r[0])}</b><small>${fmt(r[1])} ball</small></span>
-    <span class="delta ${r[2] > 0 ? "up" : r[2] < 0 ? "down" : "same"}">${r[2] > 0 ? "▲ " + r[2] : r[2] < 0 ? "▼ " + -r[2] : "–"}</span></div>`).join("")}</div>
+    <span class="delta ${r[2] > 0 ? "up" : r[2] < 0 ? "down" : "same"}">${r[2] > 0 ? "▲ " + r[2] : r[2] < 0 ? "▼ " + -r[2] : "·"}</span></div>`).join("")}</div>
   <p class="note">Namuna ma'lumotlar: haqiqiy natijalar tanlov yakunida qo'shiladi</p>
   <a class="btn-primary" href="#/kompas">Men ham qatnashaman</a>`;
 }
