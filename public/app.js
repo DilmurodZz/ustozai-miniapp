@@ -388,6 +388,14 @@ if (tg) {
   el.onclick = done;
   setTimeout(done, 2300);
 })();
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+if ("serviceWorker" in navigator) {
+  // when a new version has been published, reload once so the user sees it straight away
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || sessionStorage.getItem("uz_reloaded")) return;
+    sessionStorage.setItem("uz_reloaded", "1"); location.reload();
+  });
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((r) => r.update()).catch(() => {});
+}
 if (!location.hash) location.replace("#/");
 render();
