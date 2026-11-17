@@ -570,3 +570,5 @@ a { color: inherit; text-decoration: none; }
 @keyframes introUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes introBar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @media (prefers-reduced-motion: reduce) { .intro * { animation: none !important; } }
+.tile4.k2 img[src$='ic-zkt.webp'] { max-width: none; width: 64px; height: 64px; padding: 6px 8px; box-sizing: border-box; mix-blend-mode: normal; filter: drop-shadow(0 6px 10px rgba(42,123,213,.28)); }
+.tile4.k2 { background: linear-gradient(180deg, #F3F8FF, #E1EEFD); }

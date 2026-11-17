@@ -133,7 +133,7 @@ window.goBack = () => { if (typeof Game !== "undefined" && gameOn && Game.onBack
 
 /* ---------- screens ---------- */
 function Home() {
-  const tiles = [["game", "O'yin", "#/oyin", "k1"], ["trophy", "Tanlov", "#/tanlov", "k2"], ["sale", "Top 20 chegirmalar", "#/chegirma", "k3"], ["tools", "Foydali vositalar", "#/vositalar", "k4"]];
+  const tiles = [["game", "O'yin", "#/oyin", "k1"], ["zkt", "Tanlov", "#/tanlov", "k2"], ["sale", "Top 20 chegirmalar", "#/chegirma", "k3"], ["tools", "Foydali vositalar", "#/vositalar", "k4"]];
   const res = store.get("result");
   return `
   <div class="topbar"><div class="brand"><img class="logo" src="logo.png" alt="">USTOZ AI</div></div>
