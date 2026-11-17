@@ -112,6 +112,7 @@ const ICONS = {
   ar: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M12 7l4.5 2.5v5L12 17l-4.5-2.5v-5zM12 12v5M12 12l4.5-2.5M12 12 7.5 9.5"/>',
   map: '<path d="M9 4 3 6.5V20l6-2.5 6 2.5 6-2.5V4l-6 2.5zM9 4v13.5M15 6.5V20"/>',
   users: '<circle cx="9" cy="8" r="3.2"/><path d="M3 19a6 6 0 0 1 12 0M16 4.6a3 3 0 0 1 0 6M17.6 13.6A5.6 5.6 0 0 1 21 19"/>',
+  camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>',
   hand: '<path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V12M11 11V4.5a1.5 1.5 0 0 1 3 0V12M14 11.5V6a1.5 1.5 0 0 1 3 0v8a7 7 0 0 1-7 7c-2.5 0-4-1.3-5.4-3.4L3 14.5a1.5 1.5 0 0 1 2.5-1.6L8 16"/>',
 };
 const ic = (name, cls = "") => `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
@@ -252,27 +253,7 @@ window.shareResult = () => {
   if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
 };
 
-let lbTab = "viloyat";
-const LB_ICON = { viloyat: "pin", maktab: "school", otm: "cap" };
-function Tanlov() {
-  const rows = LEADERBOARD[lbTab], top = rows.slice(0, 3);
-  const me = lbTab === "viloyat" ? "Samarqand viloyati" : null;
-  const short = (n) => n.replace(" viloyati", "").replace(" shahri", "");
-  const pod = (r, i, cls) => `<div class="pod ${cls}"><div class="av">${ic(LB_ICON[lbTab])}</div><b>${esc(short(r[0]))}</b><small>${fmt(r[1])} ball</small><div class="stand">${i + 1}</div></div>`;
-  return `${navbar("Tanlov")}
-  <div class="lb-head">
-    <img class="zkt-logo" src="img/zkt-logo.png" alt="Zamonaviy kasblar tanlovi"><p>Maktab va OTMlar o'rtasida hududiy reyting</p>
-    <div class="podium">${pod(top[1], 1, "second")}${pod(top[0], 0, "first")}${pod(top[2], 2, "third")}</div>
-  </div>
-  <div class="seg">${[["viloyat", "Viloyat"], ["maktab", "Maktab"], ["otm", "OTM"]].map(([k, l]) => `<button class="${k === lbTab ? "on" : ""}" onclick="setLb('${k}')">${l}</button>`).join("")}</div>
-  <div class="card lb-list">${rows.map((r, i) => `<div class="lb-row ${r[0] === me ? "me" : ""}">
-    <span class="rank ${i < 3 ? "r" + (i + 1) : ""}">${i + 1}</span>
-    <span class="lb-name"><b>${esc(r[0])}</b><small>${fmt(r[1])} ball</small></span>
-    <span class="delta ${r[2] > 0 ? "up" : r[2] < 0 ? "down" : "same"}">${r[2] > 0 ? "▲ " + r[2] : r[2] < 0 ? "▼ " + -r[2] : "·"}</span></div>`).join("")}</div>
-  <p class="note">Namuna ma'lumotlar: haqiqiy natijalar tanlov yakunida qo'shiladi</p>
-  <a class="btn-primary" href="#/kompas">Men ham qatnashaman</a>`;
-}
-window.setLb = (k) => { lbTab = k; haptic(); render(); };
+// Tanlov lives in tanlov.js (loaded when the page opens)
 
 function Profil() {
   if (typeof loadColors === "function") setTimeout(loadColors, 0);
@@ -370,7 +351,7 @@ function bindDuo() {
 
 /* ---------- router ---------- */
 const ROUTES = {
-  "#/": Home, "#/kompas": Kompas, "#/natija": Natija, "#/tanlov": Tanlov, "#/profil": Profil,
+  "#/": Home, "#/kompas": Kompas, "#/natija": Natija, "#/tanlov": () => needScript("tanlov.js", "Contest", "Screen", T("Tanlov")), "#/profil": Profil,
   "#/kurslar": () => Kurslar.List(), "#/kurs": () => Kurslar.Detail(location.hash.slice(7)), "#/oyin": () => "", "#/mutolaa": () => Soon("mutolaa"),
   "#/duo": DuoScreen, "#/chegirma": () => Soon("chegirma"), "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/admin": () => AdminScreen(), "#/kashf": () => Soon("kashf"),
 };
@@ -388,6 +369,13 @@ function loadScripts(files) {
 }
 const loadGame = () => typeof Game !== "undefined" ? Promise.resolve() : loadScripts(["run-audio.js", "run-world.js", "game.js"]);
 const loadTools = () => typeof Tools !== "undefined" ? Promise.resolve() : loadScripts(["tools.js"]);
+// a screen whose code is in its own file: show a spinner, load the file, then draw the screen
+function needScript(file, name, fn, title) {
+  if (typeof window[name] !== "undefined" || (name === "Contest" && typeof Contest !== "undefined")) return (window[name] || Contest)[fn]();
+  const h = location.hash;
+  loadScripts([file]).then(() => { if (location.hash === h) render(); }).catch(() => toast(T("Yuklab bo'lmadi")));
+  return `${navbar(title)}${spinner()}`;
+}
 const spinner = () => `<div class="busy"><div class="run-spin"></div><p>${T("Yuklanmoqda…")}</p></div>`;
 function needTools(screen) {
   if (typeof Tools !== "undefined") return Tools[screen]();

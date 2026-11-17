@@ -71,6 +71,7 @@ export default {
     }
     if (url.pathname === "/track" && req.method === "POST") return track(req, env, url, origin);
     if (url.pathname === "/stats" && req.method === "GET") return json(await stats(env), 200, origin);
+    if (url.pathname === "/winners" && req.method === "GET") return winners(origin);
     if (url.pathname === "/file" && req.method === "POST") return sendFile(req, env, url, origin);
     if (url.pathname.startsWith("/dl/") && req.method === "GET") {
       const [, , id, name] = url.pathname.split("/");
@@ -218,4 +219,33 @@ async function admin(req, env, url, origin) {
     return json({ sent, failed, next: rows.length === BATCH ? rows[rows.length - 1].id : null }, 200, origin);
   }
   return json({ error: "not found" }, 404, origin);
+}
+
+/* ---------- Zamonaviy kasblar tanlovi winners ----------
+   Read from the competition site's own database (zamonaviykasblar2026.uz publishes them there from its admin panel),
+   so new winners appear in the Mini App by themselves. Only public fields are passed on: name, region, district,
+   direction, stage and place. Kept for 5 minutes, so the database is read at most a few times an hour. */
+const FS = "https://firestore.googleapis.com/v1/projects/ustoz-ai-zamonaviy-kasblar/databases/(default)/documents/winners";
+const FS_KEY = "AIzaSyCP7Nt9wOBRGY5krAhgtIGTB1tn_HInmaE";   // the site's public web key (access is set by Firestore rules)
+async function winners(origin) {
+  const cache = caches.default, key = new Request("https://cache.local/winners-v2");
+  let hit = await cache.match(key);
+  if (!hit) {
+    const rows = []; let tok = "";
+    for (let i = 0; i < 30; i++) {
+      const r = await fetch(`${FS}?pageSize=300&key=${FS_KEY}${tok ? "&pageToken=" + encodeURIComponent(tok) : ""}`);
+      if (!r.ok) return json({ error: "source " + r.status }, 502, origin);
+      const d = await r.json();
+      for (const doc of d.documents || []) {
+        const f = doc.fields || {}, s = (k) => (f[k] && (f[k].stringValue ?? f[k].integerValue ?? f[k].timestampValue)) || "";
+        if (!s("name")) continue;
+        rows.push({ n: s("name"), r: s("region"), t: s("district"), d: s("direction"), s: s("stage"), p: Number(s("place")) || 1, at: s("publishedAt").slice(0, 10) });
+      }
+      tok = d.nextPageToken; if (!tok) break;
+    }
+    hit = new Response(JSON.stringify({ updated: new Date().toISOString(), winners: rows }), { headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=300" } });
+    await cache.put(key, hit.clone());
+  }
+  const body = await hit.text();
+  return new Response(body, { headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=120", ...cors(origin) } });
 }
