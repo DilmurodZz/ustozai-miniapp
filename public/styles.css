@@ -678,6 +678,15 @@ body.fit .tile4 img { max-width: clamp(48px, 8vh, 70px); }
 .kd-job-t { flex: 1; min-width: 0; }
 .kd-job-t b { display: block; font-size: 13.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kd-job-t small { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kd-job-t small em { display: block; margin-top: 2px; font-style: normal; font-size: 11.5px; color: var(--muted); }
+.kd-job-t small em.new { color: #15803D; font-weight: 600; }
+.kd-filter { display: flex; gap: 6px; margin: 0 0 8px; overflow-x: auto; scrollbar-width: none; }
+.kd-filter button { display: inline-flex; align-items: center; gap: 5px; flex: none; padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--text); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.kd-filter button .ic { width: 14px; height: 14px; }
+.kd-filter button i { font-style: normal; font-size: 11.5px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--bg); color: var(--muted); }
+.kd-filter button.on { background: var(--p1); border-color: var(--p1); color: #fff; }
+.kd-filter button.on i { background: rgba(255,255,255,.22); color: #fff; }
+.kd-filter button:disabled { opacity: .45; cursor: default; }
 .kd-job-s { flex: none; text-align: right; font-size: 12.5px; font-weight: 700; color: #15803D; }
 .kd-job-s i { display: flex; align-items: center; justify-content: flex-end; gap: 2px; font-style: normal; font-size: 11px; font-weight: 500; color: var(--muted); }
 .kd-job-s .ic { width: 12px; height: 12px; }

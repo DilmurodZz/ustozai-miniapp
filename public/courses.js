@@ -15,7 +15,21 @@ const Kurslar = (() => {
   const money = (lo, hi) => (lo && hi && hi !== lo ? `${n1(lo)}-${n1(hi)} mln so'm` : lo ? `${n1(lo)} mln so'mdan` : hi ? `${n1(hi)} mln so'mgacha` : "Maosh kelishiladi");
   // demand by the number of matching vacancies in 30 days (see tools/build_kurslar.py)
   const demandTone = (n) => (n >= 300 ? "hi" : n >= 100 ? "up" : n >= 30 ? "mid" : "lo");
-  const pct = (x) => n1(x < 1 ? x : Math.round(x * 10) / 10);
+  // "Bugun", "Kecha", "3 kun oldin" from a YYYY-MM-DD date; published in the last 3 days counts as new
+  const daysAgo = (d) => { const t = new Date(); t.setHours(0, 0, 0, 0); return Math.max(0, Math.round((t - new Date(d + "T00:00:00")) / 864e5)); };
+  const ago = (d) => { const n = daysAgo(d); return n === 0 ? "Bugun" : n === 1 ? "Kecha" : `${n} kun oldin`; };
+  const recent = (d) => daysAgo(d) <= 3;
+  let jobFilter = "all", jobLists = { all: [], rem: [] };
+  const jobRows = (list) => list.map((j) => `<button class="kd-job" ${ext(j.u)}>
+        <span class="kd-job-t"><b>${esc(j.t)}</b><small>${esc(j.e)}${j.c ? ", " + esc(j.c) : ""}${j.r ? ", masofaviy" : ""}<em class="${recent(j.d) ? "new" : ""}">${ago(j.d)}</em></small></span>
+        <span class="kd-job-s">${money(j.lo, j.hi)}<i>hh.uz ${ic("chev")}</i></span></button>`).join("");
+  window.kJobs = (f) => {
+    if (f === jobFilter || !jobLists[f].length) return;
+    jobFilter = f; haptic("light");
+    const box = document.getElementById("kd-jobs");
+    if (box) box.innerHTML = jobRows(jobLists[f]);
+    document.querySelectorAll(".kd-filter button").forEach((b) => b.classList.toggle("on", b.dataset.f === f));
+  };
   const KIND_ORDER = { job: 0, general: 1, hobby: 2, study: 3 };
   const kindTag = { general: "Har qanday ish uchun", hobby: "Hobbi va ijod", study: "Bilim uchun" };
   const open = (url) => { try { if (tg && tg.openLink) return tg.openLink(url); } catch {} window.open(url, "_blank", "noopener"); };
@@ -56,7 +70,7 @@ const Kurslar = (() => {
           <b>${esc(c.title)}</b>
           <small>${esc(c.teacher || "Ustoz AI")}</small>
           <span class="kc-meta">${c.rating ? `<i class="star">${ic("star")}${n1(c.rating)}</i>` : ""}${c.students ? `<i>${ic("user")}${fmt(c.students)}</i>` : ""}${c.lessons ? `<i>${ic("play")}${c.lessons} dars</i>` : ""}</span>
-          ${g.kind === "job" ? `<span class="kc-tag ${demandTone(g.related)}">Talab ${g.level.toLowerCase()}: ${fmt(g.related)} ta ish, ${pct(g.share)}%</span>` : `<span class="kc-tag info">${kindTag[g.kind]}</span>`}
+          ${g.kind === "job" ? `<span class="kc-tag ${demandTone(g.related)}">Talab ${g.level.toLowerCase()}: ${fmt(g.related)} ta ish</span>` : `<span class="kc-tag info">${kindTag[g.kind]}</span>`}
         </span></a>`;
     }).join("") || `<p class="note">Hech narsa topilmadi</p>`}</div>`;
   }
@@ -87,12 +101,17 @@ const Kurslar = (() => {
       ${isJob && g.noexp != null && g.noexp < 10 ? `<p>Bu sohada vakansiyalarning atigi ${g.noexp}% qismi tajribasiz nomzodlarni qabul qiladi, shuning uchun birinchi ish ko'pincha stajirovka yoki yordamchi lavozim bo'ladi.</p>` : ""}
     </section>`;
 
-    const jobs = (g.jobs || []).map((j) => `<button class="kd-job" ${ext(j.u)}>
-        <span class="kd-job-t"><b>${esc(j.t)}</b><small>${esc(j.e)}${j.c ? ", " + esc(j.c) : ""}${j.r ? ", masofaviy" : ""}</small></span>
-        <span class="kd-job-s">${money(j.lo, j.hi)}<i>hh.uz ${ic("chev")}</i></span></button>`).join("");
-    const olx = (g.olx || []).filter((j) => !j.s || (j.cur === "UZS" ? j.s >= 250000 : j.s >= 20)).map((j) => `<button class="kd-job" ${ext(j.u)}>
-        <span class="kd-job-t"><b>${esc(j.t)}</b><small>${esc(j.c || "O'zbekiston")}</small></span>
-        <span class="kd-job-s">${j.s && j.cur === "UZS" ? `${n1(Math.round(j.s / 500000) / 2)} mln so'm` : j.s && j.cur === "USD" ? `${fmt(j.s)} $` : "Kelishiladi"}<i>OLX ${ic("chev")}</i></span></button>`).join("");
+    // hh.uz vacancies (only 3.5 mln so'm a month and more, newest first) with an "all / remote" filter
+    const all = g.jobs || [], shown = all.slice(0, g.jobsShown != null ? g.jobsShown : all.length), remote = all.filter((j) => j.r);
+    jobLists = { all: shown, rem: remote };
+    if (!remote.length) jobFilter = "all";
+    const jobs = all.length ? `<div class="kd-filter" role="tablist">
+        <button class="${jobFilter === "all" ? "on" : ""}" data-f="all" onclick="kJobs('all')">Barchasi <i>${shown.length}</i></button>
+        <button class="${jobFilter === "rem" ? "on" : ""}" data-f="rem" onclick="kJobs('rem')" ${remote.length ? "" : "disabled"}>${ic("globe")} Masofaviy (onlayn) <i>${remote.length}</i></button>
+      </div><div class="kd-jobs" id="kd-jobs">${jobRows(jobLists[jobFilter])}</div>` : "";
+    const olx = (g.olx || []).map((j) => `<button class="kd-job" ${ext(j.u)}>
+        <span class="kd-job-t"><b>${esc(j.t)}</b><small>${esc(j.c || "O'zbekiston")}${j.d ? `<em class="${recent(j.d) ? "new" : ""}">${ago(j.d)}</em>` : ""}</small></span>
+        <span class="kd-job-s">${n1(j.m)} mln so'm<i>OLX ${ic("chev")}</i></span></button>`).join("");
     const olxSearch = g.q ? `https://www.olx.uz/rabota/q-${encodeURIComponent(g.q)}/` : "https://www.olx.uz/rabota/";
     const hhSearch = g.kind === "general" && g.q ? `https://hh.uz/search/vacancy?experience=noExperience&area=97` : `https://hh.uz/search/vacancy?text=${encodeURIComponent(g.q || c.title)}&area=97`;
     const pay = g.medianMln
@@ -102,17 +121,18 @@ const Kurslar = (() => {
     const note = g.note ? `<p>${esc(g.note)}</p>` : "";
 
     let body;
-    if (isJob) body = `<p>Biz so'nggi 30 kunda hh.uz'da e'lon qilingan <b>${fmt(s.analyzed)} ta vakansiyani</b> tahlil qildik. Ulardan <b>${fmt(g.related)} tasi (${pct(g.share)}%)</b> aynan shu kurs o'rgatadigan kasb yoki ko'nikmani so'raydi. Talab: <b>${g.level.toLowerCase()}</b>.</p>
+    if (isJob) body = `<p>Biz so'nggi 30 kunda hh.uz'da e'lon qilingan <b>${fmt(s.analyzed)} ta vakansiyani</b> tahlil qildik. Ulardan <b>${fmt(g.related)} tasi</b> aynan shu kurs o'rgatadigan kasb yoki ko'nikmani so'raydi. Talab: <b>${g.level.toLowerCase()}</b>.</p>
         ${pay}${note}
         ${g.related < 10 ? `<p>Bu yo'nalishda hozir vakansiyalar juda kam. Daromad ko'proq frilans buyurtmalar yoki o'z ishingiz orqali keladi.</p>` : ""}
         <p>${g.strong && c.sec >= 3 * 3600 ? `Bu kurs sizga <b>${esc(g.job)}</b> lavozimlariga kuchli rezyume bilan ariza topshirishingizga yordam beradi.` : `Bu kurs <b>${esc(g.job)}</b> ishiga kirish uchun asos beradi. Ishga tayyor bo'lish uchun kursdan keyin amaliyot va qo'shimcha ko'nikmalarni ham o'rganing.`}</p>`;
-    else if (hasJobs) body = `${note}<p>Biz so'nggi 30 kunda hh.uz'da e'lon qilingan <b>${fmt(s.analyzed)} ta vakansiyani</b> tahlil qildik. Ulardan <b>${fmt(g.related)} tasi (${pct(g.share)}%)</b> tajribasiz nomzodlarni ham qabul qiladi.</p>${pay}`;
+    else if (hasJobs) body = `${note}<p>Biz so'nggi 30 kunda hh.uz'da e'lon qilingan <b>${fmt(s.analyzed)} ta vakansiyani</b> tahlil qildik. Ulardan <b>${fmt(g.related)} tasi</b> tajribasiz nomzodlarni ham qabul qiladi.</p>${pay}`;
     else body = note;
 
     const earn = `<section class="kd-card earn">
       <h3>${ic("trend")} ${hasJobs ? "Bu orqali qanday pul topsa bo'ladi?" : "Bu kurs sizga nima beradi?"}</h3>
       ${body}
-      ${jobs ? `<h4>${isJob ? "Hozir ochiq vakansiyalar: hh.uz" : "Tajribasiz qabul qiladigan vakansiyalar: hh.uz"}</h4><div class="kd-jobs">${jobs}</div>` : ""}
+      ${hasJobs ? `<h4>${isJob ? "Hozir ochiq vakansiyalar: hh.uz" : "Tajribasiz qabul qiladigan vakansiyalar: hh.uz"}</h4>
+        ${jobs || `<p class="kd-src">Hozir maoshi oyiga 3,5 mln so'm va undan yuqori ko'rsatilgan vakansiya topilmadi. Barcha e'lonlarni hh.uz'da ko'ring.</p>`}` : ""}
       ${olx ? `<h4>OLX.uz e'lonlari</h4><div class="kd-jobs">${olx}</div>` : ""}
       ${hasJobs ? `<div class="kd-more"><button ${ext(hhSearch)}>hh.uz'da ko'proq</button><button ${ext(olxSearch)}>OLX.uz'da ko'proq</button></div>` : ""}
     </section>`;

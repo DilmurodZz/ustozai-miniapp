@@ -42,7 +42,7 @@ G = [
   dict(k="copy", name="Kopirayting va ssenariy", kind="job", inc=r"копирайт|copywrit|сценарист|scriptwriter|редактор|корректор|режисс", exc=r"видеоредактор|видеомонтаж|ux-|звукорежисс", job="kopirayter, ssenariynavis, muharrir", hint="kopirayter", months=[3, 6], strong=True),
   dict(k="pr", name="PR va brend", kind="job", inc=r"\bpr\b|пиар|бренд.?менедж|бренд-журналист|brand manager|маркетинговым коммуникац|связ\w* с общественност", exc=r"продаж|sales|ibm", job="PR-menejer, brend-menejer", hint="PR menejer", months=[6, 12], strong=True),
   dict(k="hotel", name="Mehmonxona va resepshn", kind="job", roles=[8, 140], inc=r"ресепшн|ресепшен|reception|портье|front desk|гостиниц|hotel|хостес", exc=r"системн|сетев|баз\w* данных|database|system admin|1с|пвз|повар|oshpaz|официант|логист|кассир|управляющ|integrator", job="resepshn xodimi, administrator", hint="resepshn", months=[1, 3], strong=True),
-  dict(k="drive", name="Haydovchilik", kind="job", roles=[21], inc=r"\bводител|haydovchi|\bdriver|таксист|шофер", exc=r"recruit|рекрут|диспетчер|подключени|менеджер|экскаватор|ekskavator|машинист|safety", job="haydovchi", hint="haydovchi", months=[3, 6], mnote="guvohnoma olish bilan birga", strong=True,
+  dict(k="drive", name="Haydovchilik", kind="job", roles=[21], inc=r"\bводител|haydovchi|\bdriver|таксист|шофер", exc=r"recruit|рекрут|диспетчер|подключени|менеджер|экскаватор|ekskavator|машинист|safety|привлечен|активац", job="haydovchi", hint="haydovchi", months=[3, 6], mnote="guvohnoma olish bilan birga", strong=True,
        note="Bu kurs haydovchilik guvohnomasini olishga tayyorlaydi. Haydovchi bo'lib ishlash uchun guvohnoma va odatda haydash tajribasi so'raladi."),
   dict(k="hr", name="HR va kadrlar", kind="job", roles=[118, 69, 117, 38, 171, 153], inc=r"\bhr\b|рекрут|recruit|кадр|talent", job="HR menejer, rekruter", hint="HR menejer", months=[4, 8], strong=True),
   dict(k="remote", name="Frilans va masofaviy ish", kind="job", remote=True, job="masofaviy (onlayn) ish", hint="masofaviy ish", months=[2, 4], strong=False),
@@ -65,7 +65,7 @@ G = [
   dict(k="target", name="Targeting va onlayn reklama", kind="job", inc=r"таргет|target|\bppc\b|контекстн\w* реклам|performance|медиабай|трафик|google ads|meta ads|telegram ads|digital-маркет|digital маркет|интернет-маркет", job="targetolog, internet-marketolog", hint="targetolog", months=[3, 6], strong=True),
   dict(k="p3d", name="3D printer va 3D", kind="job", inc=r"\b3d|\b3д|аддитив", job="3D modellashtirish va 3D bosma bo'yicha mutaxassis", hint="3D", months=[6, 12], mnote="3D modellashtirishni ham o'rgansangiz", strong=False,
        note="Vakansiyalarning ko'pi 3D modellashtirishni so'raydi. Bu kurs esa 3D printerda chop etishni o'rgatadi, shuning uchun keyin 3D modellashtirishni ham o'rganing."),
-  dict(k="cook", name="Oshpazlik", kind="job", roles=[94], inc=r"повар|oshpaz|кондитер|пекар|\bcook\b|\bchef\b|шеф-повар|сушист|пиццамейкер|пиццмейкер", exc=r"мойщ|официант|бармен|директор|кадр|инспектор|продав", job="oshpaz, qandolatchi", hint="oshpaz", months=[2, 4], strong=True),
+  dict(k="cook", name="Oshpazlik", kind="job", roles=[94], inc=r"повар|oshpaz|кондитер|пекар|\bcook\b|\bchef\b|шеф-повар|сушист|пиццамейкер|пиццмейкер", exc=r"мойщ|официант|бармен|директор|кадр|инспектор|продав|уборщ", job="oshpaz, qandolatchi", hint="oshpaz", months=[2, 4], strong=True),
   dict(k="guide", name="Gid (ekskursiya)", kind="job", inc=r"\bгид\b|экскурсовод|tour guide|\bgid\b", exc=r"avo|аво", job="gid, ekskursovod", hint="gid", months=[2, 4], strong=True,
        note="Gidlar ko'pincha mavsumiy ishlaydi va buyurtmalarni turistik firmalar, mehmonxonalar va internet orqali o'zlari topadi."),
   dict(k="tour", name="Tur-agent", kind="job", roles=[72], inc=r"турагент|туроператор|travel|туризм|\btour", exc=r"гид-водител|avo|аво|бухгалт", job="tur-agent, turizm menejeri", hint="tur-agent", months=[2, 4], strong=True),
@@ -216,6 +216,8 @@ def load_vac(path):
   V = [dict(zip(h, r)) for r in rows if r and r[0]]
   return V, fx
 
+MIN_PAY = 3.5   # mln so'm a month: lower paid vacancies and ads are not shown
+
 def mln(x): return None if x is None else round(x / 1e6 * 2) / 2 if x >= 1e6 else round(x / 1e6, 1)
 
 def main():
@@ -254,6 +256,10 @@ def main():
     if t in tr: return tr[t]
     need.add(t); return t
 
+  # "recent" = published in the last 3 days of the data (the newest date and the 2 days before it)
+  last = max(str(v["published_at"])[:10] for v in V)
+  RECENT = (datetime.date.fromisoformat(last) - datetime.timedelta(days=2)).isoformat()
+
   groups = {}
   for g in G:
     out = dict(name=g["name"], kind=g["kind"], note=g.get("note"), q=Q.get(g["k"]))
@@ -274,26 +280,34 @@ def main():
         out["tashkent"] = round(sum(str(v["tashkent"]) == "1" for v in hit) / len(hit) * 100)
         out["remote"] = round(sum(v["_rem"] for v in hit) / len(hit) * 100)
       # vacancies to show: newest first, ones with a monthly salary first, no repeats
-      # vacancies whose own title names the job come first, then ones with a salary, newest first
+      # vacancies to show: only a monthly salary of at least MIN_PAY mln so'm (the lower figure when both are given),
+      # published in the last 3 days first, then ones whose own title names the job, newest first, no repeats.
+      # Up to 10 for "all" plus up to 8 more remote ones for the "Masofaviy" filter.
       named = re.compile(g["inc"], re.I) if g.get("inc") else None
-      seen, jobs = set(), []
-      for v in sorted(hit, key=lambda v: (bool(named and named.search(v["_t"])), v["_sal"] is not None, str(v["published_at"])), reverse=True):
+      seen, shown, remote = set(), [], []
+      for v in sorted(hit, key=lambda v: (str(v["published_at"])[:10] >= RECENT, bool(named and named.search(v["_t"])), str(v["published_at"])), reverse=True):
         key = (v["_t"].lower(), str(v["employer_name"]).lower())
         if key in seen: continue
-        seen.add(key)
         rate = fx.get(v["currency"]) if v["pay_mode"] == "MONTH" else None
         lo = mln(v["salary_from"] * rate) if rate and v["salary_from"] else None
         hi = mln(v["salary_to"] * rate) if rate and v["salary_to"] else None
-        jobs.append(dict(t=uz_title(v["_t"]), src=v["_t"], e=translit(str(v["employer_name"] or "")), c=city(v["city"]), u=v["url"], lo=lo, hi=hi, r=int(v["_rem"]), d=str(v["published_at"])[:10]))
-        if len(jobs) == 8: break
-      out["jobs"] = jobs
+        if (lo or hi or 0) < MIN_PAY: continue
+        seen.add(key)
+        if len(shown) >= 10 and not (v["_rem"] and len(remote) < 8): continue
+        j = dict(t=uz_title(v["_t"]), src=v["_t"], e=translit(str(v["employer_name"] or "")), c=city(v["city"]), u=v["url"], lo=lo, hi=hi, r=int(v["_rem"]), d=str(v["published_at"])[:10])
+        (shown if len(shown) < 10 else remote).append(j)
+        if len(shown) == 10 and (len(remote) == 8 or len([x for x in shown if x["r"]]) + len(remote) >= 8): break
+      out["jobs"] = shown + remote
+      out["jobsShown"] = len(shown)
       # OLX ads whose own title matches this course type
       if g.get("inc") and not g.get("noexp"):
         inc, exc = re.compile(g["inc"], re.I), re.compile(g["exc"], re.I) if g.get("exc") else None
-        olx = [o for o in pool if inc.search(o["t"]) and not (exc and exc.search(o["t"])) and not OFFER.search(o["t"])]
+        # salary in mln so'm ("UYE" on OLX means US dollars)
+        pay = lambda o: o["s"] / 1e6 if o.get("cur") == "UZS" else o["s"] * fx["USD"] / 1e6 if o.get("s") else 0
+        olx = [o for o in pool if inc.search(o["t"]) and not (exc and exc.search(o["t"])) and not OFFER.search(o["t"]) and pay(o) >= MIN_PAY]
         olx.sort(key=lambda o: o.get("d", ""), reverse=True)
         olx = list({o["t"].strip().lower(): o for o in reversed(olx)}.values())[::-1]   # one ad per title
-        out["olx"] = [dict(o, t=uz_title(o["t"]), src=o["t"], c=city(o.get("c"))) for o in olx[:4]]
+        out["olx"] = [dict(t=uz_title(o["t"]), src=o["t"], u=o["u"], c=city(o.get("c")), m=round(pay(o) * 2) / 2, d=o.get("d")) for o in olx[:4]]
     groups[g["k"]] = out
 
   # demand level by the number of matching vacancies in 30 days
