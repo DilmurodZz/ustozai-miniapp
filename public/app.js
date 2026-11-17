@@ -134,9 +134,8 @@ window.goBack = () => { if (typeof Game !== "undefined" && gameOn && Game.onBack
 /* ---------- screens ---------- */
 function Home() {
   const tiles = [["game", "O'yin", "#/oyin", "k1"], ["zkt", "Tanlov", "#/tanlov", "k2"], ["sale", "Top 20 chegirmalar", "#/chegirma", "k3"], ["tools", "Foydali vositalar", "#/vositalar", "k4"]];
-  const res = store.get("result");
   return `
-  <div class="topbar"><div class="brand"><img class="logo" src="logo.png" alt="">USTOZ AI</div></div>
+  <div class="topbar"><div class="brand"><img class="logo" src="logo.png" alt="">USTOZ AI</div><img class="partner" src="img/turonbank.png" alt="Turon Bank"></div>
   <a class="hero2" href="#/kompas">
     <img class="hero2-art" src="img/hero-compass.webp" alt="" decoding="async">
     <span class="hero2-tag">90 soniya</span>
@@ -149,8 +148,7 @@ function Home() {
     <svg class="banner-wave" viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 38 C70 18 130 52 210 34 S340 14 400 30 V60 H0Z" fill="rgba(255,255,255,.55)"/><path d="M0 48 C80 34 150 58 230 46 S350 32 400 42 V60 H0Z" fill="rgba(120,140,255,.18)"/></svg>
   </a>
   <div class="grid4">${tiles.map(([i, l, h, k]) => `<a class="tile4 ${k}" href="${h}"><img src="img/ic-${i}.webp" alt="" decoding="async"><span>${l}</span></a>`).join("")}</div>
-  ${res ? `<div class="section-title">Sizning natijangiz</div>
-    <a class="list-item" href="#/natija">${chip(PERSONAS[res].icon, "sm")}${PERSONAS[res].name}${ic("chev", "chev")}</a>` : ""}`;
+`;
 }
 
 let quiz = { i: 0, scores: {} };
@@ -358,6 +356,7 @@ let gameOn = false;
 function render() {
   const route = ROUTES[location.hash] ? location.hash : "#/";
   if (gameOn && route !== "#/oyin") { Game.unmount(); gameOn = false; }
+  document.body.classList.toggle("fit", route === "#/");     // Home fills the screen exactly, no scrolling
   app.innerHTML = ROUTES[route]();
   if (route === "#/oyin") { Game.mount(); gameOn = true; }
   app.style.animation = "none"; void app.offsetWidth; app.style.animation = "";

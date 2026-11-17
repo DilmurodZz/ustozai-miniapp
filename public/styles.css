@@ -572,3 +572,20 @@ a { color: inherit; text-decoration: none; }
 @media (prefers-reduced-motion: reduce) { .intro * { animation: none !important; } }
 .tile4.k2 img[src$='ic-zkt.webp'] { max-width: none; width: 64px; height: 64px; padding: 6px 8px; box-sizing: border-box; mix-blend-mode: normal; filter: drop-shadow(0 6px 10px rgba(42,123,213,.28)); }
 .tile4.k2 { background: linear-gradient(180deg, #F3F8FF, #E1EEFD); }
+
+/* partner logo in the Home header */
+.topbar { justify-content: space-between; }
+.partner { height: 22px; width: auto; display: block; opacity: .95; }
+/* Home: exactly one screen high, never scrolls; the blocks share the height of the phone */
+html:has(body.fit), body.fit { overflow: hidden; overscroll-behavior: none; }
+body.fit #app { height: var(--tg-viewport-stable-height, 100dvh); overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+body.fit .topbar { margin-bottom: clamp(8px, 1.8vh, 16px); flex: none; }
+body.fit .hero2 { flex: 1 1 0; min-height: 150px; max-height: 262px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; }
+body.fit .hero2 h3 { margin-top: clamp(6px, 1.2vh, 12px); }
+body.fit .hero2 p { margin-bottom: clamp(10px, 2vh, 18px); }
+body.fit .banner { flex: 0 1 auto; margin-top: clamp(10px, 3vh, 30px); min-height: clamp(72px, 12.5vh, 118px); }
+body.fit .banner img { width: clamp(64px, 10vh, 96px); height: clamp(64px, 10vh, 96px); }
+body.fit .grid4 { flex: none; margin-top: clamp(10px, 3vh, 30px); }
+body.fit .tile4 { min-height: clamp(104px, 19.5vh, 176px); padding: clamp(10px, 1.8vh, 16px) 4px; }
+body.fit .tile4 img { max-width: clamp(48px, 8vh, 70px); }
