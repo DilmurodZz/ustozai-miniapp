@@ -106,6 +106,31 @@ Q = {"tr": "турецкий язык", "ar": "арабский язык", "ru":
      "mobilo": "мобилограф", "target": "таргетолог", "p3d": "3D", "cook": "повар", "guide": "гид", "tour": "менеджер по туризму", "game": "Unity",
      "mobile": "Flutter", "robot": "робототехника", "trade": "трейдер", "agro": "агроном", "aiagent": "автоматизация", "stylist": "стилист", "career": "без опыта"}
 
+
+# words that link a CV to each course type, in Uzbek, Russian and English (used by the CV maker's job match)
+KW = {"tr": ["turk", "турец", "turkish"], "ar": ["arab", "араб"], "ru": ["rus tili", "русск", "russian"], "en": ["ingliz", "english", "английск", "ielts"],
+  "uz": ["o'zbek tili", "узбекск", "uzbek"], "speech": ["call", "колл", "операт", "operator", "nutq", "диктор", "boshlovchi", "telemarket", "телемаркет"],
+  "data": ["tahlil", "analit", "аналит", "analyst", "data", "excel", "power bi"], "sql": ["sql", "postgres", "ma'lumotlar bazasi", "баз данных", "database"],
+  "acc": ["buxgalter", "бухгалт", "accountant", "accounting", "1c", "1с", "hisobchi", "audit"], "pc": ["ofis", "офис", "office", "kotib", "секретар", "secretary", "assistant", "ассистент", "yordamchi"],
+  "biz": ["loyiha", "проект", "project", "rahbar", "руковод", "boshqaruv", "управля", "biznes", "бизнес", "business", "tadbirkor", "operations"],
+  "log": ["logist", "логист", "вэд", "ved", "ekspeditor", "экспедит", "dispetcher", "диспетчер", "dispatcher"], "smm": ["smm", "смм", "kontent", "контент", "content", "blog"],
+  "copy": ["kopirayt", "копирайт", "copywrit", "muharrir", "редактор", "editor", "ssenariy", "сценар"], "pr": ["pr", "brend", "бренд", "brand", "kommunikats", "коммуникац", "communications"],
+  "hotel": ["resepshn", "ресепшн", "ресепшен", "reception", "administrator", "администратор", "mehmonxona", "гостиниц", "hotel", "xostes", "хостес"],
+  "drive": ["haydovchi", "водител", "driver", "kuryer", "курьер", "courier"], "hr": ["hr", "rekruter", "рекрут", "recruit", "kadr", "кадр", "personnel", "talent", "o'qitish", "обучени", "training"],
+  "remote": ["masofaviy", "удален", "удалён", "remote", "onlayn", "frilans", "фриланс", "freelance"],
+  "arch": ["arxitektor", "архитект", "architect", "interyer", "интерьер", "interior", "autocad", "revit"], "python": ["python", "django"], "cpp": ["c++"],
+  "bot": ["bot", "бот", "backend", "node"], "web": ["frontend", "html", "sayt", "сайт", "website", "web", "веб", "javascript", "react"],
+  "aidev": ["dasturchi", "разработ", "программист", "developer", "programmer", "software", "fullstack", "full-stack"], "ai": ["sun'iy intellekt", "нейросет", "chatgpt", "prompt", "промпт", " ai ", "ai-", "ии"],
+  "design": ["dizayner", "дизайнер", "designer", "grafik", "графич", "graphic", "canva", "photoshop"], "ux": ["ux", "ui/", "figma", "product design"],
+  "illus": ["illyustrator", "иллюстр", "illustrat", "rassom", "художник", "artist"], "mp": ["marketpleys", "маркетплейс", "marketplace", "uzum", "wildberries", "e-commerce", "ecommerce"],
+  "video": ["video", "видео", "montaj", "монтаж", "videograf", "видеограф"], "mobilo": ["mobilograf", "мобилограф", "reels", "fotograf", "фотограф", "photograph"],
+  "target": ["target", "таргет", "reklama", "реклам", "ads", "marketolog", "маркетолог", "marketer", "marketing", "маркетинг"], "p3d": ["3d", "3д"],
+  "cook": ["oshpaz", "повар", "cook", "chef", "qandolat", "кондитер", "pastry"], "guide": ["gid", "гид", "guide", "ekskursovod", "экскурсовод"],
+  "tour": ["turizm", "туризм", "tourism", "tour", "travel", "turagent", "турагент", "tur-agent"], "game": ["unity", "game", "геймдев", "o'yin"],
+  "mobile": ["flutter", "android", "ios", "mobil", "мобильн", "mobile"], "robot": ["robot", "робот", "elektron", "электрон", "electronic"],
+  "trade": ["treyder", "трейдер", "trader", "birja", "бирж", "trading"], "agro": ["agronom", "агроном", "agronomist", "bog'bon", "садовн"],
+  "aiagent": ["avtomatlash", "автоматиз", "automation", "n8n", "make.com", "agent"], "stylist": ["stilist", "стилист", "stylist"]}
+
 # every course, by its exact title on ustoz.ai
 C = {
   "tr": ["Türkçe Akademi"],
@@ -262,7 +287,7 @@ def main():
 
   groups = {}
   for g in G:
-    out = dict(name=g["name"], kind=g["kind"], note=g.get("note"), q=Q.get(g["k"]))
+    out = dict(name=g["name"], kind=g["kind"], note=g.get("note"), q=Q.get(g["k"]), kw=KW.get(g["k"]))
     if g["kind"] == "job" or g.get("noexp"):
       m = matcher(g)
       hit = [v for v in V if m(v)]

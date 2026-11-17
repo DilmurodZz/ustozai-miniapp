@@ -151,7 +151,7 @@ function Home() {
     <span class="btn-orange">Boshlash ${ic("chev")}</span>
   </a>
   <a class="banner" href="#/kurslar">
-    <button class="banner-spin" onclick="event.preventDefault();event.stopPropagation();openWheel(this)" aria-label="spin"><img src="img/ic-courses.webp" alt="" decoding="async"></button><span class="banner-sep"></span><b>Kurslar</b><span class="banner-go">${ic("chev")}</span>
+    <span class="bwheel" id="bwheel" role="button" aria-label="${T("Omad g'ildiragi")}"><i class="bw-pin"></i><svg class="bw-ring" id="bw-ring" viewBox="0 0 100 100" aria-hidden="true">${bannerRing()}</svg><img src="img/ic-courses.webp" alt="" decoding="async"></span><span class="banner-sep"></span><b>Kurslar</b><span class="banner-go">${ic("chev")}</span>
     <svg class="banner-wave" viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 38 C70 18 130 52 210 34 S340 14 400 30 V60 H0Z" fill="rgba(255,255,255,.55)"/><path d="M0 48 C80 34 150 58 230 46 S350 32 400 42 V60 H0Z" fill="rgba(120,140,255,.18)"/></svg>
   </a>
   <div class="grid4">${tiles.map(([i, l, h, k]) => `<a class="tile4 ${k}" href="${h}"><img src="img/ic-${i}.webp" alt="" decoding="async"><span>${l}</span></a>`).join("")}</div>
@@ -420,6 +420,7 @@ function render() {
   if (newPage) { app.classList.remove("enter"); void app.offsetWidth; app.classList.add("enter"); }
   renderTabs(route === "#/kurs" ? "#/kurslar" : route);
   if (route === "#/kompas") bindSwipe();
+  if (route === "#/") bindBannerWheel();
   if (route === "#/duo") bindDuo(); else if (duoSubs.length) { duoSubs.forEach((u) => u()); duoSubs = []; }
   try { route === "#/" ? tg.BackButton.hide() : tg.BackButton.show(); } catch {}
   track(route);
@@ -527,3 +528,77 @@ window.spinWheel = (dir = 1, power = 1) => {
       <div class="wheel-btns"><a class="btn-ghost" href="#/kurs/${c.id}" onclick="closeWheel()">${T("Batafsil")}</a><button class="btn-primary" onclick="openApp('${esc(c.url)}')">${ic("play")} ${T("Ilovada ochish")}</button></div></div>`;
   }, { once: true });
 };
+
+
+/* ---------- the Kurslar icon on Home is itself a wheel of the 20 most in-demand courses ----------
+   swipe it up or down and it turns with the finger and keeps spinning with the speed of the swipe;
+   a tap spins it fast. Where it stops, under the small pin on top, is the course it picks. */
+const BW_N = 20, BW_SEG = 360 / BW_N;
+let bwRot = 0, bwBusy = false;
+function bannerRing() {
+  const pt = (a, r) => [50 + r * Math.sin(a * Math.PI / 180), 50 - r * Math.cos(a * Math.PI / 180)];
+  let out = "";
+  for (let i = 0; i < BW_N; i++) {
+    const [x1, y1] = pt(i * BW_SEG, 49), [x2, y2] = pt((i + 1) * BW_SEG, 49), [x3, y3] = pt((i + 1) * BW_SEG, 33), [x4, y4] = pt(i * BW_SEG, 33);
+    out += `<path d="M${x4} ${y4} L${x1} ${y1} A49 49 0 0 1 ${x2} ${y2} L${x3} ${y3} A33 33 0 0 0 ${x4} ${y4}Z" fill="${WHEEL_COLORS[i % WHEEL_COLORS.length]}" opacity="${i % 2 ? .78 : 1}"/>`;
+  }
+  return out + `<circle cx="50" cy="50" r="33" fill="#fff"/>`;
+}
+function bindBannerWheel() {
+  const el = document.getElementById("bwheel"), ring = document.getElementById("bw-ring"); if (!el || !ring) return;
+  ring.style.transform = `rotate(${bwRot}deg)`;
+  let y0 = null, r0 = 0, t0 = 0, last = [], moved = 0, lastSeg = null;
+  const setRot = (r) => { ring.style.transform = `rotate(${r}deg)`; const seg = Math.floor((((r % 360) + 360) % 360) / BW_SEG); if (lastSeg !== null && seg !== lastSeg) haptic("light"); lastSeg = seg; };
+  el.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); });
+  el.addEventListener("pointerdown", (e) => {
+    if (bwBusy) return; e.preventDefault(); e.stopPropagation();
+    try { el.setPointerCapture(e.pointerId); } catch {} y0 = e.clientY; r0 = bwRot; t0 = performance.now(); last = [[t0, y0]]; moved = 0;
+    ring.style.transition = "none"; Kurslar.load();
+  });
+  el.addEventListener("pointermove", (e) => {
+    if (y0 === null) return;
+    const dy = e.clientY - y0; moved = Math.max(moved, Math.abs(dy));
+    bwRot = r0 + dy * 1.8; setRot(bwRot);
+    last.push([performance.now(), e.clientY]); if (last.length > 6) last.shift();
+  });
+  const up = (e) => {
+    if (y0 === null) return; y0 = null; e.stopPropagation();
+    if (moved < 8) return bwSpin(1, 1.6);                              // tap: a fast spin
+    const [ta, ya] = last[0], [tb, yb] = last[last.length - 1];
+    const v = (yb - ya) / Math.max(16, tb - ta);                          // px per ms, + = downwards
+    if (Math.abs(v) < 0.15) return bwSpin(v >= 0 ? 1 : -1, 0.35);        // a slow drag: settle on the nearest course
+    bwSpin(v > 0 ? 1 : -1, Math.min(3, Math.abs(v) * 1.2));
+  };
+  el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+}
+async function bwSpin(dir, power) {
+  const ring = document.getElementById("bw-ring"); if (!ring || bwBusy) return;
+  bwBusy = true; haptic("medium");
+  if (!Kurslar.data()) { try { await Kurslar.load(); } catch {} }
+  const list = wheelCourses(); if (!list.length) { bwBusy = false; return; }
+  const pick = Math.floor(Math.random() * Math.min(BW_N, list.length));
+  // the pin is on top: turn so the middle of the picked slice stops under it, in the swipe direction
+  const target = 360 - (pick * BW_SEG + BW_SEG / 2);
+  const now = ((bwRot % 360) + 360) % 360, turns = 360 * Math.max(1, Math.round(1 + power * 2.5));
+  let delta = ((target - now) % 360 + 360) % 360;
+  if (dir < 0) delta -= 360;
+  bwRot += dir > 0 ? delta + turns : delta - turns;
+  const dur = 1.4 + power * 0.7;
+  ring.style.transition = `transform ${dur}s cubic-bezier(.15,.75,.12,1)`;
+  ring.style.transform = `rotate(${bwRot}deg)`;
+  let lastSeg = null; const t0 = performance.now();
+  const tick = () => {
+    const m = getComputedStyle(ring).transform;
+    if (m && m !== "none") { const [a, b] = m.slice(7, -1).split(",").map(Number); const seg = Math.floor((((Math.atan2(b, a) * 180 / Math.PI) % 360 + 360) % 360) / BW_SEG); if (lastSeg !== null && seg !== lastSeg) haptic("light"); lastSeg = seg; }
+    if (performance.now() - t0 < dur * 1000) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  setTimeout(() => {
+    bwBusy = false; try { tg.HapticFeedback.notificationOccurred("success"); } catch {}
+    const c = list[pick], g = Kurslar.data().groups[c.g];
+    sheet(`<div class="bw-res"><small>${T("G'ildirak tanladi")}</small><b class="notr">${esc(c.title)}</b><span class="notr">${esc(c.teacher || "Ustoz AI")}${c.students ? ` · ${T("{n} o'quvchi", { n: fmtN(c.students) })}` : ""}</span>
+      <em class="kc-tag up">${T("{n} ta ish o'rni", { n: fmtN(g.related) })}</em></div>
+      <div class="wheel-btns"><button class="btn-ghost" onclick="closeSheet();location.hash='#/kurs/${c.id}'">${T("Batafsil")}</button><button class="btn-primary" onclick="openApp('${esc(c.url)}')">${ic("play")} ${T("Ilovada ochish")}</button></div>
+      <button class="btn-ghost" onclick="closeSheet();setTimeout(()=>bwSpin(1,1.6),300)">${ic("refresh")} ${T("Yana aylantirish")}</button>`);
+  }, dur * 1000 + 60);
+}

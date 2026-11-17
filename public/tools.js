@@ -199,18 +199,24 @@ const Tools = (() => {
     const soon = [["calc", T("DTM ball kalkulyatori va OTM kirish ballari")], ["mic", T("IELTS ball kalkulyatori va AI speaking sherigi")], ["clock", T("Imtihonlarga qolgan vaqt")], ["cap", T("Grant va stipendiyalar qidiruvi")]];
     return `${navbar(T("Foydali vositalar"))}
     <a class="card tool-cv" href="#/cv">
-      <div class="tool-top">${chip("file", "solid")}<span><b>${T("CV, rezyume va obyektivka")}</b><small>${T("Bepul, 3 tilda, tayyor namunalar bilan")}</small></span><em class="tool-free">${T("Bepul")}</em></div>
-      <div class="tool-thumbs four">${TYPES().map((t) => `<span>${thumb(t.k, thumbLang(t.k))}<small>${t.name}</small></span>`).join("")}</div>
+      <div class="tool-top"><em class="tool-n">1</em>${chip("file", "solid")}<span><b>${T("CV, rezyume va obyektivka")}</b><small>${T("Bepul, 3 tilda")}</small></span><em class="tool-free">${T("Bepul")}</em></div>
+      <p class="tool-hook">${T("Professional CV, rezyume va obyektivkani 10 daqiqada bepul tayyorlang. Keyin sizga qancha ish mos kelishini ko'ring va shu zahoti ariza topshiring.")}</p>
+      <ul class="tool-steps">
+        <li>${chip("pen", "sm")}<span>${T("Tayyor namunalar bilan qadamma-qadam to'ldiring")}</span></li>
+        <li>${chip("download", "sm")}<span>${T("PDF, Word yoki PNG formatida yuklab oling")}</span></li>
+        <li>${chip("briefcase", "sm")}<span>${T("Sizga 80% va undan ko'p mos ishlarga ariza topshiring")}</span></li>
+      </ul>
       <span class="btn-primary">${ic("pen")} ${T("Hujjat tayyorlash")}</span>
     </a>
     <div class="card tool-bot">
+      <em class="tool-n">2</em>
       <img src="img/poyezdbilet24.webp" alt="" width="56" height="56">
       <span><b>Poyezd Bilet 24</b><small>@poyezdbilet24_bot · ${T("Bepul bot")}</small>
       <p>${T("Poyezd chiptasini oson oling: bo'sh joy bo'lmasa ham bot yo'nalishni 24/7 kuzatadi va joy paydo bo'lishi bilan uni 2 soniyada bron qiladi.")}</p></span>
       <button class="btn-primary" onclick="openTg('https://t.me/poyezdbilet24_bot')">${ic("send")} ${T("Botni ochish")}</button>
     </div>
     <div class="section-title">${T("Tez kunda")}</div>
-    <div class="card soon-list">${soon.map(([i, t]) => `<div>${chip(i, "sm")}<span>${t}</span></div>`).join("")}</div>`;
+    <div class="card soon-list">${soon.map(([i, t], n) => `<div><em class="tool-n sm">${n + 3}</em>${chip(i, "sm")}<span>${t}</span></div>`).join("")}</div>`;
   }
 
   const field = (path, label, val, opt = {}) => `<label class="cvf ${opt.cls || ""}"><small>${label}</small>${opt.area
@@ -325,21 +331,110 @@ const Tools = (() => {
     <div class="section-title">${kind === "obj" ? "3" : "4"}. ${T("Ma'lumotlaringizni yozing")}</div>
     <div class="card box cv-form" id="cv-form">
       <div class="cv-tools"><button class="btn-ghost" onclick="cvFill()">${ic("sparkles")} ${T("Namuna bilan to'ldirish")}</button><button class="btn-ghost" onclick="cvClear()">${ic("x")} ${T("Tozalash")}</button></div>
-      ${kind === "obj" ? objForm() : cvForm()}
+      ${stepper(kind === "obj" ? objForm() : cvForm())}
     </div>
 
     <div class="section-title">${kind === "obj" ? "4" : "5"}. ${T("Natija")}: ${cur.name}</div>
     <div class="cv-live" id="cv-live">${thumb2()}</div>
     <div class="cv-export">
-      <button class="btn-primary" onclick="cvExport('pdf')">${ic("download")} PDF</button>
-      <button class="btn-primary" onclick="cvExport('docx')">${ic("file")} Word</button>
-      <button class="btn-primary" onclick="cvExport('png')">${ic("image")} PNG</button>
+      <button class="btn-primary x-pdf" onclick="cvExport('pdf')">${ic("download")} PDF</button>
+      <button class="btn-primary x-word" onclick="cvExport('docx')">${ic("file")} Word</button>
+      <button class="btn-primary x-png" onclick="cvExport('png')">${ic("image")} PNG</button>
     </div>
-    <p class="note">${T("Fayl Telegram orqali yuklab olinadi yoki bot bilan chatingizga yuboriladi. Ma'lumotlaringiz faqat shu telefonda saqlanadi.")}</p>`;
+    <p class="note">${T("Fayl Telegram orqali yuklab olinadi yoki bot bilan chatingizga yuboriladi. Ma'lumotlaringiz faqat shu telefonda saqlanadi.")}</p>
+    <div class="section-title">${kind === "obj" ? "5" : "6"}. ${T("Sizga mos ishlar")}</div>
+    <div class="card box jm" id="cv-jobs">${jobsHTML()}</div>`;
   }
   const current = () => kind === "obj" ? obj : cv;
+  // the form is shown one step at a time; each step says what to write there
+  const STEP_HINTS = () => kind === "obj"
+    ? [T("F.I.Sh., 3x4 rasm, hozirgi lavozim, tug'ilgan sana va joy."), T("Ma'lumotingiz, tamomlagan o'quv yurtlari va chet tillari."), T("Barcha o'qish va ish joylari, yillari bilan, ketma-ket."), T("Ota-ona, aka-uka, opa-singil, turmush o'rtog'i va farzandlar.")]
+    : [T("Ism, lavozim va aloqa: ish beruvchi sizga shu orqali bog'lanadi."), T("Oxirgi ish joyidan boshlang, natijalarni raqamlar bilan yozing."), T("O'qigan joyingiz, yo'nalishingiz va yillar."), T("Tillar, dasturlar, sertifikatlar va fazilatlaringiz."), T("Ixtiyoriy: maosh, ish grafigi va tavsiya beruvchilar.")];
+  let stepAt = store.get("cv_step", { cv: 0, obj: 0 });
+  function stepper(html) {
+    const parts = html.split("<h5>").filter((x) => x.trim()).map((x) => { const i = x.indexOf("</h5>"); return { title: x.slice(0, i), body: x.slice(i + 5) }; });
+    // CV: the last two blocks (extra information and references) are one step
+    const groups = kind === "obj" ? parts.map((p) => [p]) : [[parts[0]], [parts[1]], [parts[2]], [parts[3]], parts.slice(4)];
+    const hints = STEP_HINTS(), n = groups.length, key = kind === "obj" ? "obj" : "cv", cur = Math.min(stepAt[key] || 0, n - 1);
+    return `<div class="cv-prog"><span>${T("Qadam {a} / {b}", { a: cur + 1, b: n })}</span><i><em style="width:${((cur + 1) / n) * 100}%"></em></i></div>
+      ${groups.map((g, i) => `<section class="cv-step ${i === cur ? "open" : ""} ${i < cur ? "done" : ""}" id="cv-step-${i}">
+        <button class="cv-step-h" onclick="cvStep(${i})"><i>${i < cur ? ic("check") : i + 1}</i><span><b>${g[0].title}</b><small>${hints[i] || ""}</small></span>${ic("chev", "cv-step-chev")}</button>
+        <div class="cv-step-b">${g.map((p, j) => (j ? `<h5>${p.title}</h5>` : "") + p.body).join("")}
+          <div class="cv-step-nav">${i > 0 ? `<button class="btn-ghost" onclick="cvStep(${i - 1})">${ic("back")} ${T("Orqaga")}</button>` : ""}
+          ${i < n - 1 ? `<button class="btn-primary" onclick="cvStep(${i + 1})">${T("Keyingi qadam")} ${ic("chev")}</button>` : `<button class="btn-primary" onclick="cvDone()">${ic("check")} ${T("Natijani ko'rish")}</button>`}</div>
+        </div></section>`).join("")}`;
+  }
+  window.cvStep = (i) => { stepAt[kind === "obj" ? "obj" : "cv"] = i; store.set("cv_step", stepAt); haptic("light"); render(); setTimeout(() => { const el = document.getElementById("cv-step-" + i); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 30); };
+  window.cvDone = () => { haptic("medium"); const el = document.getElementById("cv-live"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); };
+
+  /* ---------- jobs that fit the document: hh.uz vacancies from the course data, scored against the CV ---------- */
+  const low = (x) => " " + String(x || "").toLowerCase().replace(/[‘’ʻʼ`]/g, "'").replace(/\s+/g, " ") + " ";
+  const has = (text, kw) => kw.length <= 3 ? new RegExp(`(^|[^\\p{L}\\d+])${kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^\\p{L}\\d]|$)`, "u").test(text) : text.includes(kw);
+  function matchJobs() {
+    const d = Kurslar.data(); if (!d) return null;
+    const doc = current();
+    const strong = kind === "obj" ? low([doc.pos, doc.spec, ...(doc.work || []).slice(-2).map((w) => w.text)].join(" ")) : low([doc.title, ...(doc.exp || []).map((e) => e.role)].join(" "));
+    const weak = kind === "obj" ? low([doc.grad, doc.langs].join(" ")) : low([doc.summary, doc.skills, doc.certs, doc.traits, ...(doc.edu || []).map((e) => e.degree), ...(doc.exp || []).map((e) => e.items)].join(" "));
+    if (strong.trim().length < 3 && weak.trim().length < 3) return null;
+    const words = strong.split(/[^\p{L}\d'+]+/u).filter((w) => w.length >= 4).map((w) => w.slice(0, 5));
+    const best = new Map(); let pool = 0;
+    for (const [k, g] of Object.entries(d.groups)) {
+      if (!g.jobs) continue; pool += g.jobs.length;
+      if (!g.kw) continue;
+      let st = 0, wk = 0; for (const kw of g.kw) { if (has(strong, kw)) st++; else if (has(weak, kw)) wk++; }
+      const gs = st ? 0.8 + 0.04 * Math.min(3, st - 1) + 0.02 * Math.min(3, wk) : wk ? 0.44 + 0.08 * Math.min(4, wk) : 0;
+      if (!gs) continue;
+      for (const j of g.jobs) {
+        const sc = Math.min(98, Math.round((gs + (words.some((x) => low(j.t).includes(x)) ? 0.08 : 0)) * 100));
+        const prev = best.get(j.u); if (!prev || prev.sc < sc) best.set(j.u, { ...j, sc });
+      }
+    }
+    const list = [...best.values()].sort((a, b) => b.sc - a.sc || String(b.d).localeCompare(String(a.d)));
+    return { list, pool: new Set(Object.values(d.groups).flatMap((g) => (g.jobs || []).map((j) => j.u))).size };
+  }
+  let jmFilter = "all", jmMin = 80, jmShow = 15, jmCur = [];
+  function jobsHTML() {
+    const m = matchJobs();
+    if (!Kurslar.data()) { Kurslar.load().then(refreshJobs); return `<p class="st-note">${T("Yuklanmoqda…")}</p>`; }
+    if (!m) return `<div class="jm-empty">${chip("briefcase", "lg")}<p>${T("Lavozimingiz yoki ish tajribangizni yozing: sizga mos ishlarni hh.uz vakansiyalaridan topib beramiz.")}</p></div>`;
+    const n80 = m.list.filter((j) => j.sc >= 80).length, n60 = m.list.filter((j) => j.sc >= 60 && j.sc < 80).length;
+    const pass = (j) => j.sc >= jmMin && (jmFilter === "all" || (jmFilter === "rem" && j.r) || (jmFilter === "tash" && /toshkent/i.test(j.c || "")) || (jmFilter === "pay" && (j.lo || j.hi || 0) >= 8));
+    const shown = m.list.filter(pass);
+    const f = (k, l) => `<button class="${jmFilter === k ? "on" : ""}" onclick="jmSet('${k}')">${l}</button>`;
+    return `<div class="jm-stats">
+        <div class="jm-big"><b>${n80}</b><span>${T("ta ish sizga 80% va undan ko'p mos")}</span></div>
+        <div class="jm-row"><span><i class="g"></i>80%+ <b>${n80}</b></span><span><i class="y"></i>60-79% <b>${n60}</b></span><span>${T("Jami tekshirildi")} <b>${m.pool}</b></span></div>
+        <p class="st-note">${T("hh.uz, so'nggi 30 kun, maoshi oyiga 3,5 mln so'm va undan yuqori vakansiyalar. Moslik lavozimingiz, tajribangiz va ko'nikmalaringiz bo'yicha hisoblanadi.")}</p>
+      </div>
+      <div class="kd-filter">${f("all", T("Barchasi"))}${f("rem", T("Masofaviy"))}${f("tash", T("Toshkent"))}${f("pay", T("8 mln so'mdan"))}
+        <button class="${jmMin === 60 ? "on" : ""}" onclick="jmMinSet()">${T("60%+ ham")}</button></div>
+      <div class="jm-list">${(jmCur = shown.slice(0, jmShow)).map((j, i) => `<div class="jm-job">
+          <span class="jm-sc ${j.sc >= 80 ? "hi" : "mid"}">${j.sc}%</span>
+          <span class="jm-t"><b class="notr">${esc(j.t)}</b><small><span class="notr">${esc(j.e)}${j.c ? ", " + esc(j.c) : ""}</span>${j.r ? ", " + T("masofaviy") : ""}</small><em>${jmMoney(j)}</em></span>
+          <span class="jm-act"><button class="btn-primary" onclick="jmApply(${i})">${T("Ariza topshirish")}</button>
+          <button class="icon-btn" onclick="jmSave(${i})" aria-label="${T("Saqlanganlarga yuborish")}">${ic("send")}</button></span>
+        </div>`).join("") || `<p class="st-note">${T("Bu filtr bo'yicha ish topilmadi. Boshqa filtrni tanlang yoki 60%+ ishlarni ham ko'ring.")}</p>`}</div>
+      ${shown.length > jmShow ? `<button class="btn-ghost" onclick="jmMore()">${T("Yana ko'rsatish ({n})", { n: shown.length - jmShow })}</button>` : ""}`;
+  }
+  const jmMoney = (j) => j.lo && j.hi && j.hi !== j.lo ? T("{n} mln so'm", { n: `${String(j.lo).replace(".", ",")}-${String(j.hi).replace(".", ",")}` }) : j.lo ? T("{n} mln so'mdan", { n: String(j.lo).replace(".", ",") }) : j.hi ? T("{n} mln so'mgacha", { n: String(j.hi).replace(".", ",") }) : "";
+  const refreshJobs = () => { const el = document.getElementById("cv-jobs"); if (el) el.innerHTML = jobsHTML(); };
+  window.jmSet = (k) => { jmFilter = k; jmShow = 15; haptic("light"); refreshJobs(); };
+  window.jmMinSet = () => { jmMin = jmMin === 80 ? 60 : 80; jmShow = 15; haptic("light"); refreshJobs(); };
+  window.jmMore = () => { jmShow += 15; refreshJobs(); };
+  // apply: the vacancy page on hh.uz itself
+  window.jmApply = (i) => { const u = jmCur[i].u; haptic("medium"); try { track("#/cv"); } catch {} if (tg && tg.openLink) tg.openLink(u); else window.open(u, "_blank"); };
+  // save: Telegram's own "send to" window, where Saved Messages is the first chat
+  window.jmSave = (i) => { const u = jmCur[i].u, t = jmCur[i].t; haptic("light"); const url = `https://t.me/share/url?url=${encodeURIComponent(u)}&text=${encodeURIComponent(t + " (" + T("hh.uz vakansiyasi") + ")")}`; if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank"); };
+  // after a file is made: how many jobs fit
+  function afterDoc() {
+    const m = matchJobs(); if (!m) return;
+    const n80 = m.list.filter((j) => j.sc >= 80).length;
+    sheet(`<div class="jm-done">${chip("check", "lg solid")}<h3>${T("Hujjatingiz tayyor!")}</h3>
+      <p>${n80 ? T("Sizga <b>{n} ta ish</b> 80% va undan ko'p mos keladi. Hozir ariza topshiring.", { n: n80 }) : T("Mos ishlarni ko'rish uchun lavozim va tajribangizni to'liqroq yozing.")}</p></div>
+      <button class="btn-primary" onclick="closeSheet();setTimeout(()=>document.getElementById('cv-jobs')?.scrollIntoView({behavior:'smooth'}),250)">${ic("briefcase")} ${T("Mos ishlarni ko'rish")}</button>`);
+  }
   const thumb2 = () => `<div class="cv-thumb big"><div class="cv-scale">${docHTML(current(), kind, docLang(), design)}</div></div>`;
-  const refresh = () => { const el = document.getElementById("cv-live"); if (el) el.innerHTML = thumb2(); };
+  const refresh = () => { const el = document.getElementById("cv-live"); if (el) el.innerHTML = thumb2(); refreshJobs(); };
 
   // the form keeps focus while typing: only the preview below is redrawn
   const target = (path) => { const keys = path.split("."); let o = keys[0] === "o" ? (keys.shift(), obj) : cv; while (keys.length > 1) o = o[keys.shift()]; return [o, keys[0]]; };
@@ -556,6 +651,7 @@ const Tools = (() => {
         if (r.id && tg.shareMessage) tg.shareMessage(r.id); else toast(T("Fayl bot bilan chatingizga yuborildi"));
       }
       track("#/cv");
+      setTimeout(afterDoc, 700);
     } catch (e) { toast(T("Fayl tayyorlanmadi: {e}", { e: e.message || e })); }
     finally { busy.remove(); }
   };
