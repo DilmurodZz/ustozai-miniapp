@@ -281,11 +281,6 @@ function Profil() {
     <h4>${ic("palette")} Ilova rangi</h4><p>O'zingizga yoqqan rangni tanlang</p>
     <div class="swatches">${Object.entries(THEMES).map(([k, [l, a, b]]) => `<button class="sw ${k === theme ? "on" : ""}" onclick="pickTheme('${k}')"><i style="background:linear-gradient(135deg,${a},${b})"></i>${l}</button>`).join("")}</div>
   </div>
-  <div class="card box">
-    <h4>${ic("gift")} Do'stlarni taklif qilish</h4><p>3 ta do'st qo'shilsa: 1 hafta Premium bepul. Hozir: ${invited} / 3</p>
-    <div class="ref-bar">${[0, 1, 2].map((i) => `<span class="${i < invited ? "on" : ""}"></span>`).join("")}</div>
-    <button class="btn-primary" onclick="invite('${link}')">${ic("send")} Taklif havolasini yuborish</button>
-  </div>
   ${startParam ? `<p class="note">Kirish manbasi: ${esc(startParam)}</p>` : ""}
   <p class="credit">O'yin 3D modellari (CC BY 4.0): own.guest, Nicholas-3D, Dimiter, Tom (trbaker), te1ko</p>`;
 }
@@ -351,18 +346,18 @@ function bindDuo() {
 /* ---------- router ---------- */
 const ROUTES = {
   "#/": Home, "#/kompas": Kompas, "#/natija": Natija, "#/tanlov": Tanlov, "#/profil": Profil,
-  "#/kurslar": () => Soon("kurslar"), "#/oyin": () => "", "#/mutolaa": () => Soon("mutolaa"),
+  "#/kurslar": () => Kurslar.List(), "#/kurs": () => Kurslar.Detail(location.hash.slice(7)), "#/oyin": () => "", "#/mutolaa": () => Soon("mutolaa"),
   "#/duo": DuoScreen, "#/chegirma": () => Soon("chegirma"), "#/vositalar": () => Soon("vositalar"), "#/kashf": () => Soon("kashf"),
 };
 let gameOn = false;
 function render() {
-  const route = ROUTES[location.hash] ? location.hash : "#/";
+  const route = ROUTES[location.hash] ? location.hash : location.hash.startsWith("#/kurs/") ? "#/kurs" : "#/";
   if (gameOn && route !== "#/oyin") { Game.unmount(); gameOn = false; }
   document.body.classList.toggle("fit", route === "#/");     // Home fills the screen exactly, no scrolling
   app.innerHTML = ROUTES[route]();
   if (route === "#/oyin") { Game.mount(); gameOn = true; }
   app.style.animation = "none"; void app.offsetWidth; app.style.animation = "";
-  renderTabs(route);
+  renderTabs(route === "#/kurs" ? "#/kurslar" : route);
   if (route === "#/kompas") bindSwipe();
   if (route === "#/duo") bindDuo(); else if (duoSubs.length) { duoSubs.forEach((u) => u()); duoSubs = []; }
   try { route === "#/" ? tg.BackButton.hide() : tg.BackButton.show(); } catch {}
