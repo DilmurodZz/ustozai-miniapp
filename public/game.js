@@ -3,6 +3,7 @@
 // Controls: swipe left/right = change lane, up = jump, down = roll, double tap = acrobatic trick.
 
 const Game = (() => {
+  const tr = (s, v) => window.T(s, v);   // the app translation function (this file has its own T: three.js)
   const LIB = "./lib/three.module.min.js";      // three.js is kept in the app itself so it works offline
   const MODELS = ["damas", "tree1", "tree2", "mosque", "city", "wagon"];
   const C = { SLOT: 10, SLOTS: 20, LOOP: 200, BACK: 50 };     // scenery repeats every LOOP metres, BACK of them behind the runner
@@ -172,7 +173,7 @@ const Game = (() => {
     }
     const e = Math.round(energy * 60) / 60;
     if (force || e !== shown.e) {
-      shown.e = e; el.kuchBar.style.transform = `scaleX(${e})`;
+      shown.e = e; el.kuchBar.style.transform = `scaleY(${e})`;
       const c = e > 0.6 ? "g" : e > 0.3 ? "y" : "r";
       if (c !== shown.ec) { shown.ec = c; el.kuch.className = "run-kuch " + c; }
     }
@@ -270,10 +271,10 @@ const Game = (() => {
     if (!alive) return;
     try { renderer = new T.WebGLRenderer({ canvas: el.cv, antialias: true, alpha: true, powerPreference: "high-performance" }); }
     catch { return fail("3D grafika ishlamadi", "Bu qurilma yoki brauzer 3D grafikani qo'llab-quvvatlamaydi."); }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
     renderer.setClearColor(0x000000, 0);
     renderer.toneMapping = T.ACESFilmicToneMapping;
-    renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap;
     for (const m of MOODS) if (!m.c) {
       m.c = {}; for (const c of COL) m.c[c] = new T.Color(m[c]);
       m.v = { dir: new T.Vector3(...m.dir).normalize(), discDir: new T.Vector3(...m.discDir).normalize() };
@@ -1521,7 +1522,7 @@ const Game = (() => {
       if (sn.level !== keep.lvl) showWorld(keep.lvl);
       moodIdx = keep.mood;
       camera.position.copy(keep.cam); camera.quaternion.copy(keep.q); camera.fov = keep.fov; camera.aspect = keep.asp; camera.updateProjectionMatrix();
-      renderer.setPixelRatio(quality.low ? 1 : Math.min(window.devicePixelRatio || 1, 1.5)); W = 0; resize();
+      renderer.setPixelRatio(quality.low ? 1 : Math.min(window.devicePixelRatio || 1, 1.25)); W = 0; resize();
     }
   }
   // Film look: soft zoom blur towards the edges, teal-and-orange grade, vignette, the title, the player and the caption.
@@ -1560,12 +1561,12 @@ const Game = (() => {
     const F = "-apple-system, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
     g.textAlign = "center"; g.fillStyle = "#fff"; g.shadowColor = "rgba(0,0,0,0.35)"; g.shadowBlur = 18;
     g.font = `600 40px ${F}`; g.letterSpacing = "12px"; g.fillText("CHORSU GAME", Wd / 2 + 6, 132); g.letterSpacing = "0px";
-    g.globalAlpha = 0.8; g.font = `400 30px ${F}`; g.fillText(`${T("{n}-bosqich", { n: sn.level })} · ${T(sn.level === 1 ? "Chorsu bozori" : LEVELS[sn.level][1])}`, Wd / 2, 182); g.globalAlpha = 1;
+    g.globalAlpha = 0.8; g.font = `400 30px ${F}`; g.fillText(`${tr("{n}-bosqich", { n: sn.level })} · ${tr(sn.level === 1 ? "Chorsu bozori" : LEVELS[sn.level][1])}`, Wd / 2, 182); g.globalAlpha = 1;
     g.textAlign = "left";
-    g.font = `700 92px ${F}`; g.fillText(T(CAPTION[sn.kind] || CAPTION.run), 72, Hd - 300);
+    g.font = `700 92px ${F}`; g.fillText(tr(CAPTION[sn.kind] || CAPTION.run), 72, Hd - 300);
     const who = myName();
     g.font = `500 44px ${F}`; g.fillText(who, 72, Hd - 218);
-    g.globalAlpha = 0.78; g.font = `400 34px ${F}`; g.fillText(`${Math.floor(dist)} m  ·  ${T("{n} tanga", { n: coins })}  ·  ${T("{n} ball", { n: score() })}`, 72, Hd - 160);
+    g.globalAlpha = 0.78; g.font = `400 34px ${F}`; g.fillText(`${Math.floor(dist)} m  ·  ${tr("{n} tanga", { n: coins })}  ·  ${tr("{n} ball", { n: score() })}`, 72, Hd - 160);
     g.globalAlpha = 0.6; g.font = `400 28px ${F}`; g.fillText(`t.me/${BOT}`, 72, Hd - 100); g.globalAlpha = 1;
     momentCanvas = c;                  // kept for the full-quality PNG
     return c.toDataURL("image/jpeg", 0.9);
@@ -1576,7 +1577,7 @@ const Game = (() => {
     v.innerHTML = `<img alt="" src="${momentURL}"><div class="run-photo-bar"><button data-a="share">${ic("send")} Ulashish</button><button data-a="save">${ic("download")} Saqlash</button></div><button class="run-photo-x" data-a="x" aria-label="Yopish">${ic("x")}</button><p>Rasmni bosib turib ham saqlashingiz mumkin</p>`;
     // the picture as a PNG file (made once, then reused)
     const png = () => momentPng || (momentPng = new Promise((ok) => momentCanvas.toBlob((b) => ok(b), "image/png")));
-    const caption = () => `${myName()} · Chorsu game · ${T("{n} ball", { n: score() })}`;
+    const caption = () => `${myName()} · Chorsu game · ${tr("{n} ball", { n: score() })}`;
     const busy = (b, on) => { b.disabled = on; b.classList.toggle("busy", on); };
     v.querySelector('[data-a="x"]').onclick = () => v.remove();
     v.querySelector('[data-a="save"]').onclick = async () => {
@@ -1608,7 +1609,7 @@ const Game = (() => {
     const duoRes = net && net.result;
     const s = score(), b = best(), isBest = s > b;
     if (isBest) store.set("run_best", s);
-    const me = [store.get("school", T("Sizning maktabingiz")), myName(), Math.max(s, b)];
+    const me = [store.get("school", tr("Sizning maktabingiz")), myName(), Math.max(s, b)];
     const board = [...SCHOOL_BOARD, me].sort((a, c) => c[2] - a[2]), mine = board.indexOf(me);
     const row = (r, i) => `<div class="${r === me ? "me" : ""}"><span>${i + 1}</span><span>${r[1]}<small>${r[0]}</small></span><b>${r[2]}</b></div>`;
     root.classList.add("over");
@@ -1637,7 +1638,7 @@ const Game = (() => {
   }
   function share(s) {
     const link = `https://t.me/${BOT}?start=run_${user.id}`;
-    const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(T("Chorsu Run'da {s} ball to'pladim. Meni yenga olasizmi?", { s }))}`;
+    const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(tr("Chorsu Run'da {s} ball to'pladim. Meni yenga olasizmi?", { s }))}`;
     if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
   }
   function exit() { if (net) { Duo.send({ t: "bye" }); for (const u of net.subs || []) u(); net = null; Duo.leave(); } if (state !== "over") saveRun(); location.hash = "#/"; }

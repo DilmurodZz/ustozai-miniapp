@@ -151,7 +151,7 @@ function Home() {
     <span class="btn-orange">Boshlash ${ic("chev")}</span>
   </a>
   <a class="banner" href="#/kurslar">
-    <span class="bwheel" id="bwheel" role="button" aria-label="${T("Omad g'ildiragi")}"><i class="bw-pin"></i><svg class="bw-ring" id="bw-ring" viewBox="0 0 100 100" aria-hidden="true">${bannerRing()}</svg><img src="img/ic-courses.webp" alt="" decoding="async"></span><span class="banner-sep"></span><b>Kurslar</b><span class="banner-go">${ic("chev")}</span>
+    <span class="bwheel ${store.get("bw_used", false) ? "" : "hint"}" id="bwheel" role="button" aria-label="${T("Omad g'ildiragi")}"><i class="bw-pin"></i><svg class="bw-ring" id="bw-ring" viewBox="0 0 100 100" aria-hidden="true">${bannerRing()}</svg><img src="img/ic-courses.webp" alt="" decoding="async"></span><span class="banner-sep"></span><b>Kurslar</b><span class="banner-go">${ic("chev")}</span>
     <svg class="banner-wave" viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 38 C70 18 130 52 210 34 S340 14 400 30 V60 H0Z" fill="rgba(255,255,255,.55)"/><path d="M0 48 C80 34 150 58 230 46 S350 32 400 42 V60 H0Z" fill="rgba(120,140,255,.18)"/></svg>
   </a>
   <div class="grid4">${tiles.map(([i, l, h, k]) => `<a class="tile4 ${k}" href="${h}"><img src="img/ic-${i}.webp" alt="" decoding="async"><span>${l}</span></a>`).join("")}</div>
@@ -372,20 +372,28 @@ function bindDuo() {
 const ROUTES = {
   "#/": Home, "#/kompas": Kompas, "#/natija": Natija, "#/tanlov": Tanlov, "#/profil": Profil,
   "#/kurslar": () => Kurslar.List(), "#/kurs": () => Kurslar.Detail(location.hash.slice(7)), "#/oyin": () => "", "#/mutolaa": () => Soon("mutolaa"),
-  "#/duo": DuoScreen, "#/chegirma": () => Soon("chegirma"), "#/vositalar": () => Tools.Screen(), "#/cv": () => Tools.CV(), "#/admin": () => AdminScreen(), "#/kashf": () => Soon("kashf"),
+  "#/duo": DuoScreen, "#/chegirma": () => Soon("chegirma"), "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/admin": () => AdminScreen(), "#/kashf": () => Soon("kashf"),
 };
 let gameOn = false;
 // the 3D game is loaded on its own, after Home: it is not needed to open the app
-const GAME_FILES = ["run-audio.js", "run-world.js", "game.js"];
-let gameLoading = null;
-function loadGame() {
-  if (typeof Game !== "undefined") return Promise.resolve();
-  if (gameLoading) return gameLoading;
-  const v = (document.querySelector('script[src^="app.js"]') || {}).src?.split("?v=")[1] || "";
-  gameLoading = GAME_FILES.reduce((p, f) => p.then(() => new Promise((ok, no) => {
-    const s = document.createElement("script"); s.src = f + "?v=" + v; s.onload = ok; s.onerror = no; document.body.appendChild(s);
-  })), Promise.resolve()).catch((e) => { gameLoading = null; throw e; });
-  return gameLoading;
+// parts of the app that load only when they are first needed, so Home opens fast
+const APP_V = (document.currentScript && document.currentScript.src.split("?v=")[1]) || "";
+const loading = {};
+function loadScripts(files) {
+  const key = files.join();
+  if (!loading[key]) loading[key] = files.reduce((p, f) => p.then(() => new Promise((ok, no) => {
+    const s = document.createElement("script"); s.src = f + "?v=" + APP_V; s.onload = ok; s.onerror = no; document.body.appendChild(s);
+  })), Promise.resolve()).catch((e) => { delete loading[key]; throw e; });
+  return loading[key];
+}
+const loadGame = () => typeof Game !== "undefined" ? Promise.resolve() : loadScripts(["run-audio.js", "run-world.js", "game.js"]);
+const loadTools = () => typeof Tools !== "undefined" ? Promise.resolve() : loadScripts(["tools.js"]);
+const spinner = () => `<div class="busy"><div class="run-spin"></div><p>${T("Yuklanmoqda…")}</p></div>`;
+function needTools(screen) {
+  if (typeof Tools !== "undefined") return Tools[screen]();
+  const h = location.hash;
+  loadTools().then(() => { if (location.hash === h) render(); }).catch(() => toast(T("Yuklab bo'lmadi")));
+  return `${navbar(T(screen === "CV" ? "CV va rezyume" : "Foydali vositalar"))}${spinner()}`;
 }
 const pageState = store.get("page_state", {});
 function savePage() {
@@ -412,7 +420,7 @@ function render() {
   app.innerHTML = ROUTES[route]();
   if (route === "#/oyin") {
     if (typeof Game === "undefined") {
-      app.innerHTML = `<div class="busy"><div class="run-spin"></div><p>${T("Yuklanmoqda…")}</p></div>`;
+      app.innerHTML = spinner();
       loadGame().then(() => { if (location.hash === "#/oyin") render(); }).catch(() => toast(T("Yuklab bo'lmadi")));
     } else { Game.mount(); gameOn = true; }
   }
@@ -446,7 +454,7 @@ if (tg) {
   document.body.appendChild(el);
   const done = () => { if (el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => el.remove(), 600); };
   el.onclick = done;
-  setTimeout(done, 2300);
+  setTimeout(done, 1100);
 })();
 if ("serviceWorker" in navigator) {
   // app files are always fetched fresh (network first), so a new version shows without any reload
@@ -457,7 +465,10 @@ window.addEventListener("DOMContentLoaded", () => {
   if (!location.hash) location.replace("#/");
   render();
   // course data is fetched quietly in the background, so the Kurslar page opens complete in one go
-  setTimeout(() => { try { Kurslar.load(); } catch {} }, 400);
+  // course data and the CV maker come when the phone is idle (or at once when their page opens)
+  const idle = (f, ms) => setTimeout(() => (window.requestIdleCallback || setTimeout)(f), ms);
+  idle(() => { try { Kurslar.load(); } catch {} }, 1500);
+  idle(() => loadTools().catch(() => {}), 4000);
   // the game files come last, when the phone is idle
   setTimeout(() => (window.requestIdleCallback || setTimeout)(() => loadGame().catch(() => {})), 2500);
 });
@@ -469,7 +480,7 @@ function wheelCourses() {
   const d = Kurslar.data(); if (!d) return [];
   // the 20 course types with the most vacancies, and in each the course with the most students
   const best = {};
-  for (const c of d.courses) { const g = d.groups[c.g]; if (g.kind !== "job") continue; if (!best[c.g] || (c.students || 0) > (best[c.g].students || 0)) best[c.g] = c; }
+  for (const c of d.courses) { const g = d.groups[c.g]; if (g.kind !== "job" || Kurslar.low(c)) continue; if (!best[c.g] || (c.students || 0) > (best[c.g].students || 0)) best[c.g] = c; }
   return Object.values(best).sort((a, b) => d.groups[b.g].related - d.groups[a.g].related).slice(0, 20);
 }
 window.openWheel = async (btn) => {
@@ -574,6 +585,8 @@ function bindBannerWheel() {
 async function bwSpin(dir, power) {
   const ring = document.getElementById("bw-ring"); if (!ring || bwBusy) return;
   bwBusy = true; haptic("medium");
+  const box = document.getElementById("bwheel"); if (box) box.classList.remove("hint");
+  if (!store.get("bw_used", false)) store.set("bw_used", true);
   if (!Kurslar.data()) { try { await Kurslar.load(); } catch {} }
   const list = wheelCourses(); if (!list.length) { bwBusy = false; return; }
   const pick = Math.floor(Math.random() * Math.min(BW_N, list.length));
@@ -596,9 +609,21 @@ async function bwSpin(dir, power) {
   setTimeout(() => {
     bwBusy = false; try { tg.HapticFeedback.notificationOccurred("success"); } catch {}
     const c = list[pick], g = Kurslar.data().groups[c.g];
-    sheet(`<div class="bw-res"><small>${T("G'ildirak tanladi")}</small><b class="notr">${esc(c.title)}</b><span class="notr">${esc(c.teacher || "Ustoz AI")}${c.students ? ` · ${T("{n} o'quvchi", { n: fmtN(c.students) })}` : ""}</span>
+    const pic = c.image && /^https:\/\/upload\.ustozai-app\.uz\//.test(c.image) ? `https://ustoz.ai/_next/image?url=${encodeURIComponent(c.image)}&w=640&q=75` : c.image;
+    sheet(`${pic ? `<div class="bw-img"><img src="${esc(pic)}" alt="" decoding="async"></div>` : ""}<div class="bw-res"><small>${T("G'ildirak tanladi")}</small><b class="notr">${esc(c.title)}</b><span class="notr">${esc(c.teacher || "Ustoz AI")}${c.students ? ` · ${T("{n} o'quvchi", { n: fmtN(c.students) })}` : ""}</span>
       <em class="kc-tag up">${T("{n} ta ish o'rni", { n: fmtN(g.related) })}</em></div>
       <div class="wheel-btns"><button class="btn-ghost" onclick="closeSheet();location.hash='#/kurs/${c.id}'">${T("Batafsil")}</button><button class="btn-primary" onclick="openApp('${esc(c.url)}')">${ic("play")} ${T("Ilovada ochish")}</button></div>
       <button class="btn-ghost" onclick="closeSheet();setTimeout(()=>bwSpin(1,1.6),300)">${ic("refresh")} ${T("Yana aylantirish")}</button>`);
   }, dur * 1000 + 60);
 }
+
+/* ---------- a bottom sheet for small choices ---------- */
+function sheet(html) {
+  closeSheet();
+  const el = document.createElement("div"); el.className = "sheet-wrap"; el.id = "sheet";
+  el.innerHTML = `<div class="sheet" onclick="event.stopPropagation()"><i class="sheet-grip"></i>${html}</div>`;
+  el.onclick = closeSheet; document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("on"));
+}
+window.closeSheet = () => { const el = document.getElementById("sheet"); if (el) { el.classList.remove("on"); setTimeout(() => el.remove(), 250); } };
+window.openTg = (u) => { haptic("light"); if (tg && tg.openTelegramLink) tg.openTelegramLink(u); else window.open(u, "_blank"); };

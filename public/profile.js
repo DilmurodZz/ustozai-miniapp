@@ -34,7 +34,10 @@ function statsCard() {
   const s = appStats;
   if (!s) return `<div class="card box"><h4>${ic("chart")} ${T("Ilova statistikasi")}</h4><p>${T("Yuklanmoqda…")}</p></div>`;
   const tile = (n, l, sub) => `<span class="st-tile"><b>${fmtN(n)}</b><small>${l}</small>${sub ? `<em>${sub}</em>` : ""}</span>`;
-  const days = s.days || [], max = Math.max(1, ...days.map((d) => d.n));
+  // always the last 7 days, empty days as short grey bars
+  const got = Object.fromEntries((s.days || []).map((d) => [d.d, d.n]));
+  const days = [...Array(7)].map((_, i) => { const d = new Date(Date.parse((s.day || tkDay()) + "T12:00:00") - (6 - i) * 864e5).toISOString().slice(0, 10); return { d, n: got[d] || 0 }; });
+  const max = Math.max(1, ...days.map((d) => d.n));
   const top = s.top || [], tmax = Math.max(1, ...top.map((t) => t.n)), names = SECTION_NAME();
   const wd = (d) => new Date(d + "T12:00:00").toLocaleDateString(LANG === "uz" ? "uz-Latn-UZ" : LANG, { weekday: "short" }).replace(".", "");
   return `<div class="card box stats-card">
@@ -45,8 +48,8 @@ function statsCard() {
       ${tile(s.wau, T("7 kunda faol (WAU)"))}
       ${tile(s.mau, T("30 kunda faol (MAU)"))}
     </div>
-    ${days.length ? `<div class="st-sub">${T("Kunlik faol foydalanuvchilar")}</div>
-    <div class="st-bars">${days.map((d) => `<span><i style="height:${Math.max(6, (d.n / max) * 100)}%"><b>${d.n}</b></i><small>${wd(d.d)}</small></span>`).join("")}</div>` : ""}
+    ${days.some((d) => d.n) ? `<div class="st-sub">${T("Kunlik faol foydalanuvchilar")}</div>
+    <div class="st-bars">${days.map((d) => `<span><i class="${d.n ? "" : "zero"}" style="height:${Math.max(6, (d.n / max) * 100)}%">${d.n ? `<b>${d.n}</b>` : ""}</i><small>${wd(d.d)}</small></span>`).join("")}</div>` : ""}
     ${top.length ? `<div class="st-sub">${T("Eng ko'p ochilgan bo'limlar (7 kun)")}</div>
     <div class="st-top">${top.map((t) => `<div><span>${esc(names[t.s] || t.s)}</span><i><em style="width:${(t.n / tmax) * 100}%"></em></i><b>${fmtN(t.n)}</b></div>`).join("")}</div>` : ""}
     <p class="st-note">${T("Har bir foydalanuvchi kuniga bir marta sanaladi. Hisob 17.11.2026 dan boshlangan.")}</p>

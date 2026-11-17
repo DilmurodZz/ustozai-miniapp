@@ -316,3 +316,38 @@ body.fit .bwheel { width: clamp(64px, 10vh, 96px); height: clamp(64px, 10vh, 96p
 .bw-res span { font-size: 13px; color: var(--muted); }
 .bw-res .kc-tag { align-self: flex-start; margin-top: 4px; font-style: normal; }
 .sheet .wheel-btns { margin-bottom: 0; }
+
+/* ---------- fixes: centred wheel pins, a "press me" hint, the course picture in the result ---------- */
+.bw-pin { left: calc(50% - 6px); transform: none; }
+.wheel-pin { left: calc(50% - 13px); transform: none; }
+.bwheel::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--p1); opacity: 0; pointer-events: none; }
+.bwheel.hint::after { animation: bwpulse 1.8s ease-out infinite; }
+.bwheel.hint .bw-ring { animation: bwidle 6s ease-in-out infinite; }
+@keyframes bwpulse { 0% { transform: scale(.92); opacity: .7; } 100% { transform: scale(1.18); opacity: 0; } }
+@keyframes bwidle { 0%, 100% { rotate: 0deg; } 50% { rotate: 36deg; } }
+.bwheel:active { transform: scale(.96); }
+.bw-img { margin: 2px 0 12px; border-radius: 16px; overflow: hidden; aspect-ratio: 16 / 9; background: var(--p-soft); }
+.bw-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sheet .btn-ghost, .sheet .btn-primary { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.sheet .btn-ghost .ic, .sheet .btn-primary .ic { width: 18px; height: 18px; flex: none; }
+.sheet .wheel-btns .btn-ghost { background: var(--p-soft); }
+.sheet .wheel-btns + .btn-ghost { margin-top: 8px; }
+
+/* ---------- Kurslar panel: both cards keep inside the panel ---------- */
+.km-stats { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+.km-stats span { min-width: 0; }
+.km-stats em { min-width: 0; overflow-wrap: anywhere; }
+
+/* ---------- Profil statistics: each card its own colour, slim day bars ---------- */
+.st-grid .st-tile:nth-child(1) { background: #EAF0FF; } .st-grid .st-tile:nth-child(1) b { color: #2748F5; }
+.st-grid .st-tile:nth-child(2) { background: #E7F8EF; } .st-grid .st-tile:nth-child(2) b { color: #15803D; }
+.st-grid .st-tile:nth-child(3) { background: #FFF4E5; } .st-grid .st-tile:nth-child(3) b { color: #D97706; }
+.st-grid .st-tile:nth-child(4) { background: #F3ECFF; } .st-grid .st-tile:nth-child(4) b { color: #7C3AED; }
+.st-bars span { align-items: center; }
+.st-bars i { width: 22px; max-width: 70%; }
+.st-bars i.zero { background: var(--line); }
+
+/* ---------- intro: about one second ---------- */
+.intro img { animation-duration: .5s; }
+.intro b, .intro span, .intro i { animation-duration: .4s; animation-delay: .15s; }
+.intro em { animation-duration: .7s; animation-delay: .2s; }

@@ -670,13 +670,3 @@ function fitThumbs() {
 new MutationObserver(() => { clearTimeout(fitThumbs.t); fitThumbs.t = setTimeout(fitThumbs, 20); }).observe(document.documentElement, { childList: true, subtree: true });
 window.addEventListener("resize", fitThumbs);
 
-/* ---------- a bottom sheet for small choices ---------- */
-function sheet(html) {
-  closeSheet();
-  const el = document.createElement("div"); el.className = "sheet-wrap"; el.id = "sheet";
-  el.innerHTML = `<div class="sheet" onclick="event.stopPropagation()"><i class="sheet-grip"></i>${html}</div>`;
-  el.onclick = closeSheet; document.body.appendChild(el);
-  requestAnimationFrame(() => el.classList.add("on"));
-}
-window.closeSheet = () => { const el = document.getElementById("sheet"); if (el) { el.classList.remove("on"); setTimeout(() => el.remove(), 250); } };
-window.openTg = (u) => { haptic("light"); if (tg && tg.openTelegramLink) tg.openTelegramLink(u); else window.open(u, "_blank"); };

@@ -39,6 +39,8 @@ const Kurslar = (() => {
   const img = (u, w) => (u && /^https:\/\/upload\.ustozai-app\.uz\//.test(u) ? `https://ustoz.ai/_next/image?url=${encodeURIComponent(u)}&w=${w}&q=75` : u);
   const skeleton = `<div class="kc-skel"></div><div class="kc-skel"></div><div class="kc-skel"></div>`;
 
+  // courses with under 30 minutes of video, and the computer literacy courses, go to the end of the list
+  const low = (c) => ((c.sec || 0) < 1800 || c.g === "pc") ? 1 : 0;
   // students in the courses whose jobs are in high demand (100+ vacancies a month): a real count, not a share
   const topStudents = () => data.courses.reduce((n, c) => { const g = data.groups[c.g]; return n + (g.kind === "job" && g.related >= 100 ? c.students || 0 : 0); }, 0);
 
@@ -52,7 +54,7 @@ const Kurslar = (() => {
         <div class="km-top"><span class="km-ic">${ic("chart")}</span><span>Mehnat bozori tahlili</span></div>
         <b class="km-big">${T("{n} ta vakansiya tahlil qilindi", { n: s ? fmt(s.analyzed) : "11,088" })}</b>
         <div class="km-stats">
-          <span><i class="km-si">${ic("users")}</i><em><b>${data ? fmt(topStudents()) : "…"}</b><small>${T("o'quvchi eng talabgir kurslarimizda o'qiydi")}</small></em></span>
+          <span><i class="km-si">${ic("users")}</i><em><b>${data ? fmt(topStudents()) : "…"}</b><small>${T("o'quvchi hozirda eng talabgir kurslarimizda o'qiydi")}</small></em></span>
           <span><i class="km-si">${ic("briefcase")}</i><em><b>${s ? s.courses : "119"}</b><small>kurs tahlil qilindi</small></em></span>
         </div>
         <div class="km-src"><small>Manbalar:</small><i>${ic("globe")}hh.uz</i><i>${ic("globe")}OLX.uz</i></div>
@@ -64,7 +66,7 @@ const Kurslar = (() => {
     const ql = query.trim().toLowerCase();
     let list = data.courses.filter((c) => !ql || c.title.toLowerCase().includes(ql) || (c.teacher || "").toLowerCase().includes(ql));
     const G = data.groups;
-    list = [...list].sort((a, b) => (KIND_ORDER[G[a.g].kind] - KIND_ORDER[G[b.g].kind]) || (G[b.g].related || 0) - (G[a.g].related || 0) || (b.students || 0) - (a.students || 0));
+    list = [...list].sort((a, b) => (low(a) - low(b)) || (KIND_ORDER[G[a.g].kind] - KIND_ORDER[G[b.g].kind]) || (G[b.g].related || 0) - (G[a.g].related || 0) || (b.students || 0) - (a.students || 0));
     return head + `<div class="kc-list">${list.map((c, i) => {
       const g = G[c.g];
       return `<a class="kc" href="#/kurs/${c.id}">
@@ -179,5 +181,5 @@ const Kurslar = (() => {
       const i = document.getElementById("km-q"); if (i) { i.focus(); i.setSelectionRange(pos, pos); }
     }
   });
-  return { List, Detail, load, data: () => data };
+  return { List, Detail, load, data: () => data, low };
 })();

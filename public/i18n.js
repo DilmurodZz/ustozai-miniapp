@@ -34,6 +34,8 @@ const I18N_MISS = new Set();   // Uzbek texts seen without a translation (localS
       const names = [], rx = k.replace(/[.*+?^$()|[\]\\]/g, "\\$&").replace(/\{(\w+)\}/g, (m, n) => { names.push(n); return "(.+?)"; });
       pats.push([new RegExp("^" + rx + "$"), names, dict[k]]);
     }
+    // the most specific pattern first: "Rekordingiz: {n} ball" before "{n} ball"
+    pats.sort((x, y) => y[0].source.replace(/\(\.\+\?\)/g, "").length - x[0].source.replace(/\(\.\+\?\)/g, "").length);
   };
   const tr = (s) => {
     const t = s.trim(); if (!t || !/[A-Za-z]/.test(t)) return null;
