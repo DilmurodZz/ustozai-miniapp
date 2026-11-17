@@ -4,3 +4,7 @@ compatibility_date = "2026-10-01"
 
 # The bot token is stored as a secret, never in this file:
 #   npx wrangler secret put BOT_TOKEN
+
+[[kv_namespaces]]
+binding = "COLORS"
+id = "b75cf2d1c7cf4b8fbd2b21b61dfd5158"

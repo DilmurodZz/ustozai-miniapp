@@ -30,13 +30,13 @@ const Kurslar = (() => {
     const head = `${navbar("Kurslar")}
       <div class="km-panel">
         <div class="km-top"><span class="km-ic">${ic("chart")}</span><span>Mehnat bozori tahlili</span></div>
-        <b class="km-big">${s ? fmt(s.analyzed) : "11 088"} ta vakansiya</b>
+        <b class="km-big">${s ? fmt(s.analyzed) : "11,088"} ta vakansiya</b>
         <p>Kurslarimizni so'nggi 30 kunda e'lon qilingan ishlar bilan solishtirdik</p>
         <div class="km-stats">
-          <span><b>84%</b><small>o'quvchilarimiz talab bor yo'nalishlarda o'qiydi</small></span>
-          <span><b>${s ? s.courses : "…"}</b><small>kurs tahlil qilindi</small></span>
+          <span><i class="km-si">${ic("users")}</i><em><b>84%</b><small>o'quvchilarimiz talab bor yo'nalishlarda o'qiydi</small></em></span>
+          <span><i class="km-si">${ic("briefcase")}</i><em><b>${s ? s.courses : "119"}</b><small>kurs tahlil qilindi</small></em></span>
         </div>
-        <div class="km-src"><small>Manbalar:</small><i>hh.uz</i><i>OLX.uz${s ? `, ${fmt(s.olxActive)} faol e'lon` : ""}</i></div>
+        <div class="km-src"><small>Manbalar:</small><i>${ic("globe")}hh.uz</i><i>${ic("globe")}OLX.uz${s ? `, ${fmt(s.olxActive)} faol e'lon` : ""}</i></div>
       </div>
       <div class="km-tools">
         <label class="km-search">${ic("search")}<input id="km-q" placeholder="Kurs yoki ustoz nomi" value="${esc(query)}" autocomplete="off"></label>

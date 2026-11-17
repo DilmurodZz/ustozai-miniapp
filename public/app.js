@@ -77,6 +77,7 @@ const ICONS = {
   bell: '<path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 21h4"/>',
   gift: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8M12 8v13M12 8S10.5 3.5 8 3.5a2.2 2.2 0 0 0 0 4.5zM12 8s1.5-4.5 4-4.5a2.2 2.2 0 0 1 0 4.5z"/>',
   refresh: '<path d="M20 11a8 8 0 0 0-14.5-4L4 9M4 4v5h5M4 13a8 8 0 0 0 14.5 4L20 15M20 20v-5h-5"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.7-3.6 3.3-5.5 6.5-5.5s5.8 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.8"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 5"/>',
   up: '<path d="M12 19V5M6 11l6-6 6 6"/>',
   sides: '<path d="M8 7 3 12l5 5M16 7l5 5-5 5M3 12h18"/>',
   flag: '<path d="M5 21V4M5 4h12l-2 4 2 4H5"/>',
@@ -268,6 +269,7 @@ function Tanlov() {
 window.setLb = (k) => { lbTab = k; haptic(); render(); };
 
 function Profil() {
+  if (typeof loadColors === "function") setTimeout(loadColors, 0);
   const theme = store.get("theme", "blue");
   const invited = store.get("invited", 1);
   const link = `https://t.me/${BOT}?start=ref_${user.id}`;
@@ -279,12 +281,24 @@ function Profil() {
   </div>
   <div class="card box">
     <h4>${ic("palette")} Ilova rangi</h4><p>O'zingizga yoqqan rangni tanlang</p>
-    <div class="swatches">${Object.entries(THEMES).map(([k, [l, a, b]]) => `<button class="sw ${k === theme ? "on" : ""}" onclick="pickTheme('${k}')"><i style="background:linear-gradient(135deg,${a},${b})"></i>${l}</button>`).join("")}</div>
+    <div class="swatches">${Object.entries(THEMES).map(([k, [l, a, b]]) => `<button class="sw ${k === theme ? "on" : ""}" onclick="pickTheme('${k}')"><i style="background:linear-gradient(135deg,${a},${b})"></i>${l}<small class="sw-n">${colorCounts ? `${fmtN(colorCounts[k] || 0)} kishi` : "&nbsp;"}</small></button>`).join("")}</div>
   </div>
   ${startParam ? `<p class="note">Kirish manbasi: ${esc(startParam)}</p>` : ""}
   <p class="credit">O'yin 3D modellari (CC BY 4.0): own.guest, Nicholas-3D, Dimiter, Tom (trbaker), te1ko</p>`;
 }
-window.pickTheme = (k) => { applyTheme(k); haptic("medium"); render(); };
+window.pickTheme = (k) => { applyTheme(k); haptic("medium"); render(); sendColor(); };
+// how many people chose each colour: real counts kept by the share server, one vote per Telegram user
+const fmtN = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+let colorCounts = store.get("color_counts", null);
+function gotCounts(c) { if (c && typeof c.blue === "number") { const same = JSON.stringify(c) === JSON.stringify(colorCounts); colorCounts = c; store.set("color_counts", c); if (!same && location.hash === "#/profil") render(); } }
+function sendColor() {
+  const t = store.get("theme", "blue");
+  if (!tg || !tg.initData) return loadColors();
+  fetch(SHARE_API + "/color?c=" + t, { method: "POST", headers: { "X-Init-Data": tg.initData } })
+    .then((r) => r.ok ? r.json() : null).then((c) => { if (c) { store.set("color_sent", t); gotCounts(c); } }).catch(() => {});
+}
+function loadColors() { fetch(SHARE_API + "/colors").then((r) => r.json()).then(gotCounts).catch(() => {}); }
+setTimeout(() => { if (store.get("color_sent", "") !== store.get("theme", "blue")) sendColor(); else loadColors(); }, 1500);
 window.invite = (link) => {
   const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Ustoz AI: kasbingni top va bepul o'rgan")}`;
   if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");

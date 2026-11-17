@@ -9,7 +9,7 @@ const MAX_BYTES = 9 * 1024 * 1024;
 
 const cors = (origin) => ({
   "Access-Control-Allow-Origin": origin === ALLOWED_ORIGIN || /^http:\/\/localhost(:\d+)?$/.test(origin || "") ? origin : ALLOWED_ORIGIN,
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, X-Init-Data",
   "Access-Control-Max-Age": "86400",
 });
@@ -48,6 +48,26 @@ export default {
     const origin = req.headers.get("Origin") || "";
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin) });
     const url = new URL(req.url);
+    // colour choice counts: each Telegram user is counted once, with their latest colour
+    if (url.pathname === "/colors" && req.method === "GET") {
+      const c = (await env.COLORS.get("counts", "json")) || {};
+      return json({ blue: c.blue || 0, orange: c.orange || 0, green: c.green || 0 }, 200, origin);
+    }
+    if (url.pathname === "/color" && req.method === "POST") {
+      const user = await verifyInitData(req.headers.get("X-Init-Data"), env.BOT_TOKEN, 30 * 86400);
+      if (!user || !user.id) return json({ error: "unauthorised" }, 401, origin);
+      const pick = url.searchParams.get("c");
+      if (!["blue", "orange", "green"].includes(pick)) return json({ error: "bad colour" }, 400, origin);
+      const key = "u:" + user.id, old = await env.COLORS.get(key);
+      const c = (await env.COLORS.get("counts", "json")) || {};
+      if (old !== pick) {
+        if (old && c[old] > 0) c[old]--;
+        c[pick] = (c[pick] || 0) + 1;
+        await env.COLORS.put(key, pick);
+        await env.COLORS.put("counts", JSON.stringify(c));
+      }
+      return json({ blue: c.blue || 0, orange: c.orange || 0, green: c.green || 0 }, 200, origin);
+    }
     if (req.method !== "POST" || url.pathname !== "/share") return json({ error: "not found" }, 404, origin);
 
     const user = await verifyInitData(req.headers.get("X-Init-Data"), env.BOT_TOKEN);
