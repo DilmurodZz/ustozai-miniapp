@@ -285,13 +285,15 @@ function Profil() {
     <h2>${esc(user.first_name)} ${esc(user.last_name || "")}</h2>
     <small>${user.username ? "@" + esc(user.username) : "Ustoz AI o'quvchisi"}</small>
   </div>
-  <div class="card box">
-    <h4>${ic("palette")} Ilova rangi</h4><p>O'zingizga yoqqan rangni tanlang</p>
-    <div class="swatches">${Object.entries(THEMES).map(([k, [l, a, b]]) => `<button class="sw ${k === theme ? "on" : ""}" onclick="pickTheme('${k}')"><i style="background:linear-gradient(135deg,${a},${b})"></i>${l}<small class="sw-n">${colorCounts ? `${fmtN(colorCounts[k] || 0)} kishi` : "&nbsp;"}</small></button>`).join("")}</div>
-  </div>
-  ${langCard()}
   ${statsCard()}
   ${adminCard()}
+  <div class="card box">
+    <h4>${ic("palette")} Ilova rangi</h4><p>O'zingizga yoqqan rangni tanlang</p>
+    ${(() => { const sw = ([k, [l, a, b]]) => `<i class="dd-sw" style="background:linear-gradient(135deg,${a},${b})"></i><b>${l}</b><small>${colorCounts ? T("{n} kishi", { n: fmtN(colorCounts[k] || 0) }) : ""}</small>`;
+      const cur = Object.entries(THEMES).find(([k]) => k === theme);
+      return `<details class="dd"><summary>${sw(cur)}${ic("chev", "dd-chev")}</summary><div class="dd-list">${Object.entries(THEMES).map((e) => `<button class="${e[0] === theme ? "on" : ""}" onclick="pickTheme('${e[0]}')">${sw(e)}${e[0] === theme ? ic("check", "dd-ok") : ""}</button>`).join("")}</div></details>`; })()}
+  </div>
+  ${langCard()}
   ${startParam ? `<p class="note">Kirish manbasi: ${esc(startParam)}</p>` : ""}
   <p class="credit">O'yin 3D modellari (CC BY 4.0): own.guest, Nicholas-3D, Dimiter, Tom (trbaker), te1ko</p>`;
 }
@@ -373,6 +375,18 @@ const ROUTES = {
   "#/duo": DuoScreen, "#/chegirma": () => Soon("chegirma"), "#/vositalar": () => Tools.Screen(), "#/cv": () => Tools.CV(), "#/admin": () => AdminScreen(), "#/kashf": () => Soon("kashf"),
 };
 let gameOn = false;
+// the 3D game is loaded on its own, after Home: it is not needed to open the app
+const GAME_FILES = ["run-audio.js", "run-world.js", "game.js"];
+let gameLoading = null;
+function loadGame() {
+  if (typeof Game !== "undefined") return Promise.resolve();
+  if (gameLoading) return gameLoading;
+  const v = (document.querySelector('script[src^="app.js"]') || {}).src?.split("?v=")[1] || "";
+  gameLoading = GAME_FILES.reduce((p, f) => p.then(() => new Promise((ok, no) => {
+    const s = document.createElement("script"); s.src = f + "?v=" + v; s.onload = ok; s.onerror = no; document.body.appendChild(s);
+  })), Promise.resolve()).catch((e) => { gameLoading = null; throw e; });
+  return gameLoading;
+}
 const pageState = store.get("page_state", {});
 function savePage() {
   const h = location.hash || "#/", st = pageState[h] || {};
@@ -392,11 +406,16 @@ let lastHash = location.hash;
 let shownRoute = null;
 function render() {
   const route = ROUTES[location.hash] ? location.hash : location.hash.startsWith("#/kurs/") ? "#/kurs" : "#/";
-  if (gameOn && route !== "#/oyin") { Game.unmount(); gameOn = false; }
+  if (gameOn && route !== "#/oyin" && typeof Game !== "undefined") { Game.unmount(); gameOn = false; }
   document.body.classList.toggle("fit", route === "#/");     // Home fills the screen exactly, no scrolling
   const newPage = route !== shownRoute; shownRoute = route;
   app.innerHTML = ROUTES[route]();
-  if (route === "#/oyin") { Game.mount(); gameOn = true; }
+  if (route === "#/oyin") {
+    if (typeof Game === "undefined") {
+      app.innerHTML = `<div class="busy"><div class="run-spin"></div><p>${T("Yuklanmoqda…")}</p></div>`;
+      loadGame().then(() => { if (location.hash === "#/oyin") render(); }).catch(() => toast(T("Yuklab bo'lmadi")));
+    } else { Game.mount(); gameOn = true; }
+  }
   // the soft fade plays only when a different page opens, never when the same page refreshes its data
   if (newPage) { app.classList.remove("enter"); void app.offsetWidth; app.classList.add("enter"); }
   renderTabs(route === "#/kurs" ? "#/kurslar" : route);
@@ -438,6 +457,8 @@ window.addEventListener("DOMContentLoaded", () => {
   render();
   // course data is fetched quietly in the background, so the Kurslar page opens complete in one go
   setTimeout(() => { try { Kurslar.load(); } catch {} }, 400);
+  // the game files come last, when the phone is idle
+  setTimeout(() => (window.requestIdleCallback || setTimeout)(() => loadGame().catch(() => {})), 2500);
 });
 
 /* ---------- the course wheel: tap the Kurslar icon on Home, or swipe the wheel up or down ---------- */

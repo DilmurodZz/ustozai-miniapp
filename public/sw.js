@@ -1,27 +1,25 @@
-// Offline cache: the app shell, the 3D library and the models work without internet after the first visit.
-const CACHE = "ustozai-v47";
-const FILES = ["./", "index.html", "styles.css", "data.js", "app.js", "game.js", "courses.js", "i18n.js", "i18n-ru.js", "i18n-en.js", "profile.js", "tools.js", "features.css", "img/poyezdbilet24.webp", "data/kurslar.json", "duo.js", "run-world.js", "run-audio.js", "logo.png", "img/loading.webp", "img/hero-compass.webp", "img/ic-courses.webp", "img/ic-game.webp", "img/ic-trophy.webp", "img/ic-zkt.webp", "img/ic-sale.webp", "img/ic-tools.webp", "img/zkt-logo.png", "img/turonbank.png",
-  "lib/three.module.min.js", "lib/GLTFLoader.js", "lib/BufferGeometryUtils.js", "lib/meshopt_decoder.module.js", "lib/peerjs.min.js",
-  "music/track1.m4a", "music/track2.m4a", "music/track3.m4a", "models/damas.glb", "models/tree1.glb", "models/tree2.glb", "models/mosque.glb", "models/city.glb", "models/wagon.glb"];
+// Offline cache. Install keeps only what Home and the main screens need, so the first visit is light;
+// the 3D game, its models, music and the PDF libraries are cached the first time they are used.
+const CACHE = "ustozai-v48";
+const FILES = ["./", "index.html", "styles.css", "features.css", "i18n.js", "data.js", "duo.js", "courses.js", "app.js", "profile.js", "tools.js",
+  "logo.png", "img/hero-compass.webp", "img/ic-courses.webp", "img/ic-game.webp", "img/ic-trophy.webp", "img/ic-zkt.webp", "img/ic-sale.webp", "img/ic-tools.webp",
+  "img/zkt-logo.png", "img/turonbank.png", "img/poyezdbilet24.webp"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))));
   self.clients.claim();
 });
-// models, music and the 3D library change only with a new version: served straight from the cache (fast start).
-// Everything else: network first (fresh when online), cache as fallback (offline).
+const keep = (req, r) => { if (r && r.ok) { const copy = r.clone(); caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {}); } return r; };
 self.addEventListener("fetch", (e) => {
-  if (e.request.method !== "GET") return;
+  if (e.request.method !== "GET" || !e.request.url.startsWith(self.location.origin)) return;
+  // models, music and libraries change only with a new version: from the cache, else downloaded once and kept
   if (/\/(models|music|lib)\//.test(new URL(e.request.url).pathname)) {
-    e.respondWith(caches.match(e.request, { ignoreSearch: true }).then((m) => m || fetch(e.request)));
+    e.respondWith(caches.match(e.request, { ignoreSearch: true }).then((m) => m || fetch(e.request).then((r) => keep(e.request, r))));
     return;
   }
   // the app's own files: always ask the server whether they changed (a quick check), so updates show at once
   e.respondWith(
-    fetch(e.request, { cache: "no-cache" }).then((r) => {
-      const copy = r.clone();
-      caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
-      return r;
-    }).catch(() => caches.match(e.request, { ignoreSearch: true }).then((m) => m || caches.match("index.html")))
+    fetch(e.request, { cache: "no-cache" }).then((r) => keep(e.request, r))
+      .catch(() => caches.match(e.request, { ignoreSearch: true }).then((m) => m || caches.match("index.html")))
   );
 });

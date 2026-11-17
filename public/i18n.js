@@ -12,6 +12,8 @@ const LANG = (() => {
 })();
 document.documentElement.lang = LANG;
 const I18N = { ru: {}, en: {} };   // filled by i18n-ru.js and i18n-en.js
+// only the chosen language's file is downloaded (written in place, so it runs before the screens are built)
+if (LANG !== "uz") document.write(`<script src="i18n-${LANG}.js?v=${(document.currentScript && document.currentScript.src.split("?v=")[1]) || ""}"><\/script>`);
 function T(s, vars) {
   let out = (LANG !== "uz" && I18N[LANG][s]) || s;
   if (vars) for (const k in vars) out = out.split("{" + k + "}").join(vars[k]);

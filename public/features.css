@@ -171,3 +171,72 @@
 /* longer titles in Russian / English stay left of the compass picture */
 .hero2 h3 { max-width: 60%; line-height: 1.1; position: relative; z-index: 1; }
 .banner b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* ---------- Profil: colour as a dropdown ---------- */
+.dd { border: 1px solid var(--line); border-radius: 14px; background: var(--bg); overflow: hidden; }
+.dd summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 11px 12px; cursor: pointer; }
+.dd summary::-webkit-details-marker { display: none; }
+.dd-sw { width: 26px; height: 26px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 2px rgba(255,255,255,.6); }
+.dd b { font-size: 15px; font-weight: 600; }
+.dd small { margin-left: auto; font-size: 12px; color: var(--muted); }
+.dd-chev { width: 18px; height: 18px; color: var(--muted); transform: rotate(90deg); transition: transform .2s; }
+.dd[open] .dd-chev { transform: rotate(-90deg); }
+.dd-list { border-top: 1px solid var(--line); background: var(--card); }
+.dd-list button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px 12px; text-align: left; font: inherit; color: var(--text); }
+.dd-list button + button { border-top: 1px solid var(--line); }
+.dd-list button.on { background: var(--p-soft); }
+.dd-ok { width: 18px; height: 18px; color: var(--p1); margin-left: 6px; }
+.dd-list small { margin-left: auto; }
+
+/* ---------- Kurslar: number on each course, tips without bullets ---------- */
+.kc-img { position: relative; }
+.kc-n { position: absolute; left: 6px; top: 6px; z-index: 1; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 6px; background: rgba(255,255,255,.92); color: #0B1033; font-style: normal; font-size: 11px; font-weight: 700; line-height: 20px; text-align: center; box-shadow: 0 1px 3px rgba(18,24,41,.18); font-variant-numeric: tabular-nums; }
+.kd-tips { list-style: none; padding-left: 0; gap: 10px; }
+.kd-tips li { padding-left: 0; }
+
+/* ---------- CV maker: 4 types, document language, designs ---------- */
+.cv-types { grid-template-columns: 1fr 1fr; }
+.tool-thumbs.four { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.cv-two .wide { grid-column: 1 / -1; }
+.cv-lang .seg { margin: 0; }
+.cv-designs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cv-designs button { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 2px solid transparent; font: inherit; color: var(--text); align-items: stretch; }
+.cv-designs button.on { border-color: var(--p1); }
+.cv-designs b { font-size: 13px; text-align: center; }
+.cvf select { width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 12px; padding: 11px 10px; font: inherit; font-size: 14.5px; background: var(--bg); color: var(--text); }
+.ob-doc { width: 794px; }
+
+/* designs */
+.d-elegant { font-family: Georgia, "Times New Roman", serif; }
+.d-elegant h1 { letter-spacing: 2px; font-weight: 700; color: #2B2A28; }
+.d-elegant header { border-bottom: 3px double #8A6D3B; padding-bottom: 10px; }
+.d-elegant section h3 { color: #8A6D3B; border-bottom: 1px solid #8A6D3B; letter-spacing: 1.2px; font-weight: 700; }
+.d-elegant.cd-rez header { border-left: 0; padding-left: 0; text-align: center; }
+.d-elegant.cd-rez h2, .d-elegant h2 { color: #8A6D3B; }
+.d-elegant.cd-photo aside { background: #2B2A28; }
+.d-elegant.cd-photo aside h3 { color: #D9BE86; }
+.d-modern header { background: #EEF2FF; margin: -46px -54px 14px; padding: 34px 54px 20px; border-bottom: 4px solid #2748F5; text-align: left; }
+.d-modern h1 { color: #2748F5; }
+.d-modern section h3 { color: #2748F5; border-bottom: 2px solid #2748F5; }
+.d-modern.cd-rez header { border-left: 0; }
+.d-modern.cd-photo aside { background: #2748F5; }
+.d-modern.cd-photo main h2 { color: #2748F5; }
+
+/* obyektivka (ma'lumotnoma) */
+.cd-obj { position: relative; font-family: "Times New Roman", Times, serif; font-size: 15px; line-height: 1.35; color: #000; padding: 64px 66px; }
+.cd-obj h1 { text-align: center; font-size: 20px; letter-spacing: 0; text-transform: none; margin: 4px 0 16px; color: #000; }
+.cd-obj h2 { font-size: 20px; font-weight: 700; color: #000; text-align: center; margin: 0 150px 14px 0; }
+.ob-photo { position: absolute; right: 66px; top: 70px; width: 113px; height: 151px; border: 1px solid #000; padding: 3px; box-sizing: border-box; }
+.ob-photo img { width: 100%; height: 100%; display: block; }
+.ob-since { margin: 0 150px 2px 0; }
+.ob-pos { margin: 0 150px 12px 0; }
+.ob-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 26px; margin: 10px 0; }
+.ob-grid b { display: block; }
+.ob-row { margin: 10px 0; }
+.cd-obj h3 { text-align: center; font-size: 19px; text-transform: uppercase; margin: 26px 0 12px; border: 0; }
+.ob-work { display: grid; grid-template-columns: 120px 1fr; gap: 8px; margin: 5px 0; }
+.ob-p2 h4 { text-align: center; font-size: 16px; margin: 0 0 12px; }
+.ob-p2 table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.ob-p2 th, .ob-p2 td { border: 1px solid #000; padding: 7px 6px; text-align: center; vertical-align: middle; }
+.ob-p2 th { font-weight: 700; }
+.cd-obj p { font-size: 15px; }

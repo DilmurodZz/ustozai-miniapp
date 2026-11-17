@@ -39,6 +39,9 @@ const Kurslar = (() => {
   const img = (u, w) => (u && /^https:\/\/upload\.ustozai-app\.uz\//.test(u) ? `https://ustoz.ai/_next/image?url=${encodeURIComponent(u)}&w=${w}&q=75` : u);
   const skeleton = `<div class="kc-skel"></div><div class="kc-skel"></div><div class="kc-skel"></div>`;
 
+  // students in the courses whose jobs are in high demand (100+ vacancies a month): a real count, not a share
+  const topStudents = () => data.courses.reduce((n, c) => { const g = data.groups[c.g]; return n + (g.kind === "job" && g.related >= 100 ? c.students || 0 : 0); }, 0);
+
   /* ---------- the list ---------- */
   function List() {
     if (query === null) { query = store.get("k_query", ""); sort = store.get("k_sort", "popular"); }   // remembered search and sorting
@@ -49,7 +52,7 @@ const Kurslar = (() => {
         <div class="km-top"><span class="km-ic">${ic("chart")}</span><span>Mehnat bozori tahlili</span></div>
         <b class="km-big">${T("{n} ta vakansiya tahlil qilindi", { n: s ? fmt(s.analyzed) : "11,088" })}</b>
         <div class="km-stats">
-          <span><i class="km-si">${ic("users")}</i><em><b>${s ? s.studentsHighDemand : "33"}%</b><small>o'quvchilarimiz eng talabgir kurslarimizda o'qiydi</small></em></span>
+          <span><i class="km-si">${ic("users")}</i><em><b>${data ? fmt(topStudents()) : "…"}</b><small>${T("o'quvchi eng talabgir kurslarimizda o'qiydi")}</small></em></span>
           <span><i class="km-si">${ic("briefcase")}</i><em><b>${s ? s.courses : "119"}</b><small>kurs tahlil qilindi</small></em></span>
         </div>
         <div class="km-src"><small>Manbalar:</small><i>${ic("globe")}hh.uz</i><i>${ic("globe")}OLX.uz</i></div>
@@ -62,10 +65,10 @@ const Kurslar = (() => {
     let list = data.courses.filter((c) => !ql || c.title.toLowerCase().includes(ql) || (c.teacher || "").toLowerCase().includes(ql));
     const G = data.groups;
     list = [...list].sort((a, b) => (KIND_ORDER[G[a.g].kind] - KIND_ORDER[G[b.g].kind]) || (G[b.g].related || 0) - (G[a.g].related || 0) || (b.students || 0) - (a.students || 0));
-    return head + `<div class="kc-list">${list.map((c) => {
+    return head + `<div class="kc-list">${list.map((c, i) => {
       const g = G[c.g];
       return `<a class="kc" href="#/kurs/${c.id}">
-        <span class="kc-img">${c.image ? `<img src="${esc(img(c.image, 256))}" alt="" loading="lazy" decoding="async">` : ""}</span>
+        <span class="kc-img"><em class="kc-n">${i + 1}</em>${c.image ? `<img src="${esc(img(c.image, 256))}" alt="" loading="lazy" decoding="async">` : ""}</span>
         <span class="kc-body">
           <b class="notr">${esc(c.title)}</b>
           <small class="notr">${esc(c.teacher || "Ustoz AI")}</small>
