@@ -83,7 +83,8 @@ const Kurslar = (() => {
     const time = `<section class="kd-card">
       <h3>${ic("clock")} Qancha vaqtda mutaxassis bo'lasiz?</h3>
       ${c.sec ? `<p>Kursdagi videolar jami <b>${hrs(c.sec)}</b>, <b>${c.lessons} ta dars</b>. Kuniga 1 soatdan shug'ullansangiz, videolar va amaliyot bilan kursni taxminan <b>${weeks} haftada</b> tugatasiz.</p>` : `<p>Kurs darslari hozir to'ldirilmoqda.</p>`}
-      ${months ? `<p>Amaliyot bilan birga birinchi ishga tayyor bo'lish uchun odatda <b>${months}</b> kerak bo'ladi: kursni tugating, kichik amaliy ishlar qiling va ularni rezyumengizga qo'shing.</p>` : ""}
+      ${months ? `<p>Birinchi ishga tayyor bo'lish uchun taxminan <b>${months}</b> kerak bo'ladi (kuniga 1-2 soat shug'ullanganda${g.mnote ? `, ${esc(g.mnote)}` : ""}). Kursni tugating, kichik amaliy ishlar qiling va ularni rezyumengizga qo'shing.</p>` : ""}
+      ${isJob && g.noexp != null && g.noexp < 10 ? `<p>Bu sohada vakansiyalarning atigi ${g.noexp}% qismi tajribasiz nomzodlarni qabul qiladi, shuning uchun birinchi ish ko'pincha stajirovka yoki yordamchi lavozim bo'ladi.</p>` : ""}
     </section>`;
 
     const jobs = (g.jobs || []).map((j) => `<button class="kd-job" ${ext(j.u)}>
@@ -104,7 +105,7 @@ const Kurslar = (() => {
     if (isJob) body = `<p>Biz so'nggi 30 kunda hh.uz'da e'lon qilingan <b>${fmt(s.analyzed)} ta vakansiyani</b> tahlil qildik. Ulardan <b>${fmt(g.related)} tasi (${pct(g.share)}%)</b> aynan shu kurs o'rgatadigan kasb yoki ko'nikmani so'raydi. Talab: <b>${g.level.toLowerCase()}</b>.</p>
         ${pay}${note}
         ${g.related < 10 ? `<p>Bu yo'nalishda hozir vakansiyalar juda kam. Daromad ko'proq frilans buyurtmalar yoki o'z ishingiz orqali keladi.</p>` : ""}
-        <p>${g.strong ? `Bu kurs sizga <b>${esc(g.job)}</b> lavozimlariga kuchli rezyume bilan ariza topshirishingizga yordam beradi.` : `Bu kurs <b>${esc(g.job)}</b> ishiga kirish uchun asos beradi. Ishga tayyor bo'lish uchun kursdan keyin amaliyot va qo'shimcha ko'nikmalarni ham o'rganing.`}</p>`;
+        <p>${g.strong && c.sec >= 3 * 3600 ? `Bu kurs sizga <b>${esc(g.job)}</b> lavozimlariga kuchli rezyume bilan ariza topshirishingizga yordam beradi.` : `Bu kurs <b>${esc(g.job)}</b> ishiga kirish uchun asos beradi. Ishga tayyor bo'lish uchun kursdan keyin amaliyot va qo'shimcha ko'nikmalarni ham o'rganing.`}</p>`;
     else if (hasJobs) body = `${note}<p>Biz so'nggi 30 kunda hh.uz'da e'lon qilingan <b>${fmt(s.analyzed)} ta vakansiyani</b> tahlil qildik. Ulardan <b>${fmt(g.related)} tasi (${pct(g.share)}%)</b> tajribasiz nomzodlarni ham qabul qiladi.</p>${pay}`;
     else body = note;
 
