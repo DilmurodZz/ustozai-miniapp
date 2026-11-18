@@ -19,3 +19,11 @@ database_id = "8a68e9a2-529b-4ae8-8722-f5bd5ab0b93c"
 # Telegram user ids that see the admin section and may use /admin/* (Dilmurod, @sakumter)
 ADMIN_IDS = "5199387523,2094753316"
 CHANNEL = "@ustozai"
+
+# Workers AI: translates the youth news into the reader's language
+[ai]
+binding = "AI"
+
+# rebuilds the youth news list (one language each time)
+[triggers]
+crons = ["*/5 * * * *"]

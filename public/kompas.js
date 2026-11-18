@@ -49,7 +49,7 @@ const Compass = (() => {
       ["skill", "Kasb uchun kerakli ko'nikmani o'rganish", "zap"], ["job", "Ish topish yoki suhbatga tayyorlanish", "briefcase"],
       ["biz", "O'z biznesimni boshlash yoki rivojlantirish", "rocket"], ["grow", "Hozirgi ishimda o'sish", "trend"],
       ["exam", "Imtihon yoki til o'rganishga tayyorlanish", "cap"], ["hobby", "Ijodiy loyiha boshlash yoki sevimli mashg'ulotim bilan shug'ullanish", "palette"], ["unsure", "Hali aniq bilmayman", "compass"]] },
-    { k: "level", q: "Men bu mavzuni qanchalik bilaman?", icon: "up", o: [
+    { k: "level", q: "Men o'rganmoqchi bo'lgan soha bo'yicha bilimim qanday?", icon: "up", o: [
       ["none", "Hali o'rganishni boshlamaganman", "play"], ["basic", "Bu haqda ozgina bilaman", "book"], ["did", "O'zim bajarib ko'rganman", "check"],
       ["deep", "Tajribam bor, yanada ko'proq o'rganmoqchiman", "star"], ["unsure", "Hozircha aniq bilmayman", "compass"]] },
     { k: "time", q: "Men haftasiga o'qishga qancha vaqt ajrata olaman?", icon: "clock", o: [
@@ -157,7 +157,10 @@ const Compass = (() => {
   const primary = (c) => Object.entries(c.tag.t).sort((x, y) => y[1] - x[1])[0][0];
   // three picks: best match, an alternative led by another theme, and a free or beginner start
   function recommend(st, skip = 0) {
-    const list = catalog(); if (!list) return null;
+    const raw = catalog(); if (!raw) return null;
+    // most students look for online, office-based work: courses that need tools or materials (farming, crafts, driving...)
+    // are suggested only to those who said they have such equipment
+    const list = raw.filter((c) => c.tag.dev !== "kit" || st.f.device === "kit");
     const prof = profile(st.a);
     const all = list.map((c) => scoreCourse(c, st.a, st.f, prof)).sort((x, y) => y.rank - x.rank);
     const ok = all.filter((r) => budgetOk(r.c, st.f.budget));
@@ -244,8 +247,10 @@ const Compass = (() => {
     render(); window.scrollTo(0, 0);
   };
   window.kpStart = (reset) => { if (reset || st.step < 0 || st.step >= N) st = fresh(); if (st.step < 0) st.step = 0; save(); haptic("light"); render(); };
-  window.kpAns = (v) => { st.a[st.order[st.step]] = v; save(); haptic("light"); render(); };
-  window.kpFit = (k, v) => { st.f[k] = v; save(); haptic("light"); render(); };
+  // after a choice the green "next" button glides into view
+  const toNext = () => requestAnimationFrame(() => { const b = document.querySelector(".kp-next"); if (b) b.scrollIntoView({ behavior: "smooth", block: "center" }); });
+  window.kpAns = (v) => { st.a[st.order[st.step]] = v; save(); haptic("light"); render(); toNext(); };
+  window.kpFit = (k, v) => { st.f[k] = v; save(); haptic("light"); render(); toNext(); };
   window.kpNext = () => {
     const i = st.step, ok = i < ITEMS.length ? st.a[st.order[i]] !== undefined : st.f[FIT[i - ITEMS.length].k] !== undefined;
     if (!ok) { toast(T("Avval javobni tanlang")); return; }

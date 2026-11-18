@@ -140,7 +140,7 @@ function renderTabs(route) {
 }
 
 const navbar = (title) => `<div class="navbar"><button class="icon-btn" onclick="goBack()">${ic("back")}</button><h1>${title}</h1><span></span></div>`;
-window.goBack = () => { if (typeof Game !== "undefined" && gameOn && Game.onBack()) return; history.length > 1 ? history.back() : (location.hash = "#/"); };
+window.goBack = () => { if (document.getElementById("sheet")) return closeSheet(); if (typeof Game !== "undefined" && gameOn && Game.onBack()) return; history.length > 1 ? history.back() : (location.hash = "#/"); };
 
 /* ---------- screens ---------- */
 function Home() {
@@ -207,19 +207,6 @@ window.invite = (link) => {
   if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
 };
 
-// "Top 20 chegirmalar": what students can use now, then what is coming
-function Chegirma() {
-  const deals = [
-    { i: "card", c: "c1", t: T("Poyezd chiptalariga 50% chegirma"), d: T("O'zbekiston temir yo'llari talabalarga qishki ta'tilda poyezd chiptalariga 50 foiz chegirma beradi. O'tgan mavsumda 2025-yil 18-dekabrdan 2026-yil 12-yanvargacha amal qilgan."), u: "railway.uz" },
-    { i: "plane", c: "c3", t: T("Ichki reyslarga 50% chegirma"), d: T("Uzbekistan Airways talabalar uchun qishki ta'tilda mahalliy aviachiptalarga 50 foiz chegirma e'lon qiladi. O'tgan mavsumda 2025-yil 26-dekabrdan 2026-yil 11-yanvargacha amal qilgan."), u: "uzairways.com" },
-  ];
-  return `${navbar(T("Top 20 chegirmalar"))}
-  <div class="section-title">${T("Talabalar uchun mavsumiy chegirmalar")}</div>
-  <div class="dl-list">${deals.map((x) => `<div class="card dl-card">${chip(x.i, "sm " + x.c)}<span><b>${x.t}</b><small>${x.d}</small>
-    <button class="dl-link" onclick="openExt('${encodeURIComponent("https://" + x.u)}')">${ic("globe")} ${x.u}</button></span><em>50%</em></div>`).join("")}</div>
-  <p class="note">${T("Chegirmalar odatda qishki ta'til oldidan e'lon qilinadi. Talabalik guvohnomangizni tayyor turing.")}</p>
-  ${Soon("chegirma").replace(navbar(SOON.chegirma.t), "")}`;
-}
 function Soon(key) {
   const s = SOON[key];
   return `${navbar(s.t)}
@@ -277,7 +264,7 @@ function bindDuo() {
 const ROUTES = {
   "#/": Home, "#/kompas": () => needScript("kompas.js", "Compass", "Screen", T("Kasb Kompasi")), "#/natija": () => needScript("kompas.js", "Compass", "Result", T("Kasb Kompasi")), "#/tanlov": () => needScript("tanlov.js", "Contest", "Screen", T("Tanlov")), "#/profil": Profil,
   "#/kurslar": () => Kurslar.List(), "#/kurs": () => Kurslar.Detail(location.hash.slice(7)), "#/oyin": () => "", "#/mutolaa": () => Soon("mutolaa"),
-  "#/duo": DuoScreen, "#/chegirma": Chegirma, "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/dtm": () => needScript("study.js", "Study", "DTM", T("DTM ball kalkulyatori")), "#/ielts": () => needScript("study.js", "Study", "IELTS", T("IELTS ball kalkulyatori")), "#/unis": () => needScript("study.js", "Study", "Unis", T("Top 300 universitet va grantlar")), "#/admin": () => AdminScreen(), "#/kashf": () => Soon("kashf"),
+  "#/duo": DuoScreen, "#/chegirma": () => needScript("deals.js", "Deals", "Screen", T("Top 20 chegirmalar")), "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/dtm": () => needScript("study.js", "Study", "DTM", T("DTM ball kalkulyatori")), "#/ielts": () => needScript("study.js", "Study", "IELTS", T("IELTS ball kalkulyatori")), "#/unis": () => needScript("study.js", "Study", "Unis", T("Top 300 universitet va grantlar")), "#/admin": () => AdminScreen(), "#/kashf": () => Soon("kashf"),
 };
 let gameOn = false;
 // the 3D game is loaded on its own, after Home: it is not needed to open the app
@@ -379,9 +366,10 @@ window.addEventListener("DOMContentLoaded", () => {
   // course data and the CV maker come when the phone is idle (or at once when their page opens)
   const idle = (f, ms) => setTimeout(() => (window.requestIdleCallback || setTimeout)(f), ms);
   idle(() => { try { Kurslar.load(); } catch {} }, 1500);
-  idle(() => loadTools().catch(() => {}), 4000);
+  idle(() => loadTools().catch(() => {}), 7000);
   // the game files come last, when the phone is idle
-  setTimeout(() => (window.requestIdleCallback || setTimeout)(() => loadGame().catch(() => {})), 2500);
+  // the game engine is the heaviest file: it comes when the phone has been idle for a while, so the menu stays smooth
+  setTimeout(() => (window.requestIdleCallback || setTimeout)(() => loadGame().catch(() => {}), { timeout: 4000 }), 10000);
 });
 
 /* ---------- the course wheel: tap the Kurslar icon on Home, or swipe the wheel up or down ---------- */
@@ -551,6 +539,7 @@ function sheet(html) {
   el.innerHTML = `<div class="sheet" onclick="event.stopPropagation()"><i class="sheet-grip"></i>${html}</div>`;
   el.onclick = closeSheet; document.body.appendChild(el);
   requestAnimationFrame(() => el.classList.add("on"));
+  try { tg.BackButton.show(); } catch {}   // back closes this panel first
 }
-window.closeSheet = () => { const el = document.getElementById("sheet"); if (el) { el.classList.remove("on"); setTimeout(() => el.remove(), 250); } };
+window.closeSheet = () => { const el = document.getElementById("sheet"); if (el) { el.classList.remove("on"); el.id = ""; setTimeout(() => el.remove(), 250); } try { if ((location.hash || "#/") === "#/") tg.BackButton.hide(); } catch {} };
 window.openTg = (u) => { haptic("light"); if (tg && tg.openTelegramLink) tg.openTelegramLink(u); else window.open(u, "_blank"); };

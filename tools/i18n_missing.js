@@ -5,7 +5,7 @@ const dir = path.join(__dirname, "..", "public");
 const I18N = { ru: {}, en: {} };
 for (const l of ["ru", "en"]) eval(fs.readFileSync(path.join(dir, `i18n-${l}.js`), "utf8"));
 const keys = new Set();
-for (const f of ["app.js", "tools.js", "profile.js", "courses.js", "game.js", "tanlov.js", "study.js", "kompas.js", "news.js"]) {
+for (const f of ["app.js", "tools.js", "profile.js", "courses.js", "game.js", "tanlov.js", "study.js", "kompas.js", "news.js", "deals.js"]) {
   const s = fs.readFileSync(path.join(dir, f), "utf8");
   for (const m of s.matchAll(/\b(?:T|tr)\(\s*"((?:[^"\\]|\\.)*)"/g)) keys.add(JSON.parse('"' + m[1] + '"'));
 }

@@ -45,6 +45,21 @@ async function tg(token, method, body) {
 }
 
 export default {
+  // every 5 minutes one language's list is rebuilt, so new stories get translated before anyone opens the app
+  async scheduled(event, env) {
+    const l = ["uz", "ru", "en"][Math.floor(Date.now() / 300000) % 3];
+    try {
+      const res = await news(new URL("https://local/news?fresh=1&l=" + l), env, "*");
+      const list = ((await res.json()).items || []).filter((x) => x.o !== l).slice(0, 12);
+      let n = 0;
+      for (const x of list) {
+        if (n >= 2) break;
+        const key = "art:v3:" + l + ":" + (await sha(x.u));
+        if (await env.COLORS.get(key)) continue;
+        n++; await newsRead(new URL("https://local/news/read?" + new URLSearchParams({ u: x.u, l, o: x.o })), env, "*");
+      }
+    } catch {}
+  },
   async fetch(req, env) {
     const origin = req.headers.get("Origin") || "";
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin) });
@@ -73,6 +88,7 @@ export default {
     if (url.pathname === "/stats" && req.method === "GET") return json(await stats(env), 200, origin);
     if (url.pathname === "/winners" && req.method === "GET") return winners(origin);
     if (url.pathname === "/news" && req.method === "GET") return news(url, env, origin);
+    if (url.pathname === "/news/read" && req.method === "GET") return newsRead(url, env, origin);
     if (url.pathname === "/file" && req.method === "POST") return sendFile(req, env, url, origin);
     if (url.pathname.startsWith("/dl/") && req.method === "GET") {
       const [, , id, name] = url.pathname.split("/");
@@ -275,7 +291,9 @@ const kwRe = new RegExp("(?:^|[^\\p{L}\\p{N}])(?:" + NEWS_KW.map((k) => k.replac
 const shortRe = /(?:^|[^\p{L}])(?:ai|ии|sat|dtm|вуз|gpt)(?:$|[^\p{L}])/iu;
 const unent = (s) => String(s || "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
   .replace(/&quot;/g, '"').replace(/&apos;|&#039;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ")
-  .replace(/&(rsquo|lsquo);/g, "'").replace(/&(ldquo|rdquo|laquo|raquo|bdquo);/g, '"').replace(/&(mdash|ndash);/g, "-").replace(/&hellip;/g, "...").replace(/&amp;/g, "&");
+  .replace(/&(rsquo|lsquo);/g, "'").replace(/&(ldquo|rdquo|laquo|raquo|bdquo);/g, '"').replace(/&(mdash|ndash);/g, "-").replace(/&hellip;/g, "...")
+  .replace(/&([oOuUaAeE])uml;/g, (_, c) => ({ o: "ö", O: "Ö", u: "ü", U: "Ü", a: "ä", A: "Ä", e: "ë", E: "Ë" })[c]).replace(/&([cCsS])cedil;/g, (_, c) => ({ c: "ç", C: "Ç", s: "ş", S: "Ş" })[c])
+  .replace(/&([gG])breve;/g, (_, c) => c === "g" ? "ğ" : "Ğ").replace(/&([aeiouAEIOU])(acute|grave);/g, "$1").replace(/&amp;/g, "&");
 const tagOf = (x, t) => { const m = x.match(new RegExp(`<${t}[^>]*>([\\s\\S]*?)</${t}>`, "i")); return m ? unent(m[1]).trim() : ""; };
 const plain = (s) => unent(s).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 // kun.uz writes Uzbek in the newer alphabet (ç, ş, ö, ğ); the app uses ch, sh, o', g'
@@ -301,51 +319,155 @@ function parseFeed(xml, src, lang) {
 // stories picked by hand: shown at the top in every language for two weeks after they were added (lang = the story's own language)
 const NEWS_PINNED = [
   { t: "OpenAI представила две «жутко умные» модели ИИ: GPT-6.2 Astra для профи и GPT-6.2 Sol для повседневных дел", u: "https://3dnews.ru/1151437/openai-predstavila-dve-gutko-umniemodeli-ii-gpt62-astra-dlya-profi-i-gpt62-sol-dlya-povsednevnih-del",
-    i: "https://cdn.3dnews.ru/assets/external/illustrations/2026/11/17/1151437/gpt.png", d: "OpenAI представила две новые модели искусственного интеллекта, GPT-6.2 Astra и GPT-6.2 Sol, ориентированные на выполнение сложных профессиональных задач и повседневных дел.", s: "3DNews", at: Date.parse("2026-11-17T23:38:00+03:00"), lang: "ru", until: Date.parse("2026-12-02") },
+    i: "https://cdn.3dnews.ru/assets/external/illustrations/2026/11/17/1151437/gpt.png", d: "OpenAI представила две новые модели искусственного интеллекта, GPT-6.2 Astra и GPT-6.2 Sol, ориентированные на выполнение сложных профессиональных задач и повседневных дел.", s: "3DNews", at: Date.parse("2026-11-17T23:38:00+03:00"), lang: "ru", until: Date.parse("2026-12-02"),
+    trs: { uz: { t: "OpenAI ikkita juda aqlli AI modelini taqdim etdi: professionallar uchun GPT-6.2 Astra va kundalik ishlar uchun GPT-6.2 Sol", d: "OpenAI murakkab professional vazifalar va kundalik ishlar uchun mo'ljallangan ikkita yangi sun'iy intellekt modeli, GPT-6.2 Astra va GPT-6.2 Sol'ni taqdim etdi." },
+      en: { t: "OpenAI unveils two very smart AI models: GPT-6.2 Astra for professionals and GPT-6.2 Sol for everyday tasks", d: "OpenAI introduced two new AI models, GPT-6.2 Astra and GPT-6.2 Sol, built for complex professional work and everyday tasks." } } },
   { t: "See what 5 builders are making with Gemini 4 Carbon", u: "https://blog.google/products-and-platforms/products/gemini/gemini-4-carbon-builders/",
     i: "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/5_buildersGemini_4_Carbon_hero.width-1300.png", d: "See how five developers use Google Gemini 4 Carbon to build complex physics simulations, 3D designs, and data tools.", s: "Google", at: Date.parse("2026-11-17T12:00:00Z"), lang: "en", until: Date.parse("2026-12-02") },
   { t: "Перечислены самые высокооплачиваемые профессии в Узбекистане", u: "https://repost.uz/pozdno-vkativatsya-v-banking",
-    i: "https://repost.uz/storage/watermarks/31241-1793106778-Oleg-post-material.jpg", d: "По итогам сентября 2026 года среднемесячная номинальная зарплата в Узбекистане составила свыше 7,2 млн сумов. Какие профессии оплачиваются выше всего.", s: "Repost.uz", at: Date.parse("2026-10-27T18:08:00+05:00"), lang: "ru", until: Date.parse("2026-12-02") },
+    i: "https://repost.uz/storage/watermarks/31241-1793106778-Oleg-post-material.jpg", d: "По итогам сентября 2026 года среднемесячная номинальная зарплата в Узбекистане составила свыше 7,2 млн сумов. Какие профессии оплачиваются выше всего.", s: "Repost.uz", at: Date.parse("2026-10-27T18:08:00+05:00"), lang: "ru", until: Date.parse("2026-12-02"),
+    trs: { uz: { t: "O'zbekistondagi eng yuqori maoshli kasblar ma'lum bo'ldi", d: "2026-yil sentyabr yakunlariga ko'ra O'zbekistonda o'rtacha oylik ish haqi 7,2 mln so'mdan oshdi. Qaysi kasblar eng yuqori maosh oladi." },
+      en: { t: "The highest-paid professions in Uzbekistan", d: "By the end of September 2026 the average monthly salary in Uzbekistan passed 7.2 million soum. Which jobs pay the most." } } },
 ];
-async function news(url, env, origin) {
-  const lang = ["uz", "ru", "en"].includes(url.searchParams.get("l")) ? url.searchParams.get("l") : "uz";
-  const cache = caches.default, key = new Request("https://cache.local/news-v7-" + lang);
-  let hit = await cache.match(key);
-  if (hit) { const r = new Response(hit.body, hit); Object.entries(cors(origin)).forEach(([k, v]) => r.headers.set(k, v)); return r; }
+// never shown: religious news and sad or crime news (matched at the start of a word, in the headline or the summary)
+const NEWS_BAN = ["diniy", "dindor", "islom", "masjid", "namoz", "ramazon", "hajj", "haj ziyorat", "umra", "imom", "qur'on", "muftiy", "hijob", "ro'za", "xristian", "cherkov",
+  "halok", "o'ldi", "o'ldir", "o'lim", "vafot", "jasad", "yth", "avtohalokat", "avariya", "jinoyat", "o'g'ir", "firib", "qamoq", "hibs", "pora", "zo'rla", "o'z joniga", "terror", "urush", "portla", "yong'in", "qotil", "jarohat", "mahkum", "sudlan", "narko", "giyohvand", "mahbus",
+  "религи", "мечет", "ислам", "намаз", "рамадан", "хадж", "имам", "коран", "муфти", "хиджаб", "церк", "христиан", "погиб", "гибел", "смерт", "умер", "дтп", "авари", "убий", "убит", "мошенн", "арест", "задерж", "тюрьм", "колони", "заключ", "взрыв", "войн", "теракт", "пожар", "наркот", "насили", "суицид", "самоубий", "ранен", "преступ", "краж",
+  "religio", "mosque", "church", "islam", "killed", "death", "dies ", "died", "crash", "murder", "arrest", "prison", "jail", "terror", "explosion", "suicide", "crime", "shooting", "lawsuit", "sues ", "inmate"];
+const banRe = new RegExp("(?:^|[^\\p{L}\\p{N}])(?:" + NEWS_BAN.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")", "iu");
+const isBanned = (it) => banRe.test((it.t + " " + it.d).toLowerCase().replace(/[‘’ʻʼ`]/g, "'"));
+const dash = (v) => String(v || "").replace(/\s*[—–]\s*/g, " - ");
+const sha = async (s) => [...new Uint8Array(await crypto.subtle.digest("SHA-1", new TextEncoder().encode(s)))].slice(0, 10).map((b) => b.toString(16).padStart(2, "0")).join("");
+
+// one language's stories: fetched, filtered, merged with what was kept (2 weeks), refreshed every 15 minutes
+async function rawNews(env, lang) {
+  let store = null; try { store = await env.COLORS.get("news:raw:" + lang, "json"); } catch {}
+  const kept = Array.isArray(store) ? store : (store && store.items) || [];
+  if (store && !Array.isArray(store) && Date.now() - store.at < 15 * 60000) return kept;
   const lists = await Promise.all(NEWS_FEEDS[lang].map(async ([src, feed, topical]) => {
     try { const r = await fetch(feed, { headers: { "User-Agent": "Mozilla/5.0 (news reader)" }, cf: { cacheTtl: 600 } }); return r.ok ? parseFeed(await r.text(), src, lang).map((x) => (x.k = !!topical, x)) : []; } catch { return []; }
   }));
-  // what was kept before stays for 2 weeks, so the ribbon is never empty on a quiet day
-  let kept = []; try { kept = (await env.COLORS.get("news:" + lang, "json")) || []; } catch {}
-  const seen = new Set(), items = [], fresh = [];
+  const fresh = [];
   for (const it of lists.flat()) {
-    if (it.k) { delete it.k; fresh.push(it); continue; }
-    delete it.k;
+    const topical = it.k; delete it.k; it.o = lang;
+    if (isBanned(it)) continue;
+    if (topical) { fresh.push(it); continue; }
     const head = it.t.toLowerCase().replace(/[‘’ʻʼ`]/g, "'"), body = it.d.toLowerCase().replace(/[‘’ʻʼ`]/g, "'");
-    const hit = (kwRe.test(head) && (!/^(?:ai|ии|sat|dtm|вуз|gpt)$/i.test((head.match(kwRe) || [""])[0].replace(/^[^\p{L}]+/u, "")) || shortRe.test(head))) || NEWS_STRONG.some((k) => body.includes(k));
-    if (hit) fresh.push(it);
+    const ok = (kwRe.test(head) && (!/^(?:ai|ии|sat|dtm|вуз|gpt)$/i.test((head.match(kwRe) || [""])[0].replace(/^[^\p{L}]+/u, "")) || shortRe.test(head))) || NEWS_STRONG.some((k) => body.includes(k));
+    if (ok) fresh.push(it);
   }
-  const limit = Date.now() - 14 * 86400000;
-  const perSrc = {};
-  for (const it of [...fresh, ...kept.filter((x) => !x.lg)].sort((a, b) => b.at - a.at)) {
-    if (it.at && it.at < limit) continue;
+  const limit = Date.now() - 14 * 86400000, seen = new Set(), perSrc = {}, items = [];
+  for (const it of [...fresh, ...kept].sort((a, b) => b.at - a.at)) {
+    if ((it.at && it.at < limit) || isBanned(it)) continue;
     const k = it.t.toLowerCase().slice(0, 60); if (seen.has(k)) continue; seen.add(k);
-    if ((perSrc[it.s] = (perSrc[it.s] || 0) + 1) > 12) continue;
-    items.push(it); if (items.length >= 40) break;
+    if ((perSrc[it.s] = (perSrc[it.s] || 0) + 1) > 10) continue;
+    it.t = dash(it.t); it.d = dash(it.d); it.o = it.o || lang;
+    items.push(it); if (items.length >= 30) break;
   }
-  const dash = (v) => String(v || "").replace(/\s*[—–]\s*/g, " - ");
-  items.forEach((x) => { x.t = dash(x.t); x.d = dash(x.d); });
-  try { await env.COLORS.put("news:" + lang, JSON.stringify(items.filter((x) => !x.pin))); } catch {}
-  // the hand-picked stories go first while they are pinned
-  const pins = NEWS_PINNED.filter((x) => Date.now() < x.until && !items.some((y) => y.u === x.u))
-    .map(({ lang: l, until, ...x }) => ({ ...x, t: dash(x.t), d: dash(x.d), pin: 1, ...(l !== lang ? { lg: l } : {}) }));
-  items.unshift(...pins);
-  // few local stories on a quiet day: add English AI stories, marked with their language
-  if (items.length < 8 && lang !== "en") {
-    let en = []; try { en = (await env.COLORS.get("news:en", "json")) || []; } catch {}
-    items.push(...en.slice(0, 10 - items.length).map((x) => ({ ...x, lg: "en" })));
+  try { await env.COLORS.put("news:raw:" + lang, JSON.stringify({ at: Date.now(), items })); } catch {}
+  return items;
+}
+
+/* ---------- translation (Workers AI, Llama 4 Scout); each story is translated once per language and kept in KV ---------- */
+const LNAME = { uz: "Uzbek in Latin script with modern orthography (use o' and g', no Cyrillic)", ru: "Russian", en: "English" };
+const AI_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct";
+async function aiTranslate(env, text, to, max = 800) {
+  const r = await env.AI.run(AI_MODEL, { max_tokens: max, temperature: 0.2, messages: [
+    { role: "system", content: `You are a professional news translator. Translate the user's text into ${LNAME[to]}. Keep names, numbers and product names. Keep the line breaks. Output only the translation.` },
+    { role: "user", content: text }] });
+  return dash(String((r && r.response) || "").trim());
+}
+// all translations for one language live in one KV entry (url hash -> title and summary), read once per request
+async function translateAll(env, list, to) {
+  let map = {}; try { map = (await env.COLORS.get("trmap:" + to, "json")) || {}; } catch {}
+  const keys = await Promise.all(list.map((x) => sha(x.u)));
+  const todo = list.map((x, i) => [x, keys[i]]).filter(([x, k]) => x.o && x.o !== to && !map[k] && !(x.trs && x.trs[to])).slice(0, 8);
+  let added = 0;
+  if (env.AI) await Promise.all(todo.map(async ([x, k]) => {
+    try {
+      const out = await aiTranslate(env, x.t + "\n" + x.d, to, 500);
+      const [t, ...rest] = out.split("\n").map((v) => v.trim()).filter(Boolean);
+      if (t) { map[k] = { t, d: rest.join(" "), at: Date.now() }; added++; }
+    } catch {}
+  }));
+  if (added) {
+    const old = Date.now() - 20 * 86400000;
+    for (const k of Object.keys(map)) if ((map[k].at || 0) < old) delete map[k];
+    try { await env.COLORS.put("trmap:" + to, JSON.stringify(map)); } catch {}
   }
-  const res = new Response(JSON.stringify({ lang, at: Date.now(), items }), { headers: { "Content-Type": "application/json", "Cache-Control": "max-age=900" } });
-  await cache.put(key, res.clone());
-  const r = new Response(res.body, res); Object.entries(cors(origin)).forEach(([k, v]) => r.headers.set(k, v)); return r;
+  // stories in another language that are not translated yet wait for a later refresh
+  return list.map((x, i) => x.o === to ? x : x.trs && x.trs[to] ? { ...x, ...x.trs[to], tr: 1 } : map[keys[i]] ? { ...x, t: map[keys[i]].t, d: map[keys[i]].d, tr: 1 } : null).filter(Boolean);
+}
+
+async function news(url, env, origin) {
+  const lang = ["uz", "ru", "en"].includes(url.searchParams.get("l")) ? url.searchParams.get("l") : "uz";
+  if (!url.searchParams.get("fresh")) {
+    let built = null; try { built = await env.COLORS.get("newslist:" + lang, "json"); } catch {}
+    if (built && Date.now() - built.at < 3 * 3600000) return json(built, 200, origin);
+  }
+  // stories from all three languages, every one shown in the reader's language
+  const raws = await Promise.all(["uz", "ru", "en"].map((l) => rawNews(env, l).catch(() => [])));
+  const pins = NEWS_PINNED.filter((x) => Date.now() < x.until).map(({ lang: l, until, ...x }) => ({ ...x, t: dash(x.t), d: dash(x.d), o: l, pin: 1 }));
+  const seen = new Set(pins.map((x) => x.u)), perSrc = {}, rest = [];
+  for (const it of raws.flat().sort((a, b) => b.at - a.at)) {
+    if (seen.has(it.u)) continue; seen.add(it.u);
+    if ((perSrc[it.s] = (perSrc[it.s] || 0) + 1) > 6) continue;
+    // own-language stories are preferred a little: a translated one must be newer by 6 hours to come first
+    rest.push({ ...it, rank: it.at + (it.o === lang ? 6 * 3600000 : 0) });
+    if (rest.length >= 40) break;
+  }
+  rest.sort((a, b) => b.rank - a.rank);
+  const chosen = [...pins, ...rest.slice(0, 30 - pins.length)].map(({ rank, ...x }) => x);
+  const items = (await translateAll(env, chosen, lang)).map(({ trs, ...x }) => x);
+  const body = { lang, at: Date.now(), items };
+  try { await env.COLORS.put("newslist:" + lang, JSON.stringify(body)); } catch {}
+  return json(body, 200, origin);
+}
+
+/* ---------- /news/read?u=&l=&o=: the whole article, in the reader's language ---------- */
+const NEWS_HOSTS = ["gazeta.uz", "spot.uz", "daryo.uz", "kun.uz", "uzdaily.uz", "xabar.uz", "habr.com", "hightech.fm", "theverge.com", "venturebeat.com", "3dnews.ru", "blog.google", "repost.uz"];
+const ART_JUNK = /©|cookie|подпис|obuna bo|telegram|instagram|facebook|reklama|реклама|read more|sign up|newsletter|all rights|barcha huquq|все права|ko.rishlar|ko.rish|daqiqa o.qish|izoh|просмотр|комментар|мин чтения|min read|browser does not support|brauzer|audio element|listen to (this|the) article|maqolani tinglang|generated by google ai|generativ ai|источник изображения|image source|manba tasviri|фото:|photo:|rasm:/i;
+function extractArticle(html) {
+  let h = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<noscript[\s\S]*?<\/noscript>|<aside[\s\S]*?<\/aside>|<footer[\s\S]*?<\/footer>|<nav[\s\S]*?<\/nav>|<figcaption[\s\S]*?<\/figcaption>|<header[\s\S]*?<\/header>/gi, "");
+  // the marked article body first (schema.org, common class names), else the largest <article>
+  const mark = h.search(/itemprop=["']articleBody["']|class=["'][^"']*(article-formatted-body|article__text|article-body|articleBody|post-content|entry-content|news-text|js-mediator-article)[^"']*["']/i);
+  if (mark > 0) h = h.slice(mark, mark + 80000);
+  else { const arts = h.match(/<article[\s\S]*?<\/article>/gi); if (arts) { const big = arts.sort((x, y) => y.length - x.length)[0]; if (big.length > 1500) h = big; } }
+  const out = [], seen = new Set();
+  for (const m of h.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)) {
+    const t = dash(plain(m[1]));
+    if (t.length < 40 || seen.has(t) || ART_JUNK.test(t)) continue;
+    seen.add(t); out.push(t); if (out.length >= 30) break;
+  }
+  return out;
+}
+async function newsRead(url, env, origin) {
+  const u = url.searchParams.get("u") || "", to = ["uz", "ru", "en"].includes(url.searchParams.get("l")) ? url.searchParams.get("l") : "uz";
+  const from = ["uz", "ru", "en"].includes(url.searchParams.get("o")) ? url.searchParams.get("o") : to;
+  let host = ""; try { host = new URL(u).hostname.replace(/^www\./, ""); } catch {}
+  if (!NEWS_HOSTS.some((d) => host === d || host.endsWith("." + d))) return json({ error: "source" }, 400, origin);
+  const key = "art:v3:" + to + ":" + (await sha(u));
+  try { const c = await env.COLORS.get(key, "json"); if (c) return json(c, 200, origin); } catch {}
+  let p = [];
+  try {
+    const r = await fetch(u, { headers: { "User-Agent": "Mozilla/5.0 (news reader)", "Accept-Language": from }, cf: { cacheTtl: 3600 } });
+    if (r.ok) p = extractArticle(await r.text());
+  } catch {}
+  if (from === "uz") p = p.map(oldLatin);
+  if (!p.length) return json({ p: [] }, 200, origin);
+  let tr = 0;
+  if (from !== to && env.AI) {
+    // in parts of about 1 200 characters, all at once, so a long story still opens quickly
+    const parts = []; let cur = [];
+    for (const s of p) { cur.push(s); if (cur.join("\n").length > 1200) { parts.push(cur); cur = []; } }
+    if (cur.length) parts.push(cur);
+    try {
+      const done = await Promise.all(parts.map((ps) => aiTranslate(env, ps.join("\n"), to, 1600)));
+      const all = done.join("\n").split("\n").map((s) => s.trim()).filter(Boolean);
+      if (all.length) { p = all; tr = 1; }
+    } catch {}
+  }
+  const body = { p, tr };
+  try { await env.COLORS.put(key, JSON.stringify(body), { expirationTtl: 14 * 86400 }); } catch {}
+  return json(body, 200, origin);
 }

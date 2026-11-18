@@ -40,7 +40,7 @@ const News = (() => {
     return `<div id="nw" class="nw">
       <button class="nw-head" onclick="newsList()"><b>${T("Yangiliklar")}</b>${n ? `<em>${n}</em>` : ""}<span>${T("Barchasi")} ${ic("chev")}</span></button>
       <div class="nw-track" id="nw-track">${list.map((x, i) => `<button class="nw-card" onclick="newsOpen(${i})">
-        ${thumb(x, "nw-img")}<span class="nw-txt"><b class="notr">${esc(x.t)}</b><small>${esc(x.s)}${x.lg ? ` · ${x.lg.toUpperCase()}` : ""} · ${ago(x.at)}</small></span></button>`).join("")}</div>
+        ${thumb(x, "nw-img")}<span class="nw-txt"><b class="notr">${esc(x.t)}</b><small>${esc(x.s)} · ${ago(x.at)}</small></span></button>`).join("")}</div>
       <div class="nw-dots">${list.map((_, i) => `<i class="${i ? "" : "on"}"></i>`).join("")}</div>
     </div>`;
   }
@@ -61,22 +61,32 @@ const News = (() => {
   }
 
   /* ---------- a story, and the list of headlines ---------- */
+  // the story opens at once with its summary; the whole article (translated if needed) follows from the server
+  const artCache = {};
   window.newsOpen = (i, from) => {
     const x = items()[i]; if (!x) return; haptic("light");
     sheet(`<div class="nw-read">${x.i ? `<img class="nw-hero" src="${esc(x.i)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}
-      <small class="nw-meta">${esc(x.s)}${x.lg ? ` · ${x.lg.toUpperCase()}` : ""} · ${ago(x.at)}</small>
+      <small class="nw-meta">${esc(x.s)} · ${ago(x.at)}${x.tr ? ` · ${T("tarjima")}` : ""}</small>
       <h3 class="notr">${esc(x.t)}</h3>
-      ${x.d ? `<p class="notr">${esc(x.d)}</p>` : ""}
-      <button class="btn-primary nw-go" onclick="openExt('${encodeURIComponent(x.u)}')">${ic("globe")} ${T("Asl maqolani o'qish")}</button>
+      <div class="nw-body notr" id="nw-body">${x.d ? `<p>${esc(x.d)}</p>` : ""}<div class="nw-loading"><div class="run-spin"></div><small>${x.o && x.o !== LANG ? T("Maqola tarjima qilinmoqda…") : T("Maqola yuklanmoqda…")}</small></div></div>
+      <button class="btn-primary nw-go" onclick="openExt('${encodeURIComponent(x.u)}')">${ic("globe")} ${T("Asl manbani ochish")}</button>
       <button class="nw-link" onclick="openExt('${encodeURIComponent(x.u)}')">${esc(x.u.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60))}</button>
       ${from === "list" ? `<button class="btn-ghost" onclick="newsList()">${ic("back")} ${T("Barcha yangiliklar")}</button>` : ""}</div>`);
+    const key = x.u + "|" + LANG;
+    const show = (r) => {
+      const el = document.getElementById("nw-body"); if (!el) return;
+      if (r && r.p && r.p.length) el.innerHTML = r.p.map((t) => `<p>${esc(t)}</p>`).join("") + (r.tr ? `<p class="nw-trnote">${T("Maqola sun'iy intellekt yordamida tarjima qilindi. Asl matn manbada.")}</p>` : "");
+      else { const l = el.querySelector(".nw-loading"); if (l) l.remove(); }
+    };
+    if (artCache[key]) return show(artCache[key]);
+    fetch(SHARE_API + "/news/read?" + new URLSearchParams({ u: x.u, l: LANG, o: x.o || LANG })).then((r) => r.json()).then((r) => { artCache[key] = r; show(r); }).catch(() => show(null));
   };
   let tab = "news";
   window.newsList = (t) => {
     if (t) tab = t; haptic("light");
     const s0 = seen();
     const rows = tab === "news"
-      ? items().map((x, i) => `<button class="nw-row ${x.at > s0 ? "new" : ""}" onclick="newsOpen(${i},'list')"><b class="notr">${esc(x.t)}</b><small>${esc(x.s)}${x.lg ? ` · ${x.lg.toUpperCase()}` : ""} · ${ago(x.at)}</small></button>`).join("") || `<p class="note">${T("Hozircha yangilik yo'q")}</p>`
+      ? items().map((x, i) => `<button class="nw-row ${x.at > s0 ? "new" : ""}" onclick="newsOpen(${i},'list')"><b class="notr">${esc(x.t)}</b><small>${esc(x.s)} · ${ago(x.at)}</small></button>`).join("") || `<p class="note">${T("Hozircha yangilik yo'q")}</p>`
       : UPDATES().map((u) => `<div class="nw-row ${Date.parse(u.at) > s0 ? "new" : ""}"><b>${u.t}</b><small>${u.at.split("-").reverse().join(".")}</small></div>`).join("");
     sheet(`<h3>${T("Yangiliklar")}</h3>
       <div class="seg nw-tabs"><button class="${tab === "news" ? "on" : ""}" onclick="newsList('news')">${T("Yangiliklar")}</button><button class="${tab === "app" ? "on" : ""}" onclick="newsList('app')">${T("Ilova yangiliklari")}</button></div>
