@@ -298,15 +298,24 @@ function parseFeed(xml, src, lang) {
   }
   return out;
 }
+// stories picked by hand: shown at the top in every language for two weeks after they were added (lang = the story's own language)
+const NEWS_PINNED = [
+  { t: "OpenAI представила две «жутко умные» модели ИИ: GPT-6.2 Astra для профи и GPT-6.2 Sol для повседневных дел", u: "https://3dnews.ru/1151437/openai-predstavila-dve-gutko-umniemodeli-ii-gpt62-astra-dlya-profi-i-gpt62-sol-dlya-povsednevnih-del",
+    i: "https://cdn.3dnews.ru/assets/external/illustrations/2026/11/17/1151437/gpt.png", d: "OpenAI представила две новые модели искусственного интеллекта, GPT-6.2 Astra и GPT-6.2 Sol, ориентированные на выполнение сложных профессиональных задач и повседневных дел.", s: "3DNews", at: Date.parse("2026-11-17T23:38:00+03:00"), lang: "ru", until: Date.parse("2026-12-02") },
+  { t: "See what 5 builders are making with Gemini 4 Carbon", u: "https://blog.google/products-and-platforms/products/gemini/gemini-4-carbon-builders/",
+    i: "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/5_buildersGemini_4_Carbon_hero.width-1300.png", d: "See how five developers use Google Gemini 4 Carbon to build complex physics simulations, 3D designs, and data tools.", s: "Google", at: Date.parse("2026-11-17T12:00:00Z"), lang: "en", until: Date.parse("2026-12-02") },
+  { t: "Перечислены самые высокооплачиваемые профессии в Узбекистане", u: "https://repost.uz/pozdno-vkativatsya-v-banking",
+    i: "https://repost.uz/storage/watermarks/31241-1793106778-Oleg-post-material.jpg", d: "По итогам сентября 2026 года среднемесячная номинальная зарплата в Узбекистане составила свыше 7,2 млн сумов. Какие профессии оплачиваются выше всего.", s: "Repost.uz", at: Date.parse("2026-10-27T18:08:00+05:00"), lang: "ru", until: Date.parse("2026-12-02") },
+];
 async function news(url, env, origin) {
   const lang = ["uz", "ru", "en"].includes(url.searchParams.get("l")) ? url.searchParams.get("l") : "uz";
-  const cache = caches.default, key = new Request("https://cache.local/news-v6-" + lang);
+  const cache = caches.default, key = new Request("https://cache.local/news-v7-" + lang);
   let hit = await cache.match(key);
   if (hit) { const r = new Response(hit.body, hit); Object.entries(cors(origin)).forEach(([k, v]) => r.headers.set(k, v)); return r; }
   const lists = await Promise.all(NEWS_FEEDS[lang].map(async ([src, feed, topical]) => {
     try { const r = await fetch(feed, { headers: { "User-Agent": "Mozilla/5.0 (news reader)" }, cf: { cacheTtl: 600 } }); return r.ok ? parseFeed(await r.text(), src, lang).map((x) => (x.k = !!topical, x)) : []; } catch { return []; }
   }));
-  // what was kept before stays for 3 weeks, so the ribbon is never empty on a quiet day
+  // what was kept before stays for 2 weeks, so the ribbon is never empty on a quiet day
   let kept = []; try { kept = (await env.COLORS.get("news:" + lang, "json")) || []; } catch {}
   const seen = new Set(), items = [], fresh = [];
   for (const it of lists.flat()) {
@@ -316,7 +325,7 @@ async function news(url, env, origin) {
     const hit = (kwRe.test(head) && (!/^(?:ai|ии|sat|dtm|вуз|gpt)$/i.test((head.match(kwRe) || [""])[0].replace(/^[^\p{L}]+/u, "")) || shortRe.test(head))) || NEWS_STRONG.some((k) => body.includes(k));
     if (hit) fresh.push(it);
   }
-  const limit = Date.now() - 21 * 86400000;
+  const limit = Date.now() - 14 * 86400000;
   const perSrc = {};
   for (const it of [...fresh, ...kept.filter((x) => !x.lg)].sort((a, b) => b.at - a.at)) {
     if (it.at && it.at < limit) continue;
@@ -326,7 +335,11 @@ async function news(url, env, origin) {
   }
   const dash = (v) => String(v || "").replace(/\s*[—–]\s*/g, " - ");
   items.forEach((x) => { x.t = dash(x.t); x.d = dash(x.d); });
-  try { await env.COLORS.put("news:" + lang, JSON.stringify(items)); } catch {}
+  try { await env.COLORS.put("news:" + lang, JSON.stringify(items.filter((x) => !x.pin))); } catch {}
+  // the hand-picked stories go first while they are pinned
+  const pins = NEWS_PINNED.filter((x) => Date.now() < x.until && !items.some((y) => y.u === x.u))
+    .map(({ lang: l, until, ...x }) => ({ ...x, t: dash(x.t), d: dash(x.d), pin: 1, ...(l !== lang ? { lg: l } : {}) }));
+  items.unshift(...pins);
   // few local stories on a quiet day: add English AI stories, marked with their language
   if (items.length < 8 && lang !== "en") {
     let en = []; try { en = (await env.COLORS.get("news:en", "json")) || []; } catch {}
