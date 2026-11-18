@@ -807,3 +807,7 @@ details.smooth > *:not(summary) { animation: sdfade .32s ease; }
 .cvj-t em { font-style: normal; font-size: 12px; font-weight: 700; color: #15803D; }
 .btn-ghost.cvj-all { margin-top: 4px; background: #DCFCE7; color: #15803D; }
 
+/* Kurslar card: the dots' overlay (the card itself does not move) */
+.bn-orbit { position: absolute; left: 0; top: 0; z-index: 2; pointer-events: none; overflow: visible; }
+@media (prefers-reduced-motion: reduce) { .bn-orbit g, .bn-orbit circle[fill="url(#bnw)"] { display: none; } }
+

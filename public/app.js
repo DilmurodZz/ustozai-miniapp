@@ -326,7 +326,7 @@ function render() {
   // the soft fade plays only when a different page opens, never when the same page refreshes its data
   if (newPage) { app.classList.remove("enter"); void app.offsetWidth; app.classList.add("enter"); }
   renderTabs(route === "#/kurs" ? "#/kurslar" : route);
-  if (route === "#/") bindBannerWheel();
+  if (route === "#/") { bindBannerWheel(); bannerOrbit(); }
   if (route === "#/duo") bindDuo(); else if (duoSubs.length) { duoSubs.forEach((u) => u()); duoSubs = []; }
   try { route === "#/" ? tg.BackButton.hide() : tg.BackButton.show(); } catch {}
   track(route);
@@ -457,6 +457,39 @@ function bannerRing() {
   }
   return out + `<circle cx="50" cy="50" r="33" fill="#fff"/>`;
 }
+/* ---------- Kurslar card: two tiny dots run along its rounded border in opposite directions ---------- */
+// Only this overlay moves. Each dot needs 6 s for a lap, so going opposite ways they meet every 3 s
+// (top centre, then bottom centre) where a small white glow flashes. Drawn to the card's real size.
+function bannerOrbit() {
+  const card = document.querySelector(".banner"); if (!card) return;
+  const old = card.querySelector(".bn-orbit"); if (old) old.remove();
+  const w = card.clientWidth, h = card.clientHeight; if (!w || !h) return;
+  const i = 1.2, r = 22, cx = w / 2;
+  const d = `M${cx} ${i} H${w - i - r} A${r} ${r} 0 0 1 ${w - i} ${i + r} V${h - i - r} A${r} ${r} 0 0 1 ${w - i - r} ${h - i} H${i + r} A${r} ${r} 0 0 1 ${i} ${h - i - r} V${i + r} A${r} ${r} 0 0 1 ${i + r} ${i} Z`;
+  const T = 6;
+  // a dot with its glow; trail copies run a little behind (an earlier point of the same loop)
+  const dot = (col, glow, rev) => [0, 0.07, 0.14, 0.21].map((lag, k) => {
+    const size = k ? 2.1 - k * 0.45 : 2.4, op = k ? 0.55 - k * 0.15 : 1;
+    return `<g opacity="${op}"><circle r="${k ? size * 2.2 : 7}" fill="url(#${glow})"/><circle r="${size}" fill="${col}"/>
+      <animateMotion dur="${T}s" begin="${-(T - lag)}s" repeatCount="indefinite" path="${d}" keyPoints="${rev ? "1;0" : "0;1"}" keyTimes="0;1" calcMode="linear"/></g>`;
+  }).join("");
+  const flash = (y, begin) => `<circle cx="${cx}" cy="${y}" r="9" fill="url(#bnw)" opacity="0">
+      <animate attributeName="opacity" dur="${T}s" begin="${begin}s" repeatCount="indefinite" values="1;0;0;1" keyTimes="0;0.05;0.95;1"/>
+      <animate attributeName="r" dur="${T}s" begin="${begin}s" repeatCount="indefinite" values="11;4;4;11" keyTimes="0;0.05;0.95;1"/></circle>`;
+  const svg = `<svg class="bn-orbit" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">
+    <defs>
+      <radialGradient id="bnb"><stop offset="0" stop-color="#3D7BFF" stop-opacity=".75"/><stop offset="1" stop-color="#3D7BFF" stop-opacity="0"/></radialGradient>
+      <radialGradient id="bno"><stop offset="0" stop-color="#FF8A2B" stop-opacity=".75"/><stop offset="1" stop-color="#FF8A2B" stop-opacity="0"/></radialGradient>
+      <radialGradient id="bnw"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset=".45" stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    </defs>
+    <path d="${d}" fill="none" stroke="rgba(110,145,255,.45)" stroke-width="1"/>
+    ${dot("#2F6BFF", "bnb", false)}${dot("#FF8A2B", "bno", true)}
+    ${flash(i, 0)}${flash(h - i, -T / 2)}
+  </svg>`;
+  card.insertAdjacentHTML("beforeend", svg);
+}
+let bnResize; window.addEventListener("resize", () => { clearTimeout(bnResize); bnResize = setTimeout(() => { if ((location.hash || "#/") === "#/") bannerOrbit(); }, 200); });
+
 function bindBannerWheel() {
   const el = document.getElementById("bwheel"), ring = document.getElementById("bw-ring"); if (!el || !ring) return;
   ring.style.transform = `rotate(${bwRot}deg)`;
