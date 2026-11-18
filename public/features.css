@@ -820,3 +820,9 @@ details.smooth > *:not(summary) { animation: sdfade .32s ease; }
 .cvj-job.c1 .jm-sc { background: #EDE9FE; color: #6D28D9; }
 .cvj-job.c2 .jm-sc { background: #FFEDD5; color: #C2410C; }
 
+/* ---------- smoothness: long lists draw only the cards on screen ---------- */
+.kc, .zk-group, .sd-row, .sd-uni, .dl-card, .sd-g, .jm-job, .nw-row { content-visibility: auto; contain-intrinsic-size: auto 96px; }
+.zk-group { contain-intrinsic-size: auto 420px; }
+.sd-g[open] { content-visibility: visible; }
+html { -webkit-tap-highlight-color: transparent; }
+

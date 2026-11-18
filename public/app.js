@@ -337,7 +337,7 @@ function esc(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&am
 function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
 
 if (tg) {
-  tg.ready(); tg.expand();
+  tg.expand();   // tg.ready() comes right after the first screen is drawn, so Telegram never shows a blank page
   try { tg.disableVerticalSwipes(); } catch {}
   try { tg.BackButton.onClick(goBack); } catch {}
   try { const top = tg.contentSafeAreaInset?.top + tg.safeAreaInset?.top; if (top) document.documentElement.style.setProperty("--tg-safe-top", top + "px"); } catch {}
@@ -362,6 +362,7 @@ if ("serviceWorker" in navigator) {
 window.addEventListener("DOMContentLoaded", () => {
   if (!location.hash) location.replace("#/");
   render();
+  try { if (tg) { requestAnimationFrame(() => tg.ready()); setTimeout(() => tg.ready(), 400); } } catch {}
   // opened from a shared section link (t.me/<bot>?startapp=g_cefr): go there and glow it; "?shared=" works in a browser too
   const shared = startParam || new URLSearchParams(location.search).get("shared");
   if (shared && /^[gdu]_[A-Za-z0-9_-]{1,40}$/.test(shared)) setTimeout(() => openShared(shared), 500);
