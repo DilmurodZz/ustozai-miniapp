@@ -64,7 +64,7 @@ function langCard() {
   </div>`;
 }
 
-const adminCard = () => isAdmin() ? `<a class="card list-item admin-entry" href="#/admin">${chip("zap", "sm")}<span><b>${T("Admin bo'limi")}</b><small>${T("Xabar yuborish, kanalga post, havolalar")}</small></span>${ic("chev", "chev")}</a>` : "";
+const adminCard = () => isAdmin() ? `<a class="card list-item admin-entry" href="#/admin">${chip("shield", "sm admin-ic")}<span><b>${T("Admin bo'limi")}</b><small>${T("Xabar yuborish, kanalga post, havolalar")}</small></span>${ic("chev", "chev")}</a>` : "";
 
 /* ---------- admin screen ---------- */
 let adminInfo = null, adminInfo_busy = false;

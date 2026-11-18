@@ -39,37 +39,58 @@ const Contest = (() => {
   /* ---------- the road map: Tuman -> Viloyat -> Respublika -> Changan ---------- */
   // one drawing (viewBox 360 x 220) holds the road; the stops and the car sit on it at the same points
   // a winding road past the three stages up to the car
-  const VB = [360, 260], PTS = [[70, 230], [150, 172], [232, 110]], END = [292, 70], LAB = ["up", "right", "left"];
+  const VB = [360, 260], PTS = [[70, 230], [150, 172], [204, 130]], END = [292, 70], LAB = ["up", "right", "left"];
   const SEG = ["M8 252 C 30 246, 50 236, 70 230",
     "M70 230 C 140 216, 230 226, 236 204 C 242 184, 180 186, 150 172",
-    "M150 172 C 110 158, 120 138, 170 134 C 214 130, 226 120, 232 110",
-    "M232 110 C 244 92, 266 78, 292 72"];
+    "M150 172 C 112 160, 116 140, 156 138 C 188 136, 200 136, 204 130",
+    "M204 130 C 218 100, 256 80, 292 72"];
+  // one road through all stages (the segments joined), used by the sparks that run to the car
+  const FULL = SEG[0] + " " + SEG.slice(1).map((d) => d.replace(/^M[\d.]+ [\d.]+ /, "")).join(" ");
+  const laurelSvg = (flip) => `<svg class="zk-laurel ${flip ? "r" : ""}" viewBox="0 0 24 40" aria-hidden="true"><path d="M18 38 C 8 30, 6 18, 12 4" fill="none" stroke="#F5C451" stroke-width="1.6"/>${[8, 14, 20, 26, 32].map((y, k) => `<ellipse cx="${13 - k * .8 - 3}" cy="${y}" rx="2.4" ry="4.6" transform="rotate(-35 ${13 - k * .8 - 3} ${y})" fill="#F5C451"/><ellipse cx="${13 - k * .8 + 3.4}" cy="${y + 2}" rx="2.2" ry="4.2" transform="rotate(35 ${13 - k * .8 + 3.4} ${y + 2})" fill="#E9A92A"/>`).join("")}</svg>`;
   function roadMap() {
     const st = STAGES(), n = st.map((s) => count((w) => w.s === s.k));
     // the furthest stage that already has winners is "now"; the ones before it are done
     let cur = 0; n.forEach((v, i) => { if (v > 0) cur = i; });
     const status = st.map((s, i) => i < cur ? "done" : i === cur ? "now" : "next");
     const pos = (p) => `left:${(p[0] / VB[0]) * 100}%;top:${(p[1] / VB[1]) * 100}%`;
+    const [cx, cy] = [END[0], END[1] - 22];
+    const sparks = [0, .55, 1.1, 1.65, 2.2, 2.75, 3.3].map((d, k) => `<circle r="${k % 2 ? 1.6 : 2.3}" fill="${k % 3 ? "#FFE7A3" : "#fff"}" filter="url(#zkspark)" opacity="0">
+        <animateMotion dur="3.85s" begin="${d}s" repeatCount="indefinite" path="${FULL}" keyPoints="0;1" keyTimes="0;1" calcMode="spline" keySplines=".45 0 .55 1"/>
+        <animate attributeName="opacity" dur="3.85s" begin="${d}s" repeatCount="indefinite" values="0;1;1;0" keyTimes="0;.08;.85;1"/></circle>`).join("");
+    const orbit = `M${cx - 56} ${cy} a56 24 0 1 0 112 0 a56 24 0 1 0 -112 0`;
+    const ring = [0, 1, 2, 3].map((k) => `<circle r="${k % 2 ? 1.5 : 2.2}" fill="#FFE7A3" filter="url(#zkspark)">
+        <animateMotion dur="4s" begin="${-k}s" repeatCount="indefinite" path="${orbit}"/>
+        <animate attributeName="opacity" dur="4s" begin="${-k}s" repeatCount="indefinite" values=".95;.35;.95"/></circle>`).join("");
     return `<div class="zk-map">
       <svg class="zk-road" viewBox="0 0 360 260" aria-hidden="true">
         <defs>
-          <linearGradient id="zkg" x1="0" x2="1"><stop offset="0" stop-color="#FFE7A3"/><stop offset="1" stop-color="#F5A524"/></linearGradient>
-          <radialGradient id="zkglow"><stop offset="0" stop-color="#FFC861" stop-opacity=".8"/><stop offset="1" stop-color="#FFC861" stop-opacity="0"/></radialGradient>
-          <filter id="zkblur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
+          <linearGradient id="zkg" x1="0" x2="1"><stop offset="0" stop-color="#FFE7A3"/><stop offset=".6" stop-color="#FFC24A"/><stop offset="1" stop-color="#F59E0B"/></linearGradient>
+          <radialGradient id="zkglow"><stop offset="0" stop-color="#FFC861" stop-opacity=".85"/><stop offset=".55" stop-color="#FF9F1C" stop-opacity=".25"/><stop offset="1" stop-color="#FF9F1C" stop-opacity="0"/></radialGradient>
+          <linearGradient id="zkhalo" x1="0" x2="1"><stop offset="0" stop-color="#FFD27A" stop-opacity="0"/><stop offset=".5" stop-color="#FFD27A"/><stop offset="1" stop-color="#FFD27A" stop-opacity="0"/></linearGradient>
+          <linearGradient id="zkwave" x1="0" x2="1"><stop offset="0" stop-color="#8B5CF6" stop-opacity="0"/><stop offset=".6" stop-color="#A78BFA" stop-opacity=".55"/><stop offset="1" stop-color="#C4B5FD" stop-opacity=".9"/></linearGradient>
+          <filter id="zkblur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3.2"/></filter>
+          <filter id="zkspark" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
         </defs>
-        <ellipse cx="${END[0]}" cy="${END[1] - 10}" rx="80" ry="58" fill="url(#zkglow)"/>
-        ${SEG.map((d) => `<path d="${d}" fill="none" stroke="rgba(6,8,30,.55)" stroke-width="10" stroke-linecap="round"/>`).join("")}
-        ${SEG.map((d, i) => i <= cur ? `<path d="${d}" fill="none" stroke="#FFC861" stroke-width="7" stroke-linecap="round" filter="url(#zkblur)" opacity=".85"/><path d="${d}" fill="none" stroke="url(#zkg)" stroke-width="3.5" stroke-linecap="round"/>`
-          : `<path d="${d}" fill="none" stroke="rgba(255,255,255,.65)" stroke-width="2" stroke-dasharray="5 6" stroke-linecap="round"/>`).join("")}
-        <ellipse cx="${END[0]}" cy="${END[1] + 1}" rx="30" ry="4" fill="rgba(0,0,0,.4)"/>
+        <path d="M120 262 C 200 236, 280 236, 362 196" fill="none" stroke="url(#zkwave)" stroke-width="1.4"/>
+        <path d="M150 262 C 230 242, 300 238, 362 214" fill="none" stroke="url(#zkwave)" stroke-width="7" opacity=".35" filter="url(#zkblur)"/>
+        <path d="M190 262 C 260 250, 320 244, 362 230" fill="none" stroke="url(#zkwave)" stroke-width="1" opacity=".7"/>
+        <ellipse cx="${cx}" cy="${cy + 8}" rx="86" ry="62" fill="url(#zkglow)"/>
+        <path d="M${cx - 62} ${cy + 24} A 64 64 0 0 1 ${cx + 62} ${cy + 24}" fill="none" stroke="url(#zkhalo)" stroke-width="2.2"/>
+        <path d="M${cx - 62} ${cy + 24} A 64 64 0 0 1 ${cx + 62} ${cy + 24}" fill="none" stroke="#FFC861" stroke-width="7" opacity=".35" filter="url(#zkblur)"/>
+        ${SEG.map((d) => `<path d="${d}" fill="none" stroke="rgba(6,6,30,.6)" stroke-width="13" stroke-linecap="round"/>`).join("")}
+        ${SEG.map((d, i) => i <= cur ? `<path d="${d}" fill="none" stroke="#FFB627" stroke-width="10" stroke-linecap="round" filter="url(#zkblur)" opacity=".9"/><path d="${d}" fill="none" stroke="url(#zkg)" stroke-width="4.2" stroke-linecap="round"/>`
+          : `<path d="${d}" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2" stroke-dasharray="6 6" stroke-linecap="round"/>`).join("")}
+        <ellipse cx="${END[0]}" cy="${END[1] + 1}" rx="32" ry="4" fill="rgba(0,0,0,.45)"/>
+        <g class="zk-sparks">${sparks}${ring}</g>
       </svg>
       <div class="zk-car" style="${pos(END)}"><img src="img/changan.webp" alt="Changan UNI-E" decoding="async"></div>
-      <span class="zk-lab car" style="${pos(END)}"><b>Changan UNI-E</b><small>${T("Bosh sovrin")}</small></span>
+      <span class="zk-lab car" style="${pos(END)}">${laurelSvg(0)}<span><b>Changan UNI-E</b><small>${T("Bosh sovrin")}</small></span>${laurelSvg(1)}</span>
       ${st.map((s, i) => `<button class="zk-stop ${status[i]} ${stage === s.k ? "on" : ""}" style="${pos(PTS[i])}" onclick="zkStage('${s.k}')" aria-label="${s.long}">
           <i>${status[i] === "done" ? ic("check") : ic(s.icon)}</i>
           <span class="zk-lab ${LAB[i]}"><b>${i + 1}. ${s.name}</b><small>${n[i] ? T("{n} g'olib", { n: fmtN(n[i]) }) : T("kutilmoqda")}</small></span></button>`).join("")}
     </div>`;
   }
+
 
   /* ---------- the list ---------- */
   function listHTML() {
@@ -83,8 +104,7 @@ const Contest = (() => {
     rows.sort(([a], [b]) => a.r.localeCompare(b.r) || a.p - b.p || a.t.localeCompare(b.t) || a.n.localeCompare(b.n));
     const groups = {}; rows.forEach((x) => (groups[x[0].r] = groups[x[0].r] || []).push(x));
     const medal = (p) => `<span class="zk-medal p${p}">${p}</span>`;
-    return `<p class="zk-found">${T("{n} ta g'olib", { n: fmtN(rows.length) })}</p>
-      <p class="zk-hint">${ic("image")} ${T("Ismingizni bosing: tabrik rasmingizni yuklab oling yoki do'stlaringizga ulashing")}</p>` + Object.entries(groups).map(([r, ws]) => `<section class="zk-group">
+    return `<p class="zk-found">${T("{n} ta g'olib", { n: fmtN(rows.length) })}</p>` + Object.entries(groups).map(([r, ws]) => `<section class="zk-group">
       <h4><span>${esc(r)}</span><em>${ws.length}</em></h4>
       ${ws.map(([w, i]) => `<button class="zk-row" onclick="zkCongrats(${i})">${medal(w.p)}<span class="notr"><b>${esc(w.n)}</b><small>${esc(w.t || r)}</small></span><i class="zk-share">${ic("share")}</i></button>`).join("")}
     </section>`).join("");

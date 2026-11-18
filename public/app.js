@@ -113,6 +113,7 @@ const ICONS = {
   map: '<path d="M9 4 3 6.5V20l6-2.5 6 2.5 6-2.5V4l-6 2.5zM9 4v13.5M15 6.5V20"/>',
   users: '<circle cx="9" cy="8" r="3.2"/><path d="M3 19a6 6 0 0 1 12 0M16 4.6a3 3 0 0 1 0 6M17.6 13.6A5.6 5.6 0 0 1 21 19"/>',
   camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>',
+  shield: '<path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6L12 3z"/><path d="m8.8 12.2 2.2 2.2 4.4-4.6"/>',
   share: '<path d="M4 13v6a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-6"/><path d="M12 3v12"/><path d="M7.5 7.5 12 3l4.5 4.5"/>',
   tool: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.1L3.6 17.1a1.9 1.9 0 0 0 2.7 2.7l5.7-5.7a4 4 0 0 0 5.1-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>',
   hand: '<path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V12M11 11V4.5a1.5 1.5 0 0 1 3 0V12M14 11.5V6a1.5 1.5 0 0 1 3 0v8a7 7 0 0 1-7 7c-2.5 0-4-1.3-5.4-3.4L3 14.5a1.5 1.5 0 0 1 2.5-1.6L8 16"/>',
@@ -513,6 +514,22 @@ async function bwSpin(dir, power) {
       <button class="btn-ghost" onclick="closeSheet();setTimeout(()=>bwSpin(1,1.6),300)">${ic("refresh")} ${T("Yana aylantirish")}</button>`);
   }, dur * 1000 + 60);
 }
+
+/* ---------- <details class="smooth">: open and close with a gentle height animation ---------- */
+document.addEventListener("click", (e) => {
+  const sum = e.target.closest("details.smooth > summary"); if (!sum) return;
+  const d = sum.parentElement; e.preventDefault();
+  if (d._anim) d._anim.cancel();
+  const start = d.offsetHeight, cs = getComputedStyle(d);
+  const closed = sum.offsetHeight + parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+  const opening = !d.open; if (opening) d.open = true;
+  const end = opening ? d.offsetHeight : closed;
+  d.style.overflow = "hidden";
+  const a = d.animate({ height: [start + "px", end + "px"] }, { duration: 300, easing: "cubic-bezier(.2,.8,.2,1)" }); d._anim = a;
+  const finish = () => { if (!opening) d.open = false; d.style.overflow = ""; d._anim = null; };
+  a.onfinish = finish; a.oncancel = () => { d.style.overflow = ""; d._anim = null; };
+  if (!opening) d.classList.add("closing"); a.finished.then(() => d.classList.remove("closing")).catch(() => {});
+});
 
 /* ---------- a bottom sheet for small choices ---------- */
 function sheet(html) {

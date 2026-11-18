@@ -62,7 +62,7 @@ const Study = (() => {
     <div class="card sd-parts">${PARTS().filter((p) => p.grp === "m").map(partRow).join("")}</div>
     <div class="section-title">${T("Mutaxassislik fanlari")}<small>93 + 63 = 156</small></div>
     <div class="card sd-parts">${PARTS().filter((p) => p.grp === "s").map(partRow).join("")}</div>
-    <details class="card sd-rules"><summary>${ic("file")} ${T("Rasmiy baholash tartibi")}</summary>
+    <details class="card sd-rules smooth"><summary>${ic("file")} ${T("Rasmiy baholash tartibi")}${ic("chev")}</summary>
       <ul>
         <li>${T("Majburiy fanlar: ona tili, matematika va O'zbekiston tarixi, har biridan 10 ta savol, har bir to'g'ri javob 1,1 ball (jami 33 ball).")}</li>
         <li>${T("1-mutaxassislik fani: 30 ta savol, har biri 3,1 ball (93 ball). 2-mutaxassislik fani: 30 ta savol, har biri 2,1 ball (63 ball).")}</li>
@@ -120,14 +120,13 @@ const Study = (() => {
   // raw score -> band (the conversion published by IELTS; exact cut-offs can move slightly between test versions)
   const LIS = [[39, 9], [37, 8.5], [35, 8], [32, 7.5], [30, 7], [26, 6.5], [23, 6], [18, 5.5], [16, 5], [13, 4.5], [10, 4], [8, 3.5], [6, 3], [4, 2.5], [2, 2], [1, 1], [0, 0]];
   const RAC = [[39, 9], [37, 8.5], [35, 8], [33, 7.5], [30, 7], [27, 6.5], [23, 6], [19, 5.5], [15, 5], [13, 4.5], [10, 4], [8, 3.5], [6, 3], [4, 2.5], [2, 2], [1, 1], [0, 0]];
-  const RGT = [[40, 9], [39, 8.5], [37, 8], [36, 7.5], [34, 7], [32, 6.5], [30, 6], [27, 5.5], [23, 5], [19, 4.5], [15, 4], [12, 3.5], [9, 3], [6, 2.5], [4, 2], [1, 1], [0, 0]];
   const band = (tab, raw) => (tab.find(([min]) => raw >= min) || [0, 0])[1];
   // the overall band: the mean of four, x.25 rounds up to x.5 and x.75 rounds up to the next whole band
   const overall = (a) => { const m = a.reduce((x, y) => x + y, 0) / 4, f = m - Math.floor(m); return Math.floor(m) + (f >= .75 ? 1 : f >= .25 ? .5 : 0); };
   let ie = store.get("ielts_calc", { mod: "ac", l: 30, r: 30, w: 6, s: 6.5 });
   const bandsList = [9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0];
   function ieltsResult() {
-    const L = band(LIS, ie.l), R = band(ie.mod === "gt" ? RGT : RAC, ie.r), O = overall([L, R, +ie.w, +ie.s]);
+    const L = band(LIS, ie.l), R = band(RAC, ie.r), O = overall([L, R, +ie.w, +ie.s]);
     const goals = [
       [5.5, T("OTMga kirishda chet tili fanidan maksimal ball (B2 ga teng)")],
       [6, T("El-yurt umidi: bakalavriat uchun eng kam talab")],
@@ -146,11 +145,10 @@ const Study = (() => {
       <div class="sd-rng"><input type="range" min="0" max="40" value="${ie[k]}" oninput="ieSet('${k}',this.value)"><small>${T("To'g'ri javoblar soni")}</small></div></div>`;
     return `${navbar(T("IELTS ball kalkulyatori"))}
     <div class="card" id="ie-res">${ieltsResult()}</div>
-    <div class="seg sd-mod">${[["ac", "Academic"], ["gt", "General Training"]].map(([k, t]) => `<button class="${ie.mod === k ? "on" : ""}" onclick="ieSet('mod','${k}')">${t}</button>`).join("")}</div>
-    <div class="card sd-parts">${raw("l", "Listening")}${raw("r", "Reading")}
+    <div class="card sd-parts">${raw("l", "Listening")}${raw("r", "Reading (Academic)")}
       <div class="sd-part"><div class="sd-ph"><b>Writing</b>${sel("w")}</div><small class="sd-hint">${T("Writing va Speaking imtihonchi tomonidan 0 dan 9 gacha band bilan baholanadi.")}</small></div>
       <div class="sd-part"><div class="sd-ph"><b>Speaking</b>${sel("s")}</div></div></div>
-    <details class="card sd-rules"><summary>${ic("file")} ${T("Ball qanday hisoblanadi")}</summary><ul>
+    <details class="card sd-rules smooth"><summary>${ic("file")} ${T("Ball qanday hisoblanadi")}${ic("chev")}</summary><ul>
       <li>${T("Listening va Reading 40 tadan savoldan iborat; to'g'ri javoblar soni rasmiy jadval bo'yicha bandga aylantiriladi.")}</li>
       <li>${T("Umumiy ball to'rtta ko'nikmaning o'rtachasi: .25 bo'lsa .5 ga, .75 bo'lsa keyingi butun bandga yaxlitlanadi.")}</li>
       <li>${T("IELTS natijasi 2 yil amal qiladi. Imtihonni British Council va IDP o'tkazadi.")}</li></ul>
@@ -181,7 +179,7 @@ const Study = (() => {
     let rows = uni.rows.map((r, i) => [r, i]).filter(([r]) => (!uf.country || r[2] === uf.country) && (!q || r[1].toLowerCase().includes(q) || cn(r[2]).toLowerCase().includes(q)));
     if (uf.sort !== "overall") rows.sort((a, b) => (b[0][crit[2]] || 0) - (a[0][crit[2]] || 0));
     return `<p class="zk-found">${T("{n} ta universitet", { n: rows.length })}${uf.sort !== "overall" ? " · " + crit[1] : ""}</p>
-      <div class="sd-ulist">${rows.slice(0, uf.more).map(([r, i]) => `<button class="sd-uni" onclick="uniOpen(${i})"><span class="sd-rank">${esc(r[0])}</span>
+      <div class="sd-ulist">${rows.slice(0, uf.more).map(([r, i], n) => `<button class="sd-uni t${n % 6}" onclick="uniOpen(${i})"><span class="sd-rank">${esc(r[0])}</span>
         <span class="notr"><b>${esc(r[1])}</b><small>${esc(cn(r[2]))}</small></span><span class="sd-sc"><b>${r[crit[2]] != null ? r[crit[2]].toFixed(1) : T("yo'q")}</b><small>${crit[1]}</small></span></button>`).join("") || `<p class="note">${T("Hech narsa topilmadi")}</p>`}</div>
       ${rows.length > uf.more ? `<button class="btn-ghost" onclick="uniMore()">${T("Yana ko'rsatish ({n})", { n: rows.length - uf.more })}</button>` : ""}`;
   }
@@ -190,7 +188,7 @@ const Study = (() => {
     const countries = Object.keys(COUNTRY).sort((a, b) => cn(a).localeCompare(cn(b)));
     return `${navbar(T("Top 300 universitet va grantlar"))}
     <div class="seg sd-tabs">${[["top", T("Top 300 universitet")], ["grant", T("Grant va sertifikatlar")]].map(([k, t]) => `<button class="${uf.tab === k ? "on" : ""}" onclick="uniTab('${k}')">${t}</button>`).join("")}</div>
-    ${uf.tab === "top" ? `<div class="card sd-uhead">${chip("globe", "solid")}<span><b>THE World University Rankings 2027</b><small>${T("Times Higher Education reytingi: dunyodagi eng yaxshi 300 ta universitet")}</small></span></div>
+    ${uf.tab === "top" ? `<div class="card sd-uhead"><img class="sd-the" src="img/the-logo.webp" alt="THE" width="52" height="52"><span><b>World University Rankings 2027</b><small>${T("Times Higher Education reytingi: dunyodagi eng yaxshi 300 ta universitet")}</small></span></div>
     <div class="sd-filters">
       <label class="km-search">${ic("search")}<input id="sd-uq" placeholder="${T("Universitet yoki davlat nomi")}" value="${esc(uf.q)}" autocomplete="off"></label>
       <div class="sd-f2"><select onchange="uniF('country',this.value)"><option value="">${T("Barcha davlatlar")}</option>${countries.map((c) => `<option value="${esc(c)}" ${uf.country === c ? "selected" : ""}>${esc(cn(c))}</option>`).join("")}</select>
@@ -204,12 +202,15 @@ const Study = (() => {
   window.uniMore = () => { uf.more += 50; refreshUni(); };
   window.uniOpen = (i) => {
     const r = uni && uni.rows[i]; if (!r) return; haptic("light");
-    const bar = ([k, t, idx]) => `<div class="sd-bar"><span>${t}</span><i><s style="width:${r[idx] || 0}%"></s></i><b>${r[idx] != null ? r[idx].toFixed(1) : T("yo'q")}</b></div>`;
+    const COL = ["#2563EB", "#7C3AED", "#0EA5E9", "#16A34A", "#F59E0B", "#E11D48"];
+    const bar = ([k, t, idx], n) => `<div class="sd-bar" style="--bc:${COL[n]}"><span>${t}</span><i><s style="width:${r[idx] || 0}%"></s></i><b>${r[idx] != null ? r[idx].toFixed(1) : T("yo'q")}</b></div>`;
     const stat = (v, t) => v ? `<span><b>${esc(v)}</b><small>${t}</small></span>` : "";
     sheet(`<div class="sd-usheet"><span class="sd-rank big">${esc(r[0])}</span><h3 class="notr">${esc(r[1])}</h3><p>${esc(cn(r[2]))} · THE 2027</p>
       <div class="sd-bars">${CRIT().map(bar).join("")}</div>
-      <div class="sd-stats">${stat(r[9], T("talaba"))}${stat(r[10], T("1 o'qituvchiga talaba"))}${stat(r[11], T("xorijiy talabalar"))}${stat(r[12], T("ayollar : erkaklar"))}</div>
-      <button class="btn-primary" onclick="openExt('${encodeURIComponent("https://www.timeshighereducation.com" + r[13])}')">${ic("globe")} ${T("THE saytida ko'rish")}</button></div>`);
+      <div class="sd-stats">${r[15] != null ? `<span class="acc"><b>${r[15]}%</b><small>${T("qabul darajasi")}${r[16] ? ` (${r[16]})` : ""}</small></span>` : `<span class="acc"><b>${T("yo'q")}</b><small>${T("qabul darajasi")}</small></span>`}${stat(r[9], T("talaba"))}${stat(r[10], T("1 o'qituvchiga talaba"))}${stat(r[11], T("xorijiy talabalar"))}${stat(r[12], T("ayollar : erkaklar"))}</div>
+      ${r[14] ? `<button class="btn-primary sd-site" onclick="openExt('${encodeURIComponent(r[14])}')">${ic("globe")} ${T("Rasmiy sayt")}: ${esc(r[14].replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))}</button>` : ""}
+      <button class="btn-ghost sd-thebtn" onclick="openExt('${encodeURIComponent("https://www.timeshighereducation.com" + r[13])}')">${ic("chart")} ${T("THE saytida ko'rish")}</button>
+      <p class="note">${T("Qabul darajasi: arizachilarning necha foizi qabul qilingani (Wikidata ma'lumoti, oxirgi mavjud yil).")}</p></div>`);
   };
   document.addEventListener("input", (e) => {
     const id = e.target && e.target.id;
@@ -220,29 +221,71 @@ const Study = (() => {
   // grants, scholarships and certificates: short, checked facts with the official site of each
   const G = () => [
     { h: T("Mahalliy grant va stipendiyalar"), items: [
-      { i: "cap", t: T("OTM davlat granti (bakalavriat)"), d: T("Davlat oliy ta'lim muassasalarida bepul o'qish. Grant o'rinlari DTM test natijalari bo'yicha eng yuqori ball to'plaganlar o'rtasida taqsimlanadi. Test 5 fandan iborat, maksimal ball 189."), l: [[T("Hujjat topshirish"), "my.uzbmb.uz"]] },
-      { i: "trophy", t: T("Prezident davlat stipendiyasi"), d: T("Eng iqtidorli talabalar uchun oyiga 2 579 444 so'm (2026-yil 1-sentyabrdan). Talablar: barcha baholar a'lo, bakalavr talabalari uchun kamida 2 ta e'lon qilingan ilmiy ish. 2026/2027 o'quv yili uchun 187 ta o'rin. Arizalar har yili avgust oyida qabul qilinadi."), l: [["my.edu.uz", "my.edu.uz"]] },
-      { i: "star", t: T("Nomdor davlat stipendiyalari"), d: T("Islom Karimov, Alisher Navoiy va boshqa nomdor stipendiyalar. Talablar: \"3\" baho bo'lmasligi, \"4\" baholar ulushi 25 foizdan oshmasligi. 2026/2027 o'quv yili uchun Islom Karimov nomidagi stipendiyaga 194 ta, Navoiy nomidagisiga 175 ta o'rin ajratilgan."), l: [["my.edu.uz", "my.edu.uz"]] },
-      { i: "plane", t: T("El-yurt umidi jamg'armasi"), d: T("Dunyoning yetakchi universitetlarida bakalavriat, magistratura va doktorantura uchun to'liq moliyalashtiriladigan stipendiya. Talablar: IELTS kamida 6.0 (bakalavriat) yoki 7.0 (magistratura va doktorantura), xorijiy universitetning qabul xati. Ochiq tanlovlar yiliga ikki marta e'lon qilinadi (2026-yilda aprel va noyabr)."), l: [["el-yurt.uz", "el-yurt.uz"]] },
+      { i: "cap", t: T("OTM davlat granti (bakalavriat)"), d: [
+        T("Davlat oliy ta'lim muassasalarida to'lovsiz o'qish va har oylik stipendiya. Grant o'rinlari har bir yo'nalish bo'yicha DTM test natijalarida eng yuqori ball to'plagan abituriyentlarga beriladi, qolganlar to'lov-shartnoma asosida qabul qilinishi mumkin."),
+        T("Test 5 fandan iborat: 3 ta majburiy fan (ona tili, matematika, O'zbekiston tarixi) va 2 ta mutaxassislik fani, jami 90 ta savol, maksimal 189 ball. Hujjatlar har yili yozda onlayn topshiriladi."),
+        T("Milliy sertifikat va chet tili sertifikatlari tegishli fandan maksimal yoki mutanosib ball beradi. O'z ballingizni ilovadagi DTM ball kalkulyatori bilan hisoblab, o'tgan yilgi o'tish ballari bilan solishtiring.")],
+        l: [[T("Hujjat topshirish"), "my.uzbmb.uz"], ["uzbmb.uz", "uzbmb.uz"]] },
+      { i: "trophy", t: T("Prezident davlat stipendiyasi"), d: [
+        T("Eng iqtidorli talabalar uchun eng yuqori davlat stipendiyasi: oyiga 2 579 444 so'm (2026-yil 1-sentyabrdan). 2026/2027 o'quv yili uchun 187 ta o'rin ajratilgan."),
+        T("Talablar: barcha fanlardan faqat a'lo baholar, bakalavr talabalari uchun kamida 2 ta e'lon qilingan ilmiy ish. Arizalar har yili avgust oyida my.edu.uz platformasi orqali qabul qilinadi."),
+        T("Tayyorgarlik: ilmiy maqolalar chop eting, fan olimpiadalari va tanlovlarda qatnashing, ilmiy rahbaringiz bilan loyiha ustida ishlang.")],
+        l: [["my.edu.uz", "my.edu.uz"]] },
+      { i: "star", t: T("Nomdor davlat stipendiyalari"), d: [
+        T("Islom Karimov, Alisher Navoiy va boshqa buyuk allomalar nomidagi stipendiyalar a'lochi va faol talabalarga beriladi. 2026/2027 o'quv yili uchun Islom Karimov nomidagi stipendiyaga 194 ta, Navoiy nomidagisiga 175 ta o'rin ajratilgan."),
+        T("Talablar: \"3\" baho bo'lmasligi, \"4\" baholar ulushi 25 foizdan oshmasligi. Ilmiy ishlar, olimpiada natijalari va jamoat faolligi ustunlik beradi. Arizalar my.edu.uz orqali avgust oyida qabul qilinadi.")],
+        l: [["my.edu.uz", "my.edu.uz"]] },
+      { i: "plane", t: T("El-yurt umidi jamg'armasi"), d: [
+        T("Dunyoning yetakchi universitetlarida bakalavriat, magistratura va doktorantura uchun to'liq moliyalashtiriladigan davlat stipendiyasi: o'qish to'lovi, yashash va yo'l xarajatlari qoplanadi."),
+        T("Talablar: IELTS kamida 6.0 (bakalavriat) yoki 7.0 (magistratura va doktorantura) yoki unga teng sertifikat, xorijiy universitetning qabul xati (Letter of Acceptance), diplom yoki attestat. Bitiruvchilar O'zbekistonga qaytib, belgilangan muddat ishlab berishlari kerak."),
+        T("Ochiq tanlovlar yiliga ikki marta e'lon qilinadi (2026-yilda aprel va noyabr). 2026-yil uchun 500 ta kvota ajratilgan. Arizalar el-yurt.uz platformasi orqali onlayn topshiriladi.")],
+        l: [["el-yurt.uz", "el-yurt.uz"]] },
     ] },
     { h: T("Milliy sertifikatlar"), items: [
-      { i: "file", t: T("Milliy sertifikat (fanlar)"), d: T("Bilim va malakalarni baholash agentligi beradi. Darajalar: A+ (70 va undan yuqori), A (65-69,9), B+ (60-64,9), B (55-59,9), C+ (50-54,9), C (46-49,9). OTMga kirishda A+ va A mutaxassislik fanidan maksimal ball beradi, boshqa darajalar mutanosib ball beradi; majburiy fanda istalgan daraja maksimal ball beradi."), l: [["uzbmb.uz", "uzbmb.uz"], ["my.gov.uz", "my.gov.uz"]] },
-      { i: "chat", t: T("Chet tili milliy sertifikati (CEFR)"), d: T("Bitta imtihon natijasiga ko'ra B1, B2 yoki C1 darajasi beriladi. B2 va C1 OTMga kirishda chet tili fanidan maksimal ball, B1 maksimal ballning 75 foizini beradi. Chet tili birinchi fan bo'lgan yo'nalishlarda sertifikat talab qilinadi, filologiya yo'nalishlari uchun C1 darajasi kerak."), l: [["uzbmb.uz", "uzbmb.uz"]] },
+      { i: "file", t: T("Milliy sertifikat (fanlar)"), d: [
+        T("Bilim va malakalarni baholash agentligi o'tkazadigan imtihon natijasida beriladi. Matematika, ona tili va adabiyoti, tarix, biologiya, kimyo, fizika va boshqa fanlardan topshirish mumkin. Ro'yxatdan o'tish my.gov.uz orqali."),
+        T("Darajalar: A+ (70 va undan yuqori), A (65-69,9), B+ (60-64,9), B (55-59,9), C+ (50-54,9), C (46-49,9). OTMga kirishda A+ va A mutaxassislik fanidan maksimal ball beradi, boshqa darajalar mutanosib ball beradi; majburiy fanda istalgan daraja maksimal ball beradi."),
+        T("O'qituvchilar uchun sertifikat maoshga ustama olish imkonini ham beradi.")],
+        l: [["uzbmb.uz", "uzbmb.uz"], ["my.gov.uz", "my.gov.uz"]] },
+      { i: "chat", t: T("Chet tili milliy sertifikati (CEFR)"), d: [
+        T("Ingliz, nemis, fransuz va boshqa tillardan bitta imtihon (Multilevel) topshiriladi: tinglash, o'qish, yozish va gapirish. Natijaga ko'ra B1, B2 yoki C1 darajasi beriladi."),
+        T("OTMga kirishda B2 va C1 chet tili fanidan maksimal ball, B1 maksimal ballning 75 foizini beradi. Chet tili birinchi fan bo'lgan yo'nalishlarda sertifikat talab qilinadi, filologiya yo'nalishlari uchun C1 darajasi kerak.")],
+        l: [["uzbmb.uz", "uzbmb.uz"]] },
     ] },
     { h: T("Xalqaro imtihonlar"), items: [
-      { i: "globe", t: "IELTS", d: T("Ingliz tilini 4 ko'nikma bo'yicha baholaydi: Listening, Reading, Writing, Speaking. Natija 0 dan 9 gacha band, 2 yil amal qiladi. Academic (o'qish uchun) va General Training turlari bor. O'zbekistonda British Council va IDP o'tkazadi. 5.5 va undan yuqori OTMga kirishda chet tili fanidan maksimal ball beradi."), l: [["ielts.org", "ielts.org"]] },
-      { i: "laptop", t: "TOEFL iBT", d: T("ETS tashkiloti o'tkazadigan ingliz tili imtihoni, ayniqsa AQSh universitetlarida keng qabul qilinadi. 4 bo'lim, 0 dan 120 gacha ball, 2 yil amal qiladi."), l: [["ets.org/toefl", "ets.org/toefl"]] },
-      { i: "laptop", t: "Duolingo English Test", d: T("Uyda onlayn topshiriladigan ingliz tili testi, 10 dan 160 gacha ball, natija 2 kun ichida chiqadi, 2 yil amal qiladi. Ko'plab xorijiy universitetlar qabul qiladi."), l: [["englishtest.duolingo.com", "englishtest.duolingo.com"]] },
-      { i: "calc", t: "SAT", d: T("AQSh va boshqa davlatlar universitetlarining bakalavriatiga kirish uchun test: matematika hamda o'qish va yozish, 400 dan 1600 gacha ball. College Board raqamli shaklda o'tkazadi."), l: [["satsuite.collegeboard.org", "satsuite.collegeboard.org"]] },
-      { i: "chart", t: "GRE", d: T("Magistratura va doktoranturaga kirish uchun test (ETS). Verbal va Quantitative bo'limlari 130 dan 170 gacha, Analytical Writing 0 dan 6 gacha baholanadi. Natija 5 yil amal qiladi."), l: [["ets.org/gre", "ets.org/gre"]] },
-      { i: "briefcase", t: "GMAT", d: T("MBA va biznes magistraturasiga kirish uchun test (GMAC). GMAT Focus Edition natijasi 205 dan 805 gacha, 5 yil amal qiladi."), l: [["mba.com", "mba.com"]] },
+      { i: "globe", t: "IELTS", d: [
+        T("Ingliz tilini 4 ko'nikma bo'yicha baholaydi. Listening: 30 daqiqa, 40 savol. Reading: 60 daqiqa, 3 matn, 40 savol. Writing: 60 daqiqa, 2 vazifa. Speaking: 11-14 daqiqa, imtihonchi bilan suhbat."),
+        T("Natija 0 dan 9 gacha band, 2 yil amal qiladi. Academic turi o'qish uchun, General Training ish va migratsiya uchun. Kompyuterda topshirilsa natija 3-5 kunda chiqadi. O'zbekistonda British Council va IDP o'tkazadi."),
+        T("5.5 va undan yuqori ball OTMga kirishda chet tili fanidan maksimal ball beradi; El-yurt umidi uchun kamida 6.0 yoki 7.0 kerak.")],
+        l: [["ielts.org", "ielts.org"]] },
+      { i: "laptop", t: "TOEFL iBT", d: [
+        T("ETS tashkiloti o'tkazadigan ingliz tili imtihoni, ayniqsa AQSh universitetlarida keng qabul qilinadi. 4 bo'lim: Reading, Listening, Speaking va Writing, har biri 0 dan 30 gacha, jami 0 dan 120 gacha ball."),
+        T("Imtihon taxminan 2 soat davom etadi, test markazida yoki uyda (Home Edition) topshiriladi. Natija taxminan bir haftada chiqadi va 2 yil amal qiladi. Top universitetlar odatda 90-100 va undan yuqori ball talab qiladi.")],
+        l: [["ets.org/toefl", "ets.org/toefl"]] },
+      { i: "laptop", t: "Duolingo English Test", d: [
+        T("Uyda kompyuterda onlayn topshiriladigan ingliz tili testi, taxminan 1 soat davom etadi va savollar darajangizga moslashadi. Oxirida qisqa video suhbat va yozma ish bor."),
+        T("Natija 10 dan 160 gacha ball, odatda 2 kun ichida chiqadi va 2 yil amal qiladi. Narxi IELTS va TOEFLdan arzonroq; minglab xorijiy universitetlar qabul qiladi.")],
+        l: [["englishtest.duolingo.com", "englishtest.duolingo.com"]] },
+      { i: "calc", t: "SAT", d: [
+        T("AQSh va boshqa davlatlar universitetlarining bakalavriatiga kirish uchun asosiy test. College Board uni raqamli shaklda, Bluebook ilovasi orqali test markazlarida o'tkazadi."),
+        T("2 bo'lim: Reading and Writing (64 daqiqa, 54 savol) va Math (70 daqiqa, 44 savol), jami taxminan 2 soat 14 daqiqa. Har bir bo'lim 200 dan 800 gacha, umumiy ball 400 dan 1600 gacha. Test moslashuvchan: birinchi qismdagi natijangizga qarab ikkinchi qism savollari qiyinlashadi yoki osonlashadi. Math bo'limida kalkulyatordan foydalanish mumkin."),
+        T("Xalqaro sanalar yiliga bir necha marta (mart, may, iyun, avgust, oktabr, noyabr, dekabr), natija taxminan 2 haftada chiqadi. Top universitetlar uchun odatda 1450-1550 ball kerak; ayrim universitetlar SATni ixtiyoriy deb belgilagan.")],
+        l: [["satsuite.collegeboard.org", "satsuite.collegeboard.org"]] },
+      { i: "chart", t: "GRE", d: [
+        T("Magistratura va doktoranturaga kirish uchun test (ETS), ayniqsa AQSh universitetlarida. Verbal Reasoning va Quantitative Reasoning bo'limlari 130 dan 170 gacha, Analytical Writing 0 dan 6 gacha baholanadi."),
+        T("Imtihon taxminan 2 soat davom etadi, test markazida yoki uyda topshiriladi. Natija 5 yil amal qiladi; ScoreSelect orqali universitetlarga eng yaxshi natijangizni yuborishingiz mumkin.")],
+        l: [["ets.org/gre", "ets.org/gre"]] },
+      { i: "briefcase", t: "GMAT", d: [
+        T("MBA va biznes magistraturasiga kirish uchun test (GMAC). GMAT Focus Edition 3 bo'limdan iborat: Quantitative Reasoning, Verbal Reasoning va Data Insights, jami 2 soat 15 daqiqa."),
+        T("Natija 205 dan 805 gacha, 5 yil amal qiladi. Test markazida yoki onlayn topshirish mumkin. Top biznes maktablari odatda 645-705 va undan yuqori ballni kutadi.")],
+        l: [["mba.com", "mba.com"]] },
     ] },
   ];
   function grantsHTML() {
     return G().map((g) => `<div class="section-title">${g.h}</div>
-      <div class="sd-grants">${g.items.map((x) => `<details class="card sd-g"><summary>${chip(x.i, "sm")}<b>${x.t}</b>${ic("chev")}</summary>
-        <p>${x.d}</p><div class="sd-links">${x.l.map(([t, u]) => `<button class="btn-ghost" onclick="openExt('${encodeURIComponent("https://" + u)}')">${ic("globe")} ${t}</button>`).join("")}</div></details>`).join("")}</div>`).join("")
-      + `<p class="note">${T("Ma'lumotlar rasmiy manbalar asosida 2026-yil noyabr holatiga tayyorlandi. Muddat va talablarni ariza topshirishdan oldin rasmiy saytda tekshiring.")}</p>`;
+      <div class="sd-grants">${g.items.map((x) => `<details class="card sd-g smooth"><summary>${chip(x.i, "sm")}<b>${x.t}</b>${ic("chev")}</summary>
+        ${x.d.map((t) => `<p>${t}</p>`).join("")}<div class="sd-links">${x.l.map(([t, u]) => `<button class="btn-ghost" onclick="openExt('${encodeURIComponent("https://" + u)}')">${ic("globe")} ${t}</button>`).join("")}</div></details>`).join("")}</div>`).join("")
+      + `<p class="note">${T("Ma'lumotlar rasmiy manbalar asosida 2026-yil noyabr holatiga tayyorlandi.")}</p>`;
   }
 
   return { DTM, IELTS, Unis };
