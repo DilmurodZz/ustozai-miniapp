@@ -42,7 +42,7 @@ const Compass = (() => {
     "Men raqamlarni solishtirib, hisobot yoki oddiy budjet tayyorlashni yoqtiraman.",
   ];
   const themeOf = (i) => "RIASEC"[Math.floor(i / 4)];
-  const SCALE = ["Juda qiziq emas", "Biroz qiziq", "O'rtacha", "Ancha qiziq", "Juda qiziq"];
+  const SCALE = ["Umuman yoqtirmayman", "Unchalik yoqtirmayman", "Betarafman", "Yoqtiraman", "Juda yoqtiraman"];
   // the practical questions (the spec's language question is left out: all courses here are taught in Uzbek)
   const FIT = [
     { k: "goal", q: "Men hozir nimaga erishmoqchiman?", icon: "target", o: [

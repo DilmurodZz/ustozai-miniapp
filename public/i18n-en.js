@@ -622,4 +622,10 @@ Object.assign(I18N.en, {
 "Tavsiya qiziqishlaringiz va tanlagan shartlaringizga asoslanadi. U ish yoki daromadni kafolatlamaydi.": "The recommendation is based on your interests and chosen preferences. It does not guarantee a job or income.",
 "Rahmat! Fikringiz tavsiyalarni yaxshilashga yordam beradi.": "Thank you! Your feedback helps improve the recommendations.",
 "Mening yetakchi yo'nalishim: {p}. Sizga qaysi kurs mos? Kasb Kompasida 5 daqiqada bilib oling.": "My leading direction: {p}. Which course suits you? Find out in Kasb Kompasi in 5 minutes.",
+// kasb kompasi scale
+"Umuman yoqtirmayman": "I don't like it at all",
+"Unchalik yoqtirmayman": "I don't really like it",
+"Betarafman": "Neutral",
+"Yoqtiraman": "I like it",
+"Juda yoqtiraman": "I like it a lot",
 });

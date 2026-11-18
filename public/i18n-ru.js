@@ -622,4 +622,10 @@ Object.assign(I18N.ru, {
 "Tavsiya qiziqishlaringiz va tanlagan shartlaringizga asoslanadi. U ish yoki daromadni kafolatlamaydi.": "Рекомендация основана на ваших интересах и выбранных условиях. Она не гарантирует работу или доход.",
 "Rahmat! Fikringiz tavsiyalarni yaxshilashga yordam beradi.": "Спасибо! Ваш отзыв помогает улучшать рекомендации.",
 "Mening yetakchi yo'nalishim: {p}. Sizga qaysi kurs mos? Kasb Kompasida 5 daqiqada bilib oling.": "Моё ведущее направление: {p}. Какой курс подходит вам? Узнайте в Kasb Kompasi за 5 минут.",
+// kasb kompasi scale
+"Umuman yoqtirmayman": "Совсем не нравится",
+"Unchalik yoqtirmayman": "Не очень нравится",
+"Betarafman": "Нейтрально",
+"Yoqtiraman": "Нравится",
+"Juda yoqtiraman": "Очень нравится",
 });
