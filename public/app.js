@@ -158,7 +158,7 @@ function Home() {
     <span class="bwheel ${store.get("bw_used", false) ? "" : "hint"}" id="bwheel" role="button" aria-label="${T("Omad g'ildiragi")}"><i class="bw-pin"></i><svg class="bw-ring" id="bw-ring" viewBox="0 0 100 100" aria-hidden="true">${bannerRing()}</svg><img src="img/ic-courses.webp" alt="" decoding="async"></span><span class="banner-sep"></span><b>Kurslar</b><span class="banner-go">${ic("chev")}</span>
     <svg class="banner-wave" viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 38 C70 18 130 52 210 34 S340 14 400 30 V60 H0Z" fill="rgba(255,255,255,.55)"/><path d="M0 48 C80 34 150 58 230 46 S350 32 400 42 V60 H0Z" fill="rgba(120,140,255,.18)"/></svg>
   </a>
-  <div class="grid4">${tiles.map(([i, l, h, k]) => `<a class="tile4 ${k}" href="${h}"><img src="img/ic-${i}.webp" alt="" decoding="async"><span>${l}</span></a>`).join("")}</div>
+  <div class="grid4">${tiles.map(([i, l, h, k]) => `<a class="tile4 ${k}" href="${h}"><img src="img/ic-${i}.webp" alt="" decoding="async"><span>${l}</span>${i === "tools" ? `<i class="tile-nb" data-nb></i>` : ""}</a>`).join("")}</div>
 `;
 }
 
@@ -207,6 +207,19 @@ window.invite = (link) => {
   if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
 };
 
+// "Top 20 chegirmalar": what students can use now, then what is coming
+function Chegirma() {
+  const deals = [
+    { i: "card", c: "c1", t: T("Poyezd chiptalariga 50% chegirma"), d: T("O'zbekiston temir yo'llari talabalarga qishki ta'tilda poyezd chiptalariga 50 foiz chegirma beradi. O'tgan mavsumda 2025-yil 18-dekabrdan 2026-yil 12-yanvargacha amal qilgan."), u: "railway.uz" },
+    { i: "plane", c: "c3", t: T("Ichki reyslarga 50% chegirma"), d: T("Uzbekistan Airways talabalar uchun qishki ta'tilda mahalliy aviachiptalarga 50 foiz chegirma e'lon qiladi. O'tgan mavsumda 2025-yil 26-dekabrdan 2026-yil 11-yanvargacha amal qilgan."), u: "uzairways.com" },
+  ];
+  return `${navbar(T("Top 20 chegirmalar"))}
+  <div class="section-title">${T("Talabalar uchun mavsumiy chegirmalar")}</div>
+  <div class="dl-list">${deals.map((x) => `<div class="card dl-card">${chip(x.i, "sm " + x.c)}<span><b>${x.t}</b><small>${x.d}</small>
+    <button class="dl-link" onclick="openExt('${encodeURIComponent("https://" + x.u)}')">${ic("globe")} ${x.u}</button></span><em>50%</em></div>`).join("")}</div>
+  <p class="note">${T("Chegirmalar odatda qishki ta'til oldidan e'lon qilinadi. Talabalik guvohnomangizni tayyor turing.")}</p>
+  ${Soon("chegirma").replace(navbar(SOON.chegirma.t), "")}`;
+}
 function Soon(key) {
   const s = SOON[key];
   return `${navbar(s.t)}
@@ -264,7 +277,7 @@ function bindDuo() {
 const ROUTES = {
   "#/": Home, "#/kompas": () => needScript("kompas.js", "Compass", "Screen", T("Kasb Kompasi")), "#/natija": () => needScript("kompas.js", "Compass", "Result", T("Kasb Kompasi")), "#/tanlov": () => needScript("tanlov.js", "Contest", "Screen", T("Tanlov")), "#/profil": Profil,
   "#/kurslar": () => Kurslar.List(), "#/kurs": () => Kurslar.Detail(location.hash.slice(7)), "#/oyin": () => "", "#/mutolaa": () => Soon("mutolaa"),
-  "#/duo": DuoScreen, "#/chegirma": () => Soon("chegirma"), "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/dtm": () => needScript("study.js", "Study", "DTM", T("DTM ball kalkulyatori")), "#/ielts": () => needScript("study.js", "Study", "IELTS", T("IELTS ball kalkulyatori")), "#/unis": () => needScript("study.js", "Study", "Unis", T("Top 300 universitet va grantlar")), "#/admin": () => AdminScreen(), "#/kashf": () => Soon("kashf"),
+  "#/duo": DuoScreen, "#/chegirma": Chegirma, "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/dtm": () => needScript("study.js", "Study", "DTM", T("DTM ball kalkulyatori")), "#/ielts": () => needScript("study.js", "Study", "IELTS", T("IELTS ball kalkulyatori")), "#/unis": () => needScript("study.js", "Study", "Unis", T("Top 300 universitet va grantlar")), "#/admin": () => AdminScreen(), "#/kashf": () => Soon("kashf"),
 };
 let gameOn = false;
 // the 3D game is loaded on its own, after Home: it is not needed to open the app

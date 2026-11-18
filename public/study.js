@@ -220,6 +220,21 @@ const Study = (() => {
 
   // grants, scholarships and certificates: short, checked facts with the official site of each
   const G = () => [
+    { h: T("Yoshlar uchun dasturlar va imtiyozlar"), items: [
+      { i: "chat", t: T("\"2+6\" dasturi: chet tili kurslariga subsidiya"), d: [
+        T("Davlat yoshlarga o'quv markazlarida chet tilini o'rganish xarajatlarini qoplab beradi: dastlabki 2 oyni o'zingiz to'laysiz, keyingi 6 oygacha bo'lgan o'qish Yoshlar ishlari agentligi jamg'armasi hisobidan to'lanadi."),
+        T("Kim qatnasha oladi: 14 yoshdan 30 yoshgacha bo'lgan O'zbekiston yoshlari, B1 darajasidagi sertifikat yoki unga teng hujjat bilan; darslarga kamida 70 foiz qatnashish kerak. Subsidiya Toshkent shahrida bazaviy hisoblash miqdorining 2 baravarigacha, viloyat markazlarida 1,5 baravarigacha, tumanlarda 1 baravarigacha."),
+        T("Ariza \"Yonda\" ilovasi orqali OneID bilan topshiriladi, o'quv markazlari ro'yxati 2plus6.uz saytida. Asos: Vazirlar Mahkamasining 2025-yil 8-oktabrdagi 632-son qarori.")],
+        l: [["2plus6.uz", "2plus6.uz"], ["lex.uz", "lex.uz/uz/docs/-7759309"]] },
+      { i: "card", t: T("ATTO talaba transport kartasi"), d: [
+        T("Talabalar ATTO imtiyozli transport kartasi bilan jamoat transportida yo'l haqining yarmini to'laydi. Talabalar uchun yashil va sariq kartalar chiqarilgan."),
+        T("Kartani rasmiylashtirish tartibi va manzillar atto.uz saytining \"Yo'lovchilar\" bo'limida.")],
+        l: [["atto.uz", "atto.uz/uz/passengers"]] },
+      { i: "users", t: T("Yoshlar daftari"), d: [
+        T("Ijtimoiy himoyaga muhtoj 14 yoshdan 30 yoshgacha bo'lgan yoshlarga davlat yordami: o'qish, kasb o'rganish, ish va boshqa ehtiyojlar uchun."),
+        T("2026-yil 1-fevraldan arizalar my.gov.uz va yoshlarning yagona elektron platformasi orqali topshiriladi; 1093 raqami orqali ham murojaat qilish mumkin. Har yili eng faol 1 000 nafar yoshga bazaviy hisoblash miqdorining 3 baravari miqdorida mukofot beriladi.")],
+        l: [["yoshlardaftari.uz", "yoshlardaftari.uz"], ["my.gov.uz", "my.gov.uz"]] },
+    ] },
     { h: T("Mahalliy grant va stipendiyalar"), items: [
       { i: "cap", t: T("OTM davlat granti (bakalavriat)"), d: [
         T("Davlat oliy ta'lim muassasalarida to'lovsiz o'qish va har oylik stipendiya. Grant o'rinlari har bir yo'nalish bo'yicha DTM test natijalarida eng yuqori ball to'plagan abituriyentlarga beriladi, qolganlar to'lov-shartnoma asosida qabul qilinishi mumkin."),

@@ -72,6 +72,7 @@ export default {
     if (url.pathname === "/track" && req.method === "POST") return track(req, env, url, origin);
     if (url.pathname === "/stats" && req.method === "GET") return json(await stats(env), 200, origin);
     if (url.pathname === "/winners" && req.method === "GET") return winners(origin);
+    if (url.pathname === "/news" && req.method === "GET") return news(url, env, origin);
     if (url.pathname === "/file" && req.method === "POST") return sendFile(req, env, url, origin);
     if (url.pathname.startsWith("/dl/") && req.method === "GET") {
       const [, , id, name] = url.pathname.split("/");
@@ -253,4 +254,85 @@ async function winners(origin) {
   }
   const body = await hit.text();
   return new Response(body, { headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=120", ...cors(origin) } });
+}
+
+/* ---------- /news?l=uz|ru|en: youth news (jobs, AI, innovation, education) from public news feeds ---------- */
+// Feeds in the reader's own language; only items about jobs, AI, tech, innovation and education are kept.
+// [source, feed, topical]: a topical feed is all about AI or tech, so every item is kept
+const NEWS_FEEDS = {
+  uz: [["Gazeta.uz", "https://www.gazeta.uz/oz/rss/"], ["Spot", "https://www.spot.uz/oz/rss"], ["Daryo", "https://daryo.uz/feed"], ["Kun.uz", "https://kun.uz/news/rss"], ["UzDaily", "https://uzdaily.uz/uz/rss"], ["Xabar.uz", "https://xabar.uz/uz/rss"]],
+  ru: [["Habr", "https://habr.com/ru/rss/hub/artificial_intelligence/all/?fl=ru", 1], ["Hightech.fm", "https://hightech.fm/feed.rss", 1], ["Gazeta.uz", "https://www.gazeta.uz/ru/rss/"], ["Spot", "https://www.spot.uz/rss"], ["Kun.uz", "https://kun.uz/ru/news/rss"], ["UzDaily", "https://www.uzdaily.uz/ru/rss"]],
+  en: [["The Verge", "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", 1], ["VentureBeat", "https://venturebeat.com/category/ai/feed/", 1], ["Gazeta.uz", "https://www.gazeta.uz/en/rss/"], ["Kun.uz", "https://kun.uz/en/news/rss"]],
+};
+// matched at the start of a word in the headline; the strongest AI terms also count in the text
+const NEWS_KW = ["sun'iy intellekt", "suniy intellekt", "neyrotarmoq", "openai", "chatgpt", "gpt", "gemini", "claude", "anthropic", "llm", "ai-agent", "ai agent", "ии-агент", "робот", "robot",
+  "startap", "стартап", "startup", "innovats", "инновац", "innovation", "texnolog", "технолог", "technolog", "it park", "it-park", "dasturchi", "dasturlash", "программист", "программирован", "raqamli", "цифров", "digital",
+  "нейросет", "искусственн", "kasb", "ish o'rin", "vakansiya", "maosh", "ish haqi", "профессi", "професси", "ваканс", "зарплат", "rezyume", "резюме", "career", "salar", "jobs", "hiring", "skill", "ko'nikma",
+  "ta'lim", "образован", "education", "universitet", "университет", "universit", "oliygoh", "вуз", "talaba", "студент", "student", "grant", "грант", "stipendiya", "стипенди", "scholarship",
+  "abituriyent", "абитуриент", "ielts", "sat", "dtm", "milliy sertifikat", "национальн сертификат", "yoshlar", "молодеж", "молодёж", "youth", "o'qituvchi", "учител", "teacher", "ai", "ии"];
+const NEWS_STRONG = ["sun'iy intellekt", "openai", "chatgpt", "нейросет", "искусственный интеллект", "artificial intelligence", "llm"];
+const kwRe = new RegExp("(?:^|[^\\p{L}\\p{N}])(?:" + NEWS_KW.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")", "iu");
+const shortRe = /(?:^|[^\p{L}])(?:ai|ии|sat|dtm|вуз|gpt)(?:$|[^\p{L}])/iu;
+const unent = (s) => String(s || "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
+  .replace(/&quot;/g, '"').replace(/&apos;|&#039;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ")
+  .replace(/&(rsquo|lsquo);/g, "'").replace(/&(ldquo|rdquo|laquo|raquo|bdquo);/g, '"').replace(/&(mdash|ndash);/g, "-").replace(/&hellip;/g, "...").replace(/&amp;/g, "&");
+const tagOf = (x, t) => { const m = x.match(new RegExp(`<${t}[^>]*>([\\s\\S]*?)</${t}>`, "i")); return m ? unent(m[1]).trim() : ""; };
+const plain = (s) => unent(s).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+// kun.uz writes Uzbek in the newer alphabet (ç, ş, ö, ğ); the app uses ch, sh, o', g'
+const oldLatin = (s) => s.replace(/Ç/g, "Ch").replace(/ç/g, "ch").replace(/Ş/g, "Sh").replace(/ş/g, "sh").replace(/Ö/g, "O'").replace(/ö/g, "o'").replace(/Ğ/g, "G'").replace(/ğ/g, "g'").replace(/Ñ/g, "Ng").replace(/ñ/g, "ng");
+function parseFeed(xml, src, lang) {
+  const out = [], blocks = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) || xml.match(/<entry[\s>][\s\S]*?<\/entry>/gi) || [];
+  for (const b of blocks) {
+    let title = plain(tagOf(b, "title")), link = tagOf(b, "link");
+    if (!link) { const m = b.match(/<link[^>]+href="([^"]+)"/i); link = m ? m[1] : ""; }
+    const date = tagOf(b, "pubDate") || tagOf(b, "published") || tagOf(b, "updated");
+    const body = tagOf(b, "description") || tagOf(b, "summary") || tagOf(b, "content");
+    let img = (b.match(/<enclosure[^>]+url="([^"]+)"/i) || b.match(/<media:content[^>]+url="([^"]+)"/i) || b.match(/<media:thumbnail[^>]+url="([^"]+)"/i) || unent(b).match(/<img[^>]+src="([^"]+)"/i) || [])[1] || "";
+    let text = plain(body).replace(/\s*\[(…|&#8230;|\.\.\.)\]\s*$/, "…");
+    if (lang === "uz") { title = oldLatin(title); text = oldLatin(text); }
+    // the app writes plain dashes
+    title = title.replace(/\s*[—–]\s*/g, " - "); text = text.replace(/\s*[—–]\s*/g, " - ");
+    if (!title || !/^https?:\/\//.test(link)) continue;
+    const t = Date.parse(date) || 0;
+    out.push({ t: title.slice(0, 220), u: link.trim(), i: unent(img).replace(/^http:/, "https:"), d: text.slice(0, 600), s: src, at: t });
+  }
+  return out;
+}
+async function news(url, env, origin) {
+  const lang = ["uz", "ru", "en"].includes(url.searchParams.get("l")) ? url.searchParams.get("l") : "uz";
+  const cache = caches.default, key = new Request("https://cache.local/news-v6-" + lang);
+  let hit = await cache.match(key);
+  if (hit) { const r = new Response(hit.body, hit); Object.entries(cors(origin)).forEach(([k, v]) => r.headers.set(k, v)); return r; }
+  const lists = await Promise.all(NEWS_FEEDS[lang].map(async ([src, feed, topical]) => {
+    try { const r = await fetch(feed, { headers: { "User-Agent": "Mozilla/5.0 (news reader)" }, cf: { cacheTtl: 600 } }); return r.ok ? parseFeed(await r.text(), src, lang).map((x) => (x.k = !!topical, x)) : []; } catch { return []; }
+  }));
+  // what was kept before stays for 3 weeks, so the ribbon is never empty on a quiet day
+  let kept = []; try { kept = (await env.COLORS.get("news:" + lang, "json")) || []; } catch {}
+  const seen = new Set(), items = [], fresh = [];
+  for (const it of lists.flat()) {
+    if (it.k) { delete it.k; fresh.push(it); continue; }
+    delete it.k;
+    const head = it.t.toLowerCase().replace(/[‘’ʻʼ`]/g, "'"), body = it.d.toLowerCase().replace(/[‘’ʻʼ`]/g, "'");
+    const hit = (kwRe.test(head) && (!/^(?:ai|ии|sat|dtm|вуз|gpt)$/i.test((head.match(kwRe) || [""])[0].replace(/^[^\p{L}]+/u, "")) || shortRe.test(head))) || NEWS_STRONG.some((k) => body.includes(k));
+    if (hit) fresh.push(it);
+  }
+  const limit = Date.now() - 21 * 86400000;
+  const perSrc = {};
+  for (const it of [...fresh, ...kept.filter((x) => !x.lg)].sort((a, b) => b.at - a.at)) {
+    if (it.at && it.at < limit) continue;
+    const k = it.t.toLowerCase().slice(0, 60); if (seen.has(k)) continue; seen.add(k);
+    if ((perSrc[it.s] = (perSrc[it.s] || 0) + 1) > 12) continue;
+    items.push(it); if (items.length >= 40) break;
+  }
+  const dash = (v) => String(v || "").replace(/\s*[—–]\s*/g, " - ");
+  items.forEach((x) => { x.t = dash(x.t); x.d = dash(x.d); });
+  try { await env.COLORS.put("news:" + lang, JSON.stringify(items)); } catch {}
+  // few local stories on a quiet day: add English AI stories, marked with their language
+  if (items.length < 8 && lang !== "en") {
+    let en = []; try { en = (await env.COLORS.get("news:en", "json")) || []; } catch {}
+    items.push(...en.slice(0, 10 - items.length).map((x) => ({ ...x, lg: "en" })));
+  }
+  const res = new Response(JSON.stringify({ lang, at: Date.now(), items }), { headers: { "Content-Type": "application/json", "Cache-Control": "max-age=900" } });
+  await cache.put(key, res.clone());
+  const r = new Response(res.body, res); Object.entries(cors(origin)).forEach(([k, v]) => r.headers.set(k, v)); return r;
 }

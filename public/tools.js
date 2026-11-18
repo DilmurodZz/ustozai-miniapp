@@ -205,6 +205,7 @@ const Tools = (() => {
       { go: "openTg('https://t.me/poyezdbilet24_bot')", img: "img/tool-train.webp", t: "Poyezd Bilet 24", d: T("Poyezd chiptasi: bot bo'sh joyni 24/7 kuzatadi va paydo bo'lishi bilan bron qiladi") },
     ];
     return `${navbar(T("Foydali vositalar"))}
+    ${window.News ? News.ribbon() : ""}
     <div class="tool-list">${items.map((x, n) => `<button class="card tool-link" onclick="${x.go}">
       <img class="tool-ic ${x.round ? "round" : ""}" src="${x.img}" alt="" width="56" height="56" decoding="async">
       <span><b>${x.t}</b><small>${x.d}</small></span>

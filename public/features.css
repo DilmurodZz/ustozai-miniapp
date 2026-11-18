@@ -684,3 +684,60 @@ img.zk-cg-img { aspect-ratio: auto; height: auto; }
 /* any details.smooth opens and closes with a gentle height animation (app.js) */
 details.smooth > *:not(summary) { animation: sdfade .32s ease; }
 @keyframes sdfade { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* ---------- Home tiles: thin glowing coloured bottom edge ---------- */
+.tile4.k1 { box-shadow: inset 0 -3px 0 #8B3DFF, 0 10px 18px -12px rgba(139,61,255,.75); }
+.tile4.k2 { box-shadow: inset 0 -3px 0 #1E88FF, 0 10px 18px -12px rgba(30,136,255,.75); }
+.tile4.k3 { box-shadow: inset 0 -3px 0 #FF3D7F, 0 10px 18px -12px rgba(255,61,127,.75); }
+.tile4.k4 { box-shadow: inset 0 -3px 0 #16C75A, 0 10px 18px -12px rgba(22,199,90,.75); }
+
+/* ---------- Yangiliklar: ribbon, story, list, badges ---------- */
+.tile4 { position: relative; }
+.tile-nb { position: absolute; top: 8px; right: 8px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 99px; background: #EF4444; color: #fff; font-style: normal; font-size: 10.5px; font-weight: 800; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px #fff; display: none; }
+.tile-nb.on { display: block; }
+.nw { margin-bottom: 12px; }
+.nw-head { display: flex; align-items: center; gap: 8px; width: 100%; padding: 0 2px 8px; border: 0; background: none; font: inherit; color: var(--text); text-align: left; }
+.nw-head b { font-size: 17px; font-weight: 800; }
+.nw-head em { font-style: normal; min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 99px; background: #EF4444; color: #fff; font-size: 11px; font-weight: 800; line-height: 20px; text-align: center; }
+.nw-head span { margin-left: auto; display: flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 600; color: var(--p1); }
+.nw-head span .ic { width: 16px; height: 16px; }
+.nw-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; border-radius: 18px; gap: 0; }
+.nw-track::-webkit-scrollbar { display: none; }
+.nw-card { flex: 0 0 100%; scroll-snap-align: start; display: flex; align-items: center; gap: 12px; padding: 12px; box-sizing: border-box; border: 0; border-radius: 18px; text-align: left; font: inherit; color: var(--text);
+  background: linear-gradient(135deg, #EEF2FF, #F5F3FF 55%, #FDF2F8); box-shadow: inset 0 0 0 1px rgba(99,102,241,.12); }
+.nw-img { width: 64px; height: 64px; flex: none; border-radius: 14px; object-fit: cover; background: #E0E7FF; box-shadow: 0 6px 14px -8px rgba(30,41,99,.5); }
+.nw-noimg { display: grid; place-items: center; color: #4F46E5; }
+.nw-noimg .ic { width: 28px; height: 28px; }
+.nw-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.nw-txt b { font-size: 14px; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.nw-txt small { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nw-dots { display: flex; justify-content: center; gap: 5px; margin-top: 8px; }
+.nw-dots i { width: 6px; height: 6px; border-radius: 99px; background: #CBD5E1; transition: width .25s, background .25s; }
+.nw-dots i.on { width: 18px; background: var(--p1); }
+.nw-skel { height: 88px; border-radius: 18px; background: linear-gradient(90deg, #EEF2FF, #F8FAFC, #EEF2FF); background-size: 200% 100%; animation: nwskel 1.2s linear infinite; }
+@keyframes nwskel { to { background-position: -200% 0; } }
+.nw-read { display: grid; gap: 8px; text-align: left; }
+.nw-hero { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 16px; background: #E0E7FF; }
+.nw-meta { font-size: 12px; color: var(--muted); }
+.nw-read h3 { margin: 0; font-size: 18px; line-height: 1.3; }
+.nw-read p { margin: 0; font-size: 14px; line-height: 1.55; color: #334155; }
+.btn-primary.nw-go { background: linear-gradient(135deg, #16A34A, #22C55E); box-shadow: 0 12px 22px -12px #16A34A; margin-top: 4px; }
+.nw-link { border: 0; background: none; font: inherit; font-size: 12px; color: #16A34A; text-decoration: underline; text-align: center; word-break: break-all; }
+.nw-tabs { margin: 6px 0 10px; grid-template-columns: 1fr 1fr; }
+.nw-list { display: grid; gap: 6px; max-height: 60vh; overflow-y: auto; text-align: left; }
+.nw-row { display: grid; gap: 3px; width: 100%; padding: 10px 12px 10px 14px; border: 0; border-radius: 12px; background: var(--bg); font: inherit; color: var(--text); text-align: left; position: relative; }
+.nw-row b { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+.nw-row small { font-size: 11.5px; color: var(--muted); }
+.nw-row.new { background: #EEF2FF; }
+.nw-row.new::before { content: ""; position: absolute; left: 5px; top: 15px; width: 5px; height: 5px; border-radius: 50%; background: #EF4444; }
+
+/* ---------- Top 20 chegirmalar: student discounts ---------- */
+.dl-list { display: grid; gap: 10px; margin-bottom: 6px; }
+.dl-card { display: flex; gap: 12px; padding: 14px; align-items: flex-start; }
+.dl-card > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.dl-card b { font-size: 15px; }
+.dl-card small { font-size: 13px; line-height: 1.45; color: var(--muted); }
+.dl-card > em { font-style: normal; font-weight: 800; font-size: 13px; color: #fff; background: linear-gradient(135deg, #FF3D7F, #FF7AA8); border-radius: 10px; padding: 4px 8px; box-shadow: 0 8px 14px -8px #FF3D7F; }
+.dl-link { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; padding: 5px 10px; border: 0; border-radius: 10px; background: #DCFCE7; color: #15803D; font: inherit; font-size: 12.5px; font-weight: 600; }
+.dl-link .ic { width: 15px; height: 15px; }
+
