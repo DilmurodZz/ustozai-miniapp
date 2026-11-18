@@ -16,50 +16,50 @@ const Compass = (() => {
   };
   // the 24 statements, numbered as in the spec (1-4 R, 5-8 I, 9-12 A, 13-16 S, 17-20 E, 21-24 C)
   const ITEMS = [
-    "Men qurilma yoki buyumni yig'ish, sozlash yoki tuzatib ko'rishni yoqtiraman.",
-    "Men asbob-uskunalar yoki texnika bilan ishlab, amaliy natija chiqarishni yoqtiraman.",
-    "Men materiallardan foydalanib, qo'lim bilan biror narsa yaratishni yoqtiraman.",
-    "Men faqat o'qib chiqishdan ko'ra, vazifani o'zim bajarib natijasini ko'rishni yoqtiraman.",
-    "Men jadvaldagi ma'lumotlarni solishtirib, takrorlanayotgan qonuniyatlarni topishni yoqtiraman.",
-    "Men dastur yoki qurilmada xato chiqsa, sababini bosqichma-bosqich tekshirishni yoqtiraman.",
-    "Men mavzuni chuqur o'rganib, xulosamni dalillar bilan tushuntirishni yoqtiraman.",
-    "Men mantiqiy, matematik yoki dasturlash masalasining yechimini izlashni yoqtiraman.",
-    "Men biror g'oyani rasm, video yoki boshqa vizual kontentga aylantirishni yoqtiraman.",
-    "Men hikoya, reklama matni, sarlavha yoki brend uchun ta'sirli so'zlar topishni yoqtiraman.",
-    "Men ranglar, shriftlar va sahifa ko'rinishining turli variantlarini sinab ko'rishni yoqtiraman.",
-    "Men yangi loyiha yoki kampaniya uchun o'ziga xos g'oya o'ylab topishni yoqtiraman.",
-    "Men murakkab mavzuni boshqalarga sodda qilib tushuntirishni yoqtiraman.",
-    "Men birovga yangi ko'nikmani qadamma-qadam o'rganishda yordam berishni yoqtiraman.",
-    "Men odamlar bilan muloqot qilish, mehmonlarni kutib olish yoki sayohatni tanishtirishni yoqtiraman.",
-    "Men odamning ehtiyojini tinglab, unga mos yechim yoki xizmatni tavsiya qilishni yoqtiraman.",
-    "Men o'z g'oyamni boshqalarga taqdim etib, ularni qo'llab-quvvatlashga undashni yoqtiraman.",
-    "Men yangi loyiha yoki kichik biznesni boshlab, keyingi qadamlarni belgilashni yoqtiraman.",
-    "Men mahsulot yoki xizmatni tanitish va mijozlarga yetkazish rejasini tuzishni yoqtiraman.",
-    "Men umumiy maqsadga erishish uchun jamoani muvofiqlashtirish va qaror qabul qilishni yoqtiraman.",
-    "Men ma'lumotlarni jadvalga kiritib, tartibli va tushunarli saqlashni yoqtiraman.",
-    "Men ko'rsatmalar yoki tekshiruv ro'yxati bo'yicha aniq ishlashni yoqtiraman.",
-    "Men vaqt, vazifalar va resurslarni oldindan rejalashtirishni yoqtiraman.",
-    "Men raqamlarni solishtirib, hisobot yoki oddiy budjet tayyorlashni yoqtiraman.",
+    "Men biror qurilma yoki buyumni yig'ish, sozlash yoki tuzatishni yoqtiraman.",
+    "Men asboblar va texnika bilan ishlashni yoqtiraman.",
+    "Men turli materiallardan foydalanib, o'z qo'lim bilan biror narsa yasashni yoqtiraman.",
+    "Men faqat o'qib o'tirishdan ko'ra, ishni o'zim bajarib ko'rishni yoqtiraman.",
+    "Men jadvaldagi raqamlarni solishtirib, ular orasidagi o'xshashliklarni topishni yoqtiraman.",
+    "Men dastur yoki qurilmada xato chiqsa, uning sababini topishni yoqtiraman.",
+    "Men biror mavzuni chuqur o'rganib, fikrimni dalillar bilan tushuntirishni yoqtiraman.",
+    "Men mantiqiy, matematik yoki dasturlash masalalarini yechishni yoqtiraman.",
+    "Men g'oyamni rasm, video yoki boshqa ko'rinishda yaratishni yoqtiraman.",
+    "Men hikoya, reklama yoki brend uchun ta'sirli so'zlar topishni yoqtiraman.",
+    "Men ranglar va yozuv ko'rinishini o'zgartirib, chiroyli sahifa tayyorlashni yoqtiraman.",
+    "Men yangi loyiha yoki reklama uchun o'ziga xos g'oyalar topishni yoqtiraman.",
+    "Men qiyin mavzuni boshqalarga oddiy qilib tushuntirishni yoqtiraman.",
+    "Men boshqalarga yangi narsani bosqichma-bosqich o'rgatishni yoqtiraman.",
+    "Men odamlar bilan gaplashish, mehmonlarni kutib olish yoki joylarni tanishtirishni yoqtiraman.",
+    "Men odamlarni tinglab, ularga kerakli yechim yoki xizmatni tavsiya qilishni yoqtiraman.",
+    "Men o'z g'oyamni boshqalarga aytib, ularni qo'llab-quvvatlashga undashni yoqtiraman.",
+    "Men yangi loyiha yoki kichik biznes boshlashni va keyingi ishlarni rejalashni yoqtiraman.",
+    "Men mahsulot yoki xizmatni odamlarga tanitish va xaridorlarga yetkazish rejasini tuzishni yoqtiraman.",
+    "Men jamoani umumiy maqsad sari boshlab borish, ishlarni tartibga solish va qaror qabul qilishni yoqtiraman.",
+    "Men ma'lumotlarni jadvalga yozib, tartibli saqlashni yoqtiraman.",
+    "Men ko'rsatmalar yoki tekshirish ro'yxati asosida aniq ishlashni yoqtiraman.",
+    "Men vaqtimni, vazifalarimni va kerakli narsalarni oldindan rejalashtirishni yoqtiraman.",
+    "Men raqamlarni solishtirib, hisobot yoki oddiy xarajatlar rejasini tayyorlashni yoqtiraman.",
   ];
   const themeOf = (i) => "RIASEC"[Math.floor(i / 4)];
   const SCALE = ["Umuman yoqtirmayman", "Unchalik yoqtirmayman", "Betarafman", "Yoqtiraman", "Juda yoqtiraman"];
   // the practical questions (the spec's language question is left out: all courses here are taught in Uzbek)
   const FIT = [
-    { k: "goal", q: "Men hozir nimaga erishmoqchiman?", icon: "target", o: [
-      ["skill", "Kasbga oid ko'nikma o'rganish", "zap"], ["job", "Ish topish yoki suhbatga tayyorlanish", "briefcase"],
-      ["biz", "Biznes boshlash yoki rivojlantirish", "rocket"], ["grow", "Hozirgi ishimda o'sish", "trend"],
-      ["exam", "Imtihon yoki tilga tayyorlanish", "cap"], ["hobby", "Ijodiy loyiha yoki hobbini boshlash", "palette"], ["unsure", "Hali tanlayapman", "compass"]] },
-    { k: "level", q: "Men bu mavzu bo'yicha qaysi darajadaman?", icon: "up", o: [
-      ["none", "Hali boshlamaganman", "play"], ["basic", "Boshlang'ich tushuncham bor", "book"], ["did", "Amalda bajarganman", "check"],
-      ["deep", "Tajribam bor, chuqurlashtirmoqchiman", "star"], ["unsure", "Bilmayman", "compass"]] },
-    { k: "time", q: "Men haftasiga qancha vaqt ajrata olaman?", icon: "clock", o: [
-      ["1", "2 soatdan kam", "clock"], ["3", "2-4 soat", "clock"], ["6", "5-7 soat", "clock"], ["9", "8 soatdan ko'p", "clock"], ["unsure", "Hali aniq emas", "compass"]] },
-    { k: "device", q: "Men o'qish uchun qaysi qurilma yoki jihozlardan foydalana olaman?", icon: "laptop", o: [
-      ["phone", "Faqat smartfon", "phone"], ["pc", "Kompyuter yoki noutbuk", "laptop"], ["both", "Smartfon va kompyuter", "layers"],
-      ["kit", "Maxsus uskuna yoki materiallar", "tool"], ["unsure", "Hali aniq emas", "compass"]] },
-    { k: "budget", q: "Men kurs narxi uchun qaysi oraliqni tanlayman?", icon: "coin", o: [
-      ["0", "Bepul", "gift"], ["100000", "100 000 so'mgacha", "coin"], ["500000", "100 000 - 500 000 so'm", "coin"],
-      ["any", "500 000 so'mdan yuqori", "coin"], ["nolimit", "Hozircha narxni cheklamayman", "check"], ["unsure", "Hali bilmayman", "compass"]] },
+    { k: "goal", q: "Men hozir nimani o'rganmoqchiman yoki nimaga erishmoqchiman?", icon: "target", o: [
+      ["skill", "Kasb uchun kerakli ko'nikmani o'rganish", "zap"], ["job", "Ish topish yoki suhbatga tayyorlanish", "briefcase"],
+      ["biz", "O'z biznesimni boshlash yoki rivojlantirish", "rocket"], ["grow", "Hozirgi ishimda o'sish", "trend"],
+      ["exam", "Imtihon yoki til o'rganishga tayyorlanish", "cap"], ["hobby", "Ijodiy loyiha boshlash yoki sevimli mashg'ulotim bilan shug'ullanish", "palette"], ["unsure", "Hali aniq bilmayman", "compass"]] },
+    { k: "level", q: "Men bu mavzuni qanchalik bilaman?", icon: "up", o: [
+      ["none", "Hali o'rganishni boshlamaganman", "play"], ["basic", "Bu haqda ozgina bilaman", "book"], ["did", "O'zim bajarib ko'rganman", "check"],
+      ["deep", "Tajribam bor, yanada ko'proq o'rganmoqchiman", "star"], ["unsure", "Hozircha aniq bilmayman", "compass"]] },
+    { k: "time", q: "Men haftasiga o'qishga qancha vaqt ajrata olaman?", icon: "clock", o: [
+      ["1", "2 soatdan kam", "clock"], ["3", "2-4 soat", "clock"], ["6", "5-7 soat", "clock"], ["9", "8 soatdan ko'p", "clock"], ["unsure", "Hali aniq bilmayman", "compass"]] },
+    { k: "device", q: "Men o'qish uchun qaysi qurilmadan foydalana olaman?", icon: "laptop", o: [
+      ["phone", "Faqat telefon", "phone"], ["pc", "Kompyuter yoki noutbuk", "laptop"], ["both", "Telefon va kompyuter", "layers"],
+      ["kit", "Maxsus jihozlar yoki materiallar", "tool"], ["unsure", "Hali aniq bilmayman", "compass"]] },
+    { k: "budget", q: "Men kurs uchun qancha pul ajrata olaman?", icon: "coin", o: [
+      ["0", "Bepul kurs", "gift"], ["100000", "100 000 so'mgacha", "coin"], ["500000", "100 000 - 500 000 so'm", "coin"],
+      ["any", "500 000 so'mdan ko'p", "coin"], ["nolimit", "Hozircha narx muhim emas", "check"], ["unsure", "Hali aniq bilmayman", "compass"]] },
   ];
   const N = ITEMS.length + FIT.length;
 
@@ -196,7 +196,7 @@ const Compass = (() => {
     <div class="kp-intro">
       <img class="kp-art" src="img/hero-compass.webp" alt="" decoding="async">
       <h2>${T("Sizga qaysi kurs mos?")}</h2>
-      <p>${T("Bu qisqa so'rovnoma sizga qaysi kurslar qiziqishingiz va maqsadingizga mos kelishini topishga yordam beradi. To'g'ri yoki noto'g'ri javob yo'q. Hali sinab ko'rmagan ishingizni \"Hali sinab ko'rmaganman\" deb belgilang. Natija tavsiya hisoblanadi; tanlov sizniki.")}</p>
+      <p>${T("Bu qisqa so'rovnoma sizga qiziqishingiz va maqsadingizga mos kurslarni topishga yordam beradi. To'g'ri yoki noto'g'ri javob yo'q. Biror ishni hali sinab ko'rmagan bo'lsangiz, \"Hali sinab ko'rmaganman\" variantini tanlang. Natija sizga tavsiya beradi, yakuniy tanlov esa o'zingizniki.")}</p>
       <div class="kp-meta">
         <span>${ic("clock")}<b>${T("5 daqiqa")}</b><small>${T("taxminiy vaqt")}</small></span>
         <span>${ic("check")}<b>${N}</b><small>${T("oddiy savol")}</small></span>
@@ -208,6 +208,8 @@ const Compass = (() => {
     ${going ? `<button class="btn-ghost" onclick="kpStart(1)">${ic("refresh")} ${T("Boshidan boshlash")}</button>` : ""}
     ${store.get("kp_done", null) ? `<button class="btn-ghost" onclick="location.hash='#/natija'">${ic("star")} ${T("Oxirgi natijam")}</button>` : ""}`;
   }
+  // the answer is only kept on screen (green) until the student presses the green "next" button
+  const nextBtn = (ready, i) => `<button class="btn-primary kp-next" ${ready ? "" : "disabled"} onclick="kpNext()">${i + 1 >= N ? T("Natijani ko'rish") : T("Keyingi savol")} ${ic("chev")}</button>`;
   function Question() {
     const i = st.step, head = `${navbar(T("Kasb Kompasi"))}
       <div class="kp-top"><span>${i < ITEMS.length ? T("Qiziqishlar") : T("Kurs tanlash shartlari")}</span><em>${i + 1} / ${N}</em></div>
@@ -222,12 +224,14 @@ const Compass = (() => {
       <div class="kp-scale">${SCALE.map((s, v) => `<button class="kp-opt ${cur === v ? "on" : ""}" style="--tc:${t.c}" onclick="kpAns(${v})">
           <span class="kp-bars">${[0, 1, 2, 3, 4].map((k) => `<i class="${k <= v ? "f" : ""}"></i>`).join("")}</span><b>${T(s)}</b></button>`).join("")}</div>
       <button class="kp-skip ${cur === "n" ? "on" : ""}" onclick="kpAns('n')">${ic("compass")} ${T("Buni hali sinab ko'rmaganman")}</button>
+      ${nextBtn(cur !== undefined, i)}
       ${i > 0 ? `<button class="kp-back" onclick="kpPrev()">${ic("back")} ${T("Oldingi savol")}</button>` : ""}`;
     }
     const q = FIT[i - ITEMS.length], cur = st.f[q.k];
     return `${head}
     <div class="kp-card fit"><div class="kp-th">${chip(q.icon, "sm")}<small>${T("Amaliy savol")}</small></div><h3>${T(q.q)}</h3></div>
     <div class="kp-fit">${q.o.map(([v, label, icn]) => `<button class="kp-opt ${cur === v ? "on" : ""}" onclick="kpFit('${q.k}','${v}')"><i>${ic(icn)}</i><b>${T(label)}</b></button>`).join("")}</div>
+    ${nextBtn(cur !== undefined, i)}
     <button class="kp-back" onclick="kpPrev()">${ic("back")} ${T("Oldingi savol")}</button>`;
   }
   function Screen() {
@@ -240,8 +244,13 @@ const Compass = (() => {
     render(); window.scrollTo(0, 0);
   };
   window.kpStart = (reset) => { if (reset || st.step < 0 || st.step >= N) st = fresh(); if (st.step < 0) st.step = 0; save(); haptic("light"); render(); };
-  window.kpAns = (v) => { st.a[st.order[st.step]] = v; haptic("light"); render(); setTimeout(next, 180); };
-  window.kpFit = (k, v) => { st.f[k] = v; haptic("light"); render(); setTimeout(next, 180); };
+  window.kpAns = (v) => { st.a[st.order[st.step]] = v; save(); haptic("light"); render(); };
+  window.kpFit = (k, v) => { st.f[k] = v; save(); haptic("light"); render(); };
+  window.kpNext = () => {
+    const i = st.step, ok = i < ITEMS.length ? st.a[st.order[i]] !== undefined : st.f[FIT[i - ITEMS.length].k] !== undefined;
+    if (!ok) { toast(T("Avval javobni tanlang")); return; }
+    haptic("medium"); next();
+  };
   window.kpPrev = () => { if (st.step > 0) { st.step--; save(); haptic("light"); render(); } };
 
   /* ---------- result ---------- */

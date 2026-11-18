@@ -429,7 +429,11 @@ img.zk-cg-img { aspect-ratio: auto; height: auto; }
 .busy-in { padding: 24px 0; }
 
 /* ---------- Foydali vositalar: links to the study tools ---------- */
-.tool-link { display: flex; align-items: center; gap: 12px; padding: 14px; margin-top: 12px; color: inherit; }
+.tool-list { display: grid; gap: 12px; }
+.tool-link { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 14px 14px 12px; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.tool-ic { width: 56px; height: 56px; flex: none; border-radius: 16px; object-fit: cover; box-shadow: 0 8px 16px -10px rgba(18,24,41,.45); }
+.tool-ic.round { background: linear-gradient(135deg, #FFE27A, #F5B800); padding: 6px; box-sizing: border-box; }
+.tool-link .tool-n { align-self: flex-start; }
 .tool-link > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .tool-link b { font-size: 16px; }
 .tool-link small { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
@@ -612,3 +616,15 @@ img.zk-cg-img { aspect-ratio: auto; height: auto; }
 .kp-note .ic { width: 17px; height: 17px; flex: none; margin-top: 1px; }
 .kp-fb { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 4px; }
 .kp-fb .btn-ghost { margin: 0; font-size: 13px; padding: 12px 8px; }
+
+/* Kasb Kompasi: the chosen answer turns green and is sent with the green "next" button */
+.kp-opt.on, .kp-opt.on:active { border-color: #16A34A; background: #F0FDF4; }
+.kp-opt.on b { color: #15803D; }
+.kp-opt.on .kp-bars i.f { background: #16A34A; }
+.kp-fit .kp-opt.on i { background: #16A34A; color: #fff; }
+.kp-skip.on { border-color: #16A34A; border-style: solid; color: #15803D; background: #F0FDF4; }
+.btn-primary.kp-next { margin-top: 14px; background: linear-gradient(135deg, #16A34A, #22C55E); box-shadow: 0 12px 22px -12px #16A34A; }
+.btn-primary.kp-next .ic { width: 18px; height: 18px; }
+.btn-primary.kp-next:disabled { background: #D1D5DB; box-shadow: none; color: #fff; opacity: 1; }
+
+.kp-opt:not(.on) .kp-bars i.f { opacity: .45; }

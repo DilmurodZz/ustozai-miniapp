@@ -196,31 +196,19 @@ const Tools = (() => {
 
   /* ---------- screens ---------- */
   function Screen() {
-    const links = [
-      ["#/dtm", "calc", "c1", T("DTM ball kalkulyatori"), T("Ballingizni hisoblang va qaysi OTMda grant yoki shartnomaga yetishini ko'ring")],
-      ["#/ielts", "chat", "c5", T("IELTS ball kalkulyatori"), T("To'g'ri javoblaringizdan har bir ko'nikma va umumiy bandni hisoblang")],
-      ["#/unis", "globe", "c6", T("Top 300 universitet va grantlar"), T("THE reytingi, mahalliy grantlar, stipendiyalar va sertifikatlar")],
+    // every tool is the same card: picture, name, one line about it, order number
+    const items = [
+      { go: "location.hash='#/cv'", img: "img/tool-cv.webp", t: T("CV, rezyume va obyektivka"), d: T("Bepul, 3 tilda tayyorlang va sizga mos ishlarga ariza topshiring") },
+      { go: "location.hash='#/dtm'", img: "img/tool-dtm.webp", t: T("DTM ball kalkulyatori"), d: T("Ballingizni hisoblang va qaysi OTMda grant yoki shartnomaga yetishini ko'ring") },
+      { go: "location.hash='#/ielts'", img: "img/tool-ielts.webp", t: T("IELTS ball kalkulyatori"), d: T("To'g'ri javoblaringizdan har bir ko'nikma va umumiy bandni hisoblang") },
+      { go: "location.hash='#/unis'", img: "img/tool-uni.webp", t: T("Top 300 universitet va grantlar"), d: T("THE reytingi, mahalliy grantlar, stipendiyalar va sertifikatlar") },
+      { go: "openTg('https://t.me/poyezdbilet24_bot')", img: "img/tool-train.webp", t: "Poyezd Bilet 24", d: T("Poyezd chiptasi: bot bo'sh joyni 24/7 kuzatadi va paydo bo'lishi bilan bron qiladi") },
     ];
     return `${navbar(T("Foydali vositalar"))}
-    <a class="card tool-cv" href="#/cv">
-      <div class="tool-top">${chip("file", "solid")}<span><b>${T("CV, rezyume va obyektivka")}</b><small>${T("Bepul, 3 tilda")}</small></span><em class="tool-n">1</em></div>
-      <p class="tool-hook">${T("Professional CV, rezyume va obyektivkani 10 daqiqada bepul tayyorlang. Keyin sizga qancha ish mos kelishini ko'ring va shu zahoti ariza topshiring.")}</p>
-      <ul class="tool-steps">
-        <li>${chip("pen", "sm")}<span>${T("Tayyor namunalar bilan qadamma-qadam to'ldiring")}</span></li>
-        <li>${chip("download", "sm")}<span>${T("PDF, Word yoki PNG formatida yuklab oling")}</span></li>
-        <li>${chip("briefcase", "sm")}<span>${T("Sizga 80% va undan ko'p mos ishlarga ariza topshiring")}</span></li>
-      </ul>
-      <span class="btn-primary">${ic("pen")} ${T("Hujjat tayyorlash")}</span>
-    </a>
-    ${links.map(([h, i, c, t, d], n) => `<a class="card tool-link" href="${h}">${chip(i, c)}<span><b>${t}</b><small>${d}</small></span><em class="tool-n">${n + 2}</em></a>`).join("")}
-    <div class="card tool-bot">
-      <em class="tool-n">${links.length + 2}</em>
-      <img src="img/poyezdbilet24.webp" alt="" width="56" height="56">
-      <span><b>Poyezd Bilet 24</b><small>@poyezdbilet24_bot · ${T("Bepul bot")}</small>
-      <p>${T("Poyezd chiptasini oson oling: bo'sh joy bo'lmasa ham bot yo'nalishni 24/7 kuzatadi va joy paydo bo'lishi bilan uni 2 soniyada bron qiladi.")}</p></span>
-      <button class="btn-primary" onclick="openTg('https://t.me/poyezdbilet24_bot')">${ic("send")} ${T("Botni ochish")}</button>
-    </div>
-`;
+    <div class="tool-list">${items.map((x, n) => `<button class="card tool-link" onclick="${x.go}">
+      <img class="tool-ic ${x.round ? "round" : ""}" src="${x.img}" alt="" width="56" height="56" decoding="async">
+      <span><b>${x.t}</b><small>${x.d}</small></span>
+      <em class="tool-n">${n + 1}</em></button>`).join("")}</div>`;
   }
 
   const field = (path, label, val, opt = {}) => `<label class="cvf ${opt.cls || ""}"><small>${label}</small>${opt.area
