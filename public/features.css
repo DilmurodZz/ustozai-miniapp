@@ -811,3 +811,12 @@ details.smooth > *:not(summary) { animation: sdfade .32s ease; }
 .bn-orbit { position: absolute; left: 0; top: 0; z-index: 2; pointer-events: none; overflow: visible; }
 @media (prefers-reduced-motion: reduce) { .bn-orbit g, .bn-orbit circle[fill="url(#bnw)"] { display: none; } }
 
+/* Kurslar CV card: the CV logo, and each job row in its own colour */
+.cvj-logo { width: 44px; height: 44px; flex: none; padding: 5px; box-sizing: border-box; border-radius: 13px; background: #fff; box-shadow: 0 0 0 1px rgba(11,16,51,.08), 0 6px 14px -8px rgba(11,16,51,.35); }
+.cvj-job.c0 { background: #EFF6FF; box-shadow: inset 3px 0 0 #3B82F6; }
+.cvj-job.c1 { background: #F5F3FF; box-shadow: inset 3px 0 0 #8B5CF6; }
+.cvj-job.c2 { background: #FFF7ED; box-shadow: inset 3px 0 0 #F97316; }
+.cvj-job.c0 .jm-sc { background: #DBEAFE; color: #1D4ED8; }
+.cvj-job.c1 .jm-sc { background: #EDE9FE; color: #6D28D9; }
+.cvj-job.c2 .jm-sc { background: #FFEDD5; color: #C2410C; }
+

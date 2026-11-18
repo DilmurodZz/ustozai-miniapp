@@ -50,9 +50,9 @@ const Kurslar = (() => {
     if (typeof Tools === "undefined") { loadTools().then(() => { if (location.hash === "#/kurslar") render(); }).catch(() => {}); return ""; }
     const r = Tools.cvJobs(); if (!r || !r.top.length) return "";
     return `<div class="card cvj">
-      <div class="cvj-head">${chip("file", "sm solid")}<span><b>${T("Sizda ajoyib CV bor!")}</b>
+      <div class="cvj-head"><img class="cvj-logo" src="img/cv-logo.webp" alt="CV" width="44" height="44"><span><b>${T("Sizda ajoyib CV bor!")}</b>
         <small>${T("CV'dagi ko'nikmalaringiz asosida sizga eng mos ishlar")}</small></span></div>
-      ${r.top.map((j) => `<button class="cvj-job" onclick="cvJobOpen('${esc(j.u)}')"><span class="jm-sc ${j.sc >= 80 ? "hi" : "mid"}">${j.sc}%</span>
+      ${r.top.map((j, n) => `<button class="cvj-job c${n}" onclick="cvJobOpen('${esc(j.u)}')"><span class="jm-sc ${j.sc >= 80 ? "hi" : "mid"}">${j.sc}%</span>
         <span class="cvj-t"><b class="notr">${esc(j.t)}</b><small class="notr">${esc(j.e)}${j.c ? ", " + esc(j.c) : ""}</small>${Tools.money(j) ? `<em>${Tools.money(j)}</em>` : ""}</span>${ic("chev")}</button>`).join("")}
       <button class="btn-ghost cvj-all" onclick="location.hash='#/cv';setTimeout(()=>document.getElementById('cv-jobs')?.scrollIntoView({behavior:'smooth'}),700)">${ic("briefcase")} ${r.n80 > 3 ? T("Yana {n} ta mos ish", { n: r.n80 - 3 }) : T("Barcha mos ishlar")}</button>
     </div>`;
