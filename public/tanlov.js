@@ -38,32 +38,48 @@ const Contest = (() => {
 
   /* ---------- the road map: Tuman -> Viloyat -> Respublika -> Changan ---------- */
   // one drawing (viewBox 360 x 220) holds the road; the stops and the car sit on it at the same points
-  const PTS = [[44, 184], [140, 146], [228, 104]], END = [306, 70];
-  const SEG = ["M0 208 C 14 200, 28 190, 44 184", "M44 184 C 80 170, 104 166, 140 146", "M140 146 C 172 128, 196 112, 228 104", "M228 104 C 256 96, 280 84, 306 72"];
+  // a mountain: the road climbs in switchbacks past the three stages to the car on the summit
+  const VB = [360, 260], PTS = [[70, 230], [150, 172], [232, 110]], END = [292, 70], LAB = ["up", "right", "left"];
+  const SEG = ["M8 252 C 30 246, 50 236, 70 230",
+    "M70 230 C 140 216, 230 226, 236 204 C 242 184, 180 186, 150 172",
+    "M150 172 C 110 158, 120 138, 170 134 C 214 130, 226 120, 232 110",
+    "M232 110 C 244 92, 266 78, 292 72"];
   function roadMap() {
     const st = STAGES(), n = st.map((s) => count((w) => w.s === s.k));
     // the furthest stage that already has winners is "now"; the ones before it are done
     let cur = 0; n.forEach((v, i) => { if (v > 0) cur = i; });
     const status = st.map((s, i) => i < cur ? "done" : i === cur ? "now" : "next");
-    const pos = (p) => `left:${(p[0] / 360) * 100}%;top:${(p[1] / 220) * 100}%`;
+    const pos = (p) => `left:${(p[0] / VB[0]) * 100}%;top:${(p[1] / VB[1]) * 100}%`;
     return `<div class="zk-map">
-      <svg class="zk-road" viewBox="0 0 360 220" aria-hidden="true">
+      <svg class="zk-road" viewBox="0 0 360 260" aria-hidden="true">
         <defs>
           <linearGradient id="zkg" x1="0" x2="1"><stop offset="0" stop-color="#FFE7A3"/><stop offset="1" stop-color="#F5A524"/></linearGradient>
-          <radialGradient id="zkglow"><stop offset="0" stop-color="#FFC861" stop-opacity=".75"/><stop offset="1" stop-color="#FFC861" stop-opacity="0"/></radialGradient>
+          <linearGradient id="zkm" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#5546C8"/><stop offset=".5" stop-color="#2A2478"/><stop offset="1" stop-color="#110E38"/></linearGradient>
+          <linearGradient id="zkrim" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#FFB861" stop-opacity=".55"/><stop offset=".5" stop-color="#FFB861" stop-opacity="0"/></linearGradient>
+          <radialGradient id="zkglow"><stop offset="0" stop-color="#FFC861" stop-opacity=".8"/><stop offset="1" stop-color="#FFC861" stop-opacity="0"/></radialGradient>
           <filter id="zkblur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
+          <filter id="zkfog" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
         </defs>
-        <ellipse cx="${END[0]}" cy="${END[1] - 14}" rx="62" ry="44" fill="url(#zkglow)"/>
-        ${SEG.map((d) => `<path d="${d}" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="16" stroke-linecap="round"/>`).join("")}
-        ${SEG.map((d, i) => i <= cur ? `<path d="${d}" fill="none" stroke="#FFC861" stroke-width="7" stroke-linecap="round" filter="url(#zkblur)" opacity=".8"/><path d="${d}" fill="none" stroke="url(#zkg)" stroke-width="3.5" stroke-linecap="round"/>`
-          : `<path d="${d}" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2" stroke-dasharray="5 6" stroke-linecap="round"/>`).join("")}
-        <ellipse cx="${END[0]}" cy="${END[1] + 2}" rx="34" ry="5" fill="rgba(0,0,0,.35)"/>
+        <ellipse cx="${END[0]}" cy="${END[1] - 10}" rx="80" ry="58" fill="url(#zkglow)"/>
+        <path d="M0 170 L30 136 L58 152 L100 96 L136 132 L176 80 L214 118 L246 88 L270 108 L300 60 L334 96 L360 78 V260 H0 Z" fill="#8B80F0" opacity=".22"/>
+        <path d="M0 204 L40 170 L76 188 L120 146 L158 176 L200 138 L236 160 L268 136 L314 156 L360 128 V260 H0 Z" fill="#5B50D0" opacity=".38"/>
+        <path d="M0 260 V236 C 40 220, 90 196, 130 166 C 180 128, 236 92, 292 64 C 318 76, 342 96, 360 108 V260 Z" fill="url(#zkm)"/>
+        <path d="M292 64 C 318 76, 342 96, 360 108 V260 H262 C 286 200, 296 130, 292 64 Z" fill="url(#zkrim)"/>
+        <path d="M0 236 C 40 220, 90 196, 130 166 C 180 128, 236 92, 292 64 C 318 76, 342 96, 360 108" fill="none" stroke="#FFC98A" stroke-width="1.4" opacity=".55"/>
+        <path d="M276 72 L292 64 L309 73 L301 75 L293 70 L284 77 Z" fill="#fff" opacity=".9"/>
+        <path d="M164 140 L178 133 L184 139 L174 142 Z M224 104 L236 98 L242 104 L232 106 Z" fill="#fff" opacity=".2"/>
+        <ellipse cx="40" cy="254" rx="80" ry="10" fill="#fff" opacity=".10" filter="url(#zkfog)"/>
+        <ellipse cx="250" cy="248" rx="120" ry="12" fill="#fff" opacity=".08" filter="url(#zkfog)"/>
+        ${SEG.map((d) => `<path d="${d}" fill="none" stroke="rgba(6,8,30,.55)" stroke-width="10" stroke-linecap="round"/>`).join("")}
+        ${SEG.map((d, i) => i <= cur ? `<path d="${d}" fill="none" stroke="#FFC861" stroke-width="7" stroke-linecap="round" filter="url(#zkblur)" opacity=".85"/><path d="${d}" fill="none" stroke="url(#zkg)" stroke-width="3.5" stroke-linecap="round"/>`
+          : `<path d="${d}" fill="none" stroke="rgba(255,255,255,.65)" stroke-width="2" stroke-dasharray="5 6" stroke-linecap="round"/>`).join("")}
+        <ellipse cx="${END[0]}" cy="${END[1] + 1}" rx="30" ry="4" fill="rgba(0,0,0,.4)"/>
       </svg>
       <div class="zk-car" style="${pos(END)}"><img src="img/changan.webp" alt="Changan UNI-E" decoding="async"></div>
       <span class="zk-lab car" style="${pos(END)}"><b>Changan UNI-E</b><small>${T("Bosh sovrin")}</small></span>
       ${st.map((s, i) => `<button class="zk-stop ${status[i]} ${stage === s.k ? "on" : ""}" style="${pos(PTS[i])}" onclick="zkStage('${s.k}')" aria-label="${s.long}">
           <i>${status[i] === "done" ? ic("check") : ic(s.icon)}</i>
-          <span class="zk-lab ${i === 0 ? "up" : "down"}"><b>${i + 1}. ${s.name}</b><small>${n[i] ? T("{n} g'olib", { n: fmtN(n[i]) }) : T("kutilmoqda")}</small></span></button>`).join("")}
+          <span class="zk-lab ${LAB[i]}"><b>${i + 1}. ${s.name}</b><small>${n[i] ? T("{n} g'olib", { n: fmtN(n[i]) }) : T("kutilmoqda")}</small></span></button>`).join("")}
     </div>`;
   }
 
@@ -142,7 +158,7 @@ const Contest = (() => {
     ctx.beginPath(); ctx.arc(-26, -22, 12, Math.PI * .5, Math.PI * 1.5); ctx.stroke(); ctx.beginPath(); ctx.arc(26, -22, 12, -Math.PI * .5, Math.PI * .5); ctx.stroke();
     ctx.fillRect(-5, 10, 10, 16); round(ctx, -20, 26, 40, 10, 3); ctx.fill(); ctx.restore();
   }
-  // tuman winners: the designed picture, with the winner's name and district written onto its plate
+  // tuman and viloyat winners: the designed picture (the viloyat copy says VILOYAT BOSQICHI, next: RESPUBLIKA), with the winner's name and district written onto its plate
   const pretty = (s) => String(s || "").replace(/'/g, "‘");
   function pin(ctx, x, y, s) {
     ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = gold(ctx, -14, 14);
@@ -151,7 +167,7 @@ const Contest = (() => {
   }
   async function posterTuman(w) {
     try { await Promise.all(["500", "800"].map((wt) => document.fonts.load(`italic ${wt} 40px Inter`))); } catch {}
-    const bg = await loadImg("img/zk-poster-tuman.webp"), W = bg.width, H = bg.height;
+    const bg = await loadImg(w.s === "hududiy" ? "img/zk-poster-viloyat.webp" : "img/zk-poster-tuman.webp"), W = bg.width, H = bg.height;
     const c = document.createElement("canvas"); c.width = W; c.height = H; const ctx = c.getContext("2d");
     ctx.drawImage(bg, 0, 0); ctx.textAlign = "center";
     const cx = 603, name = pretty(w.n);
@@ -170,7 +186,7 @@ const Contest = (() => {
     return c;
   }
   async function poster(w) {
-    if (w.s === "tuman") return posterTuman(w);
+    if (w.s === "tuman" || w.s === "hududiy") return posterTuman(w);
     const W = 1080, H = 1350, c = document.createElement("canvas"); c.width = W; c.height = H; const ctx = c.getContext("2d");
     try { await Promise.all(["400", "600", "800"].map((wt) => document.fonts.load(`${wt} 40px Inter`))); } catch {}
     const [logo, car] = await Promise.all([loadImg("img/zk-logo-w.png"), loadImg("img/changan.webp")]);
