@@ -21,6 +21,22 @@ const Deals = (() => {
       t: T("Coursera Plus: birinchi yilga 40% chegirma"), d: T("Google, IBM, Meta va universitetlarning 10 000 dan ortiq kursi va sertifikati"),
       old: "399 $ / " + T("yil"), now: "239 $ / " + T("yil"),
       where: T("Onlayn, coursera.org (faqat yangi obunachilar uchun)"), how: T("coursera.org saytida Coursera Plus yillik obunasini tanlang: chegirma to'lov sahifasida qo'llanadi."), u: "coursera.org/courseraplus" },
+    { id: "datacamp", logo: "datacamp", brand: "DataCamp", until: "2026-11-29",
+      t: T("DataCamp: yillik Premium obunaga 60% chegirma"), d: T("Python, SQL, ma'lumotlar tahlili va sun'iy intellekt bo'yicha amaliy kurslar va sertifikatlar"),
+      old: T("Yillik Premium taxminan 330 $"), now: T("Taxminan 132 $ / yil"),
+      where: T("Onlayn, datacamp.com"), how: T("11-29-noyabr kunlari datacamp.com saytida yillik Premium obunani tanlang: chegirma narxda ko'rsatiladi."), u: "www.datacamp.com/pricing" },
+    { id: "uzumtezkor", logo: "uzumtezkor", brand: "Uzum Tezkor", until: "2026-11-30",
+      t: T("Uzum Tezkor \"Mazali noyabr\": 1+1 va 2+1"), d: T("Lavash, burger, pitsa va setlarga chegirmalar, ikkitasiga bittasi bepul"),
+      old: T("Oddiy taom narxi"), now: T("1+1, 2+1 va chegirmali setlar"),
+      where: T("Toshkent, Uzum Tezkor ilovasi (yetkazib berish)"), how: T("Uzum Tezkor ilovasida \"Mazali noyabr\" filtrini tanlang va chegirmali taomni buyurtma qiling."), u: "t.me/UzumTezkor", check: 1 },
+    { id: "wolt", logo: "wolt", brand: "Wolt", until: "always",
+      t: T("Wolt: yangi foydalanuvchiga 90 000 so'm"), d: T("Birinchi 3 ta buyurtmaning har biriga 30 000 so'm chegirma"),
+      old: T("Buyurtma narxi"), now: T("Har bir buyurtma 30 000 so'm arzonroq (3 marta)"),
+      where: T("Toshkent, Wolt ilovasi (ovqat va mahsulot yetkazib berish)"), how: T("Wolt ilovasini yuklab, ro'yxatdan o'ting va promokodni bir marta kiriting: keyingi 3 ta buyurtmaga o'zi qo'llanadi."), u: "wolt.com/uz/uzb/tashkent/article/UZB-NEW-FMX-FTU-Article", check: 1 },
+    { id: "notion", logo: "notion", brand: "Notion", until: "always",
+      t: T("Notion Education Plus: talabalar uchun bepul"), d: T("Konspekt, reja va loyihalar uchun Notion Plus, universitet pochtasi bilan"),
+      old: T("Plus tarifi oyiga 10-12 $"), now: T("Bepul"),
+      where: T("Onlayn, notion.com (universitet elektron pochtasi kerak)"), how: T("Notion'ga universitet pochtangiz bilan kiring: Settings, Upgrade plan, \"Get free education plan\"."), u: "www.notion.com/product/notion-for-education" },
     { id: "yandexeats", logo: "yandexeats", brand: "Yandex Eats", until: "2026-12-31",
       t: T("Yandex Eats: birinchi buyurtmaga 45 000 so'm chegirma"), d: T("Yandex Go ilovasidagi Eats bo'limida birinchi buyurtma uchun"),
       old: T("Buyurtma narxi"), now: T("45 000 so'm arzonroq"),
@@ -72,6 +88,8 @@ const Deals = (() => {
       old: T("Bo'sh joyni o'zingiz soatlab kuzatasiz"), now: T("Bot bepul kuzatadi va 2 soniyada bron qiladi"),
       where: T("Telegram, @poyezdbilet24_bot (O'zbekiston bo'ylab poyezdlar)"), how: T("Botni oching, yo'nalish va sanani tanlang: joy paydo bo'lishi bilan bot uni siz uchun bron qiladi."), u: "t.me/poyezdbilet24_bot" },
   ];
+  // always-on deals: food together, then transport, then study tools
+  const SIMILAR = ["safia", "bellissimo", "wolt", "atto", "notion", "github", "perplexity", "figma", "microsoft", "canva"];
   const day = 86400000;
   const left = (x) => x.until === "always" || x.until === "season" ? null : Math.ceil((Date.parse(x.until + "T23:59:59+05:00") - Date.now()) / day);
   const fmtDate = (s) => { const [y, m, d] = s.split("-"); return `${+d}.${m}.${y}`; };
@@ -83,12 +101,11 @@ const Deals = (() => {
   };
   const active = () => LIST().filter((x) => { const n = left(x); return n === null || n >= 0; });
   // ending soonest first; always-on next (similar ones stay side by side as listed); the seasonal ones last
-  const ordered = () => { const a = active(); return [...a.filter((x) => left(x) !== null).sort((x, y) => left(x) - left(y)), ...a.filter((x) => x.until === "always" && !x.bottom), ...a.filter((x) => x.until === "season"), ...a.filter((x) => x.bottom)]; };
+  const ordered = () => { const a = active(); return [...a.filter((x) => left(x) !== null).sort((x, y) => left(x) - left(y)), ...a.filter((x) => x.until === "always" && !x.bottom).sort((x, y) => SIMILAR.indexOf(x.id) - SIMILAR.indexOf(y.id)), ...a.filter((x) => x.until === "season"), ...a.filter((x) => x.bottom)]; };
 
   function Screen() {
     const list = ordered();
     return `${navbar(T("Top 20 chegirmalar"))}
-    <p class="dl-lead">${T("Talabalar va yoshlar uchun onlayn va Toshkentdagi chegirmalar: tugash muddati yaqinlari birinchi.")}</p>
     <div class="dl-list">${list.map((x) => `<button class="card dl-card" id="d-${x.id}" onclick="dealOpen('${x.id}')">
       <img class="dl-logo" src="img/deals/${x.logo}.webp" alt="" width="52" height="52" loading="lazy">
       <span class="dl-txt"><small class="notr">${esc(x.brand)}</small><b>${x.t}</b><span>${x.d}</span></span>${chipOf(x)}</button>`).join("")}</div>

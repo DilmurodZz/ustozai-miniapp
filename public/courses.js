@@ -44,6 +44,20 @@ const Kurslar = (() => {
   // students in the courses whose jobs are in high demand (100+ vacancies a month): a real count, not a share
   const topStudents = () => data.courses.reduce((n, c) => { const g = data.groups[c.g]; return n + (g.kind === "job" && g.related >= 100 ? c.students || 0 : 0); }, 0);
 
+  /* ---------- a student who made a CV: the jobs that fit it best ---------- */
+  function cvJobsCard() {
+    if (!store.get("cv_data", null)) return "";
+    if (typeof Tools === "undefined") { loadTools().then(() => { if (location.hash === "#/kurslar") render(); }).catch(() => {}); return ""; }
+    const r = Tools.cvJobs(); if (!r || !r.top.length) return "";
+    return `<div class="card cvj">
+      <div class="cvj-head">${chip("file", "sm solid")}<span><b>${T("Sizda ajoyib CV bor!")}</b>
+        <small>${T("CV'dagi ko'nikmalaringiz asosida sizga eng mos ishlar")}</small></span></div>
+      ${r.top.map((j) => `<button class="cvj-job" onclick="cvJobOpen('${esc(j.u)}')"><span class="jm-sc ${j.sc >= 80 ? "hi" : "mid"}">${j.sc}%</span>
+        <span class="cvj-t"><b class="notr">${esc(j.t)}</b><small class="notr">${esc(j.e)}${j.c ? ", " + esc(j.c) : ""}</small>${Tools.money(j) ? `<em>${Tools.money(j)}</em>` : ""}</span>${ic("chev")}</button>`).join("")}
+      <button class="btn-ghost cvj-all" onclick="location.hash='#/cv';setTimeout(()=>document.getElementById('cv-jobs')?.scrollIntoView({behavior:'smooth'}),700)">${ic("briefcase")} ${r.n80 > 3 ? T("Yana {n} ta mos ish", { n: r.n80 - 3 }) : T("Barcha mos ishlar")}</button>
+    </div>`;
+  }
+
   /* ---------- the list ---------- */
   function List() {
     if (query === null) { query = store.get("k_query", ""); sort = store.get("k_sort", "popular"); }   // remembered search and sorting
@@ -64,10 +78,11 @@ const Kurslar = (() => {
       </div>`;
     if (!data) return head + skeleton;
     const ql = query.trim().toLowerCase();
+    const cvCard = ql ? "" : cvJobsCard();
     let list = data.courses.filter((c) => !ql || c.title.toLowerCase().includes(ql) || (c.teacher || "").toLowerCase().includes(ql));
     const G = data.groups;
     list = [...list].sort((a, b) => (low(a) - low(b)) || (KIND_ORDER[G[a.g].kind] - KIND_ORDER[G[b.g].kind]) || (G[b.g].related || 0) - (G[a.g].related || 0) || (b.students || 0) - (a.students || 0));
-    return head + `<div class="kc-list">${list.map((c, i) => {
+    return head + cvCard + `<div class="kc-list">${list.map((c, i) => {
       const g = G[c.g];
       return `<a class="kc" href="#/kurs/${c.id}">
         <em class="kc-n">${i + 1}</em><span class="kc-img">${c.image ? `<img src="${esc(img(c.image, 256))}" alt="" loading="lazy" decoding="async">` : ""}</span>

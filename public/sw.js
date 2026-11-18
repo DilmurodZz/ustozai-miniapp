@@ -1,6 +1,6 @@
 // Offline cache. Install keeps only what Home and the main screens need, so the first visit is light;
 // the 3D game, its models, music and the PDF libraries are cached the first time they are used.
-const CACHE = "ustozai-v62";
+const CACHE = "ustozai-v63";
 const FILES = ["./", "index.html", "styles.css", "features.css", "i18n.js", "data.js", "duo.js", "courses.js", "app.js", "profile.js", "news.js",
   "logo.png", "img/hero-compass.webp", "img/ic-courses.webp", "img/ic-game.webp", "img/ic-trophy.webp", "img/ic-zkt.webp", "img/ic-sale.webp", "img/ic-tools.webp",
   "img/zkt-logo.png", "img/turonbank.png", "img/poyezdbilet24.webp", "img/changan.webp", "img/zk-logo-w.png", "img/tool-cv.webp", "img/tool-dtm.webp", "img/tool-ielts.webp", "img/tool-uni.webp", "img/tool-train.webp"];

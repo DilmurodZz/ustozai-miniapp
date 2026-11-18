@@ -54,7 +54,7 @@ export default {
       let n = 0;
       for (const x of list) {
         if (n >= 2) break;
-        const key = "art:v3:" + l + ":" + (await sha(x.u));
+        const key = "art:v4:" + l + ":" + (await sha(x.u));
         if (await env.COLORS.get(key)) continue;
         n++; await newsRead(new URL("https://local/news/read?" + new URLSearchParams({ u: x.u, l, o: x.o })), env, "*");
       }
@@ -87,6 +87,7 @@ export default {
     if (url.pathname === "/track" && req.method === "POST") return track(req, env, url, origin);
     if (url.pathname === "/stats" && req.method === "GET") return json(await stats(env), 200, origin);
     if (url.pathname === "/winners" && req.method === "GET") return winners(origin);
+    if (url.pathname.startsWith("/tg/") && req.method === "POST") return botHook(req, env, url);
     if (url.pathname === "/news" && req.method === "GET") return news(url, env, origin);
     if (url.pathname === "/news/read" && req.method === "GET") return newsRead(url, env, origin);
     if (url.pathname === "/file" && req.method === "POST") return sendFile(req, env, url, origin);
@@ -446,7 +447,7 @@ async function newsRead(url, env, origin) {
   const from = ["uz", "ru", "en"].includes(url.searchParams.get("o")) ? url.searchParams.get("o") : to;
   let host = ""; try { host = new URL(u).hostname.replace(/^www\./, ""); } catch {}
   if (!NEWS_HOSTS.some((d) => host === d || host.endsWith("." + d))) return json({ error: "source" }, 400, origin);
-  const key = "art:v3:" + to + ":" + (await sha(u));
+  const key = "art:v4:" + to + ":" + (await sha(u));
   try { const c = await env.COLORS.get(key, "json"); if (c) return json(c, 200, origin); } catch {}
   let p = [];
   try {
@@ -454,6 +455,16 @@ async function newsRead(url, env, origin) {
     if (r.ok) p = extractArticle(await r.text());
   } catch {}
   if (from === "uz") p = p.map(oldLatin);
+  // at most 200 words: whole paragraphs while they fit, the last one cut at a sentence end
+  { const out = []; let words = 0;
+    for (const t of p) {
+      const w = t.split(/\s+/).length;
+      if (words + w <= 200) { out.push(t); words += w; continue; }
+      const room = 200 - words; if (room < 25) break;
+      const part = t.split(/\s+/).slice(0, room).join(" "), end = Math.max(part.lastIndexOf(". "), part.lastIndexOf("! "), part.lastIndexOf("? "));
+      out.push(end > 40 ? part.slice(0, end + 1) : part + "..."); break;
+    }
+    p = out; }
   if (!p.length) return json({ p: [] }, 200, origin);
   let tr = 0;
   if (from !== to && env.AI) {
@@ -470,4 +481,29 @@ async function newsRead(url, env, origin) {
   const body = { p, tr };
   try { await env.COLORS.put(key, JSON.stringify(body), { expirationTtl: 14 * 86400 }); } catch {}
   return json(body, 200, origin);
+}
+
+
+/* ---------- the bot answers /start: a shared section link (t.me/<bot>?start=g_cefr) gets a button that opens the app right there ---------- */
+const APP_URL = "https://dilmurodzz.github.io/ustozai-miniapp/";
+const hookKey = async (token) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("hook:" + token)))].slice(0, 16).map((b) => b.toString(16).padStart(2, "0")).join("");
+const BOT_TEXT = {
+  uz: { shared: "Do'stingiz siz bilan Ustoz AI'dagi foydali bo'limni ulashdi. Ochish uchun tugmani bosing.", open: "Bo'limni ochish", hello: "Ustoz AI mini ilovasiga xush kelibsiz! Kasbingizni toping, bepul kurslar, CV yaratish va foydali vositalar bir joyda.", app: "Ustoz AI'ni ochish" },
+  ru: { shared: "Друг поделился с вами полезным разделом в Ustoz AI. Нажмите кнопку, чтобы открыть.", open: "Открыть раздел", hello: "Добро пожаловать в мини-приложение Ustoz AI! Профессия, бесплатные курсы, создание CV и полезные инструменты в одном месте.", app: "Открыть Ustoz AI" },
+  en: { shared: "A friend shared a useful section of Ustoz AI with you. Tap the button to open it.", open: "Open the section", hello: "Welcome to the Ustoz AI mini app! Find your career, free courses, a CV maker and useful tools in one place.", app: "Open Ustoz AI" },
+};
+async function botHook(req, env, url) {
+  const key = await hookKey(env.BOT_TOKEN || "");
+  if (url.pathname !== "/tg/" + key || req.headers.get("X-Telegram-Bot-Api-Secret-Token") !== key) return new Response("no", { status: 403 });
+  try {
+    const up = await req.json(), m = up.message;
+    if (m && m.chat && m.chat.type === "private" && typeof m.text === "string" && m.text.startsWith("/start")) {
+      const payload = (m.text.split(" ")[1] || "").trim();
+      const l = String((m.from && m.from.language_code) || "uz").slice(0, 2), tx = BOT_TEXT[l === "ru" ? "ru" : l === "en" ? "en" : "uz"];
+      const shared = /^[gdu]_[A-Za-z0-9_-]{1,40}$/.test(payload);
+      await tg(env.BOT_TOKEN, "sendMessage", JSON.stringify({ chat_id: m.chat.id, text: shared ? tx.shared : tx.hello,
+        reply_markup: { inline_keyboard: [[{ text: shared ? tx.open : tx.app, web_app: { url: APP_URL + (shared ? "?shared=" + payload : "") } }]] } }));
+    }
+  } catch {}
+  return new Response("ok");
 }

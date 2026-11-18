@@ -362,11 +362,10 @@ const Tools = (() => {
   /* ---------- jobs that fit the document: hh.uz vacancies from the course data, scored against the CV ---------- */
   const low = (x) => " " + String(x || "").toLowerCase().replace(/[‘’ʻʼ`]/g, "'").replace(/\s+/g, " ") + " ";
   const has = (text, kw) => kw.length <= 3 ? new RegExp(`(^|[^\\p{L}\\d+])${kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^\\p{L}\\d]|$)`, "u").test(text) : text.includes(kw);
-  function matchJobs() {
+  function matchJobs(doc = current(), k = kind) {
     const d = Kurslar.data(); if (!d) return null;
-    const doc = current();
-    const strong = kind === "obj" ? low([doc.pos, doc.spec, ...(doc.work || []).slice(-2).map((w) => w.text)].join(" ")) : low([doc.title, ...(doc.exp || []).map((e) => e.role)].join(" "));
-    const weak = kind === "obj" ? low([doc.grad, doc.langs].join(" ")) : low([doc.summary, doc.skills, doc.certs, doc.traits, ...(doc.edu || []).map((e) => e.degree), ...(doc.exp || []).map((e) => e.items)].join(" "));
+    const strong = k === "obj" ? low([doc.pos, doc.spec, ...(doc.work || []).slice(-2).map((w) => w.text)].join(" ")) : low([doc.title, ...(doc.exp || []).map((e) => e.role)].join(" "));
+    const weak = k === "obj" ? low([doc.grad, doc.langs].join(" ")) : low([doc.summary, doc.skills, doc.certs, doc.traits, ...(doc.edu || []).map((e) => e.degree), ...(doc.exp || []).map((e) => e.items)].join(" "));
     if (strong.trim().length < 3 && weak.trim().length < 3) return null;
     const words = strong.split(/[^\p{L}\d'+]+/u).filter((w) => w.length >= 4).map((w) => w.slice(0, 5));
     const best = new Map(); let pool = 0;
@@ -425,6 +424,15 @@ const Tools = (() => {
       <p>${n80 ? T("Sizga <b>{n} ta ish</b> 80% va undan ko'p mos keladi. Hozir ariza topshiring.", { n: n80 }) : T("Mos ishlarni ko'rish uchun lavozim va tajribangizni to'liqroq yozing.")}</p></div>
       <button class="btn-primary" onclick="closeSheet();setTimeout(()=>document.getElementById('cv-jobs')?.scrollIntoView({behavior:'smooth'}),250)">${ic("briefcase")} ${T("Mos ishlarni ko'rish")}</button>`);
   }
+  // the saved CV (not the example): its best jobs, for the Kurslar page
+  function cvJobs() {
+    const doc = Object.assign(blank(), store.get("cv_data", null) || {});
+    const filled = (doc.title || "").trim().length > 2 || (doc.exp || []).some((e) => (e.role || "").trim()) || (doc.skills || "").trim().length > 3;
+    if (!filled || !Kurslar.data()) return null;
+    const m = matchJobs(doc, "cv"); if (!m || !m.list.length) return null;
+    return { name: (doc.name || "").trim().split(/\s+/)[0], title: doc.title, top: m.list.filter((j) => j.sc >= 60).slice(0, 3), n80: m.list.filter((j) => j.sc >= 80).length };
+  }
+  window.cvJobOpen = (u) => { haptic("medium"); try { track("#/kurslar"); } catch {} if (tg && tg.openLink) tg.openLink(u); else window.open(u, "_blank"); };
   const thumb2 = () => `<div class="cv-thumb big"><div class="cv-scale">${docHTML(current(), kind, docLang(), design)}</div></div>`;
   const refresh = () => { const el = document.getElementById("cv-live"); if (el) el.innerHTML = thumb2(); refreshJobs(); };
 
@@ -648,7 +656,7 @@ const Tools = (() => {
     finally { busy.remove(); }
   };
   // _test: used by tools/test_cv.js to check the Word files outside the browser
-  return { Screen, CV, _test: { makeDOCX, use: (d, k, l, des) => { if (k === "obj") obj = d; else cv = d; kind = k; langs[k === "obj" ? "obj" : "cv"] = l; design = des || "classic"; }, SAMPLE, OSAMPLE } };
+  return { Screen, CV, cvJobs, money: (j) => jmMoney(j), _test: { makeDOCX, use: (d, k, l, des) => { if (k === "obj") obj = d; else cv = d; kind = k; langs[k === "obj" ? "obj" : "cv"] = l; design = des || "classic"; }, SAMPLE, OSAMPLE } };
 })();
 
 /* ---------- example pictures: the real A4 document scaled to the card width ---------- */

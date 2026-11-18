@@ -539,7 +539,7 @@ document.addEventListener("click", (e) => {
 // key: g_<grant card> | d_<deal> | u_<university index>; Telegram passes it back as start_param
 window.shareSec = (key, title) => {
   haptic("light");
-  const link = `https://t.me/${BOT}?startapp=${key}`;
+  const link = `https://t.me/${BOT}?start=${key}`;
   const text = `${title}\n${T("Ustoz AI mini ilovasida sizga foydali ma'lumot")}`;
   openTg(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
 };
