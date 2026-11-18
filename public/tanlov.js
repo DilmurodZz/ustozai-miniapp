@@ -142,7 +142,35 @@ const Contest = (() => {
     ctx.beginPath(); ctx.arc(-26, -22, 12, Math.PI * .5, Math.PI * 1.5); ctx.stroke(); ctx.beginPath(); ctx.arc(26, -22, 12, -Math.PI * .5, Math.PI * .5); ctx.stroke();
     ctx.fillRect(-5, 10, 10, 16); round(ctx, -20, 26, 40, 10, 3); ctx.fill(); ctx.restore();
   }
+  // tuman winners: the designed picture, with the winner's name and district written onto its plate
+  const pretty = (s) => String(s || "").replace(/'/g, "‘");
+  function pin(ctx, x, y, s) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = gold(ctx, -14, 14);
+    ctx.beginPath(); ctx.arc(0, -4, 10, Math.PI * .85, Math.PI * 2.15); ctx.lineTo(0, 14); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#0B1A33"; ctx.beginPath(); ctx.arc(0, -4, 4, 0, 7); ctx.fill(); ctx.restore();
+  }
+  async function posterTuman(w) {
+    try { await Promise.all(["500", "800"].map((wt) => document.fonts.load(`italic ${wt} 40px Inter`))); } catch {}
+    const bg = await loadImg("img/zk-poster-tuman.webp"), W = bg.width, H = bg.height;
+    const c = document.createElement("canvas"); c.width = W; c.height = H; const ctx = c.getContext("2d");
+    ctx.drawImage(bg, 0, 0); ctx.textAlign = "center";
+    const cx = 603, name = pretty(w.n);
+    ctx.save(); ctx.shadowColor = "rgba(0,0,0,.6)"; ctx.shadowBlur = 10; ctx.shadowOffsetY = 3;
+    fit(ctx, name, 600, 66, 800, "italic");
+    const g = ctx.createLinearGradient(0, 520, 0, 572); g.addColorStop(0, "#FFFFFF"); g.addColorStop(1, "#D9DEE8"); ctx.fillStyle = g;
+    ctx.fillText(name, cx, 568); ctx.restore();
+    const place = pretty([w.t, w.r].filter(Boolean).join(", "));
+    fit(ctx, place, 520, 27, 500, "italic"); const tw = ctx.measureText(place).width;
+    pin(ctx, cx - tw / 2 - 6, 604, 1.05);
+    ctx.fillStyle = "#F4F6FB"; ctx.fillText(place, cx + 12, 614);
+    // footer
+    ctx.font = "600 22px Inter, sans-serif"; const ft = "Ustoz AI  ·  " + BOT, fw = ctx.measureText(ft).width + 40;
+    ctx.fillStyle = "rgba(6,12,30,.55)"; round(ctx, W - fw - 28, H - 70, fw, 44, 22); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.92)"; ctx.fillText(ft, W - 28 - fw / 2, H - 40);
+    return c;
+  }
   async function poster(w) {
+    if (w.s === "tuman") return posterTuman(w);
     const W = 1080, H = 1350, c = document.createElement("canvas"); c.width = W; c.height = H; const ctx = c.getContext("2d");
     try { await Promise.all(["400", "600", "800"].map((wt) => document.fonts.load(`${wt} 40px Inter`))); } catch {}
     const [logo, car] = await Promise.all([loadImg("img/zk-logo-w.png"), loadImg("img/changan.webp")]);
