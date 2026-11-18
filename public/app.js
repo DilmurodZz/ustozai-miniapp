@@ -114,6 +114,7 @@ const ICONS = {
   users: '<circle cx="9" cy="8" r="3.2"/><path d="M3 19a6 6 0 0 1 12 0M16 4.6a3 3 0 0 1 0 6M17.6 13.6A5.6 5.6 0 0 1 21 19"/>',
   camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>',
   share: '<path d="M4 13v6a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-6"/><path d="M12 3v12"/><path d="M7.5 7.5 12 3l4.5 4.5"/>',
+  tool: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.1L3.6 17.1a1.9 1.9 0 0 0 2.7 2.7l5.7-5.7a4 4 0 0 0 5.1-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>',
   hand: '<path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V12M11 11V4.5a1.5 1.5 0 0 1 3 0V12M14 11.5V6a1.5 1.5 0 0 1 3 0v8a7 7 0 0 1-7 7c-2.5 0-4-1.3-5.4-3.4L3 14.5a1.5 1.5 0 0 1 2.5-1.6L8 16"/>',
 };
 const ic = (name, cls = "") => `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
@@ -147,7 +148,7 @@ function Home() {
   <div class="topbar"><div class="brand"><img class="logo" src="logo.png" alt="">USTOZ AI</div><img class="partner" src="img/turonbank.png" alt="Turon Bank"></div>
   <a class="hero2" href="#/kompas">
     <img class="hero2-art" src="img/hero-compass.webp" alt="" decoding="async">
-    <span class="hero2-tag">90 soniya</span>
+    <span class="hero2-tag">5 daqiqa</span>
     <h3>Kasb Kompasi</h3>
     <p>O'zingizga mos kasb va kurslarni toping</p>
     <span class="btn-orange">Boshlash ${ic("chev")}</span>
@@ -160,99 +161,7 @@ function Home() {
 `;
 }
 
-let quiz = store.get("quiz_state", { i: 0, scores: {} });
-function Kompas() {
-  if (quiz.i >= QUIZ.length) quiz = { i: 0, scores: {} };
-  const q = QUIZ[quiz.i], next = QUIZ[quiz.i + 1];
-  return `${navbar("Kasb Kompasi")}
-  <div class="progress"><span style="width:${(quiz.i / QUIZ.length) * 100}%"></span></div>
-  <div class="q-count">${quiz.i + 1} / ${QUIZ.length}</div>
-  <div class="stack">
-    ${next ? `<div class="qcard back">${chip(next.i, "xl")}<h3>${next.q}</h3></div>` : ""}
-    <div class="qcard" id="qcard">
-      <span class="stamp yes">HA</span><span class="stamp no">YO'Q</span>
-      ${chip(q.i, "xl")}<h3>${q.q}</h3>
-      <div class="hint">chapga: yo'q · o'ngga: ha</div>
-    </div>
-  </div>
-  <div class="swipe-btns"><button class="no" onclick="answer(false)" aria-label="Yo'q">${ic("x")}</button><button class="yes" onclick="answer(true)" aria-label="Ha">${ic("check")}</button></div>`;
-}
-function bindSwipe() {
-  const card = document.getElementById("qcard");
-  if (!card) return;
-  const yes = card.querySelector(".stamp.yes"), no = card.querySelector(".stamp.no");
-  let x0 = null, dx = 0;
-  card.addEventListener("pointerdown", (e) => { x0 = e.clientX; card.style.transition = "none"; card.setPointerCapture(e.pointerId); });
-  card.addEventListener("pointermove", (e) => {
-    if (x0 == null) return;
-    dx = e.clientX - x0;
-    card.style.transform = `translateX(${dx}px) rotate(${dx / 18}deg)`;
-    yes.style.opacity = Math.max(0, dx / 100); no.style.opacity = Math.max(0, -dx / 100);
-  });
-  card.addEventListener("pointerup", () => {
-    card.style.transition = "";
-    if (Math.abs(dx) > 90) answer(dx > 0);
-    else { card.style.transform = ""; yes.style.opacity = 0; no.style.opacity = 0; }
-    x0 = null; dx = 0;
-  });
-}
-window.answer = (yes) => {
-  const card = document.getElementById("qcard");
-  haptic(yes ? "medium" : "light");
-  if (yes) for (const [k, v] of Object.entries(QUIZ[quiz.i].t)) quiz.scores[k] = (quiz.scores[k] || 0) + v;
-  if (card) { card.style.transform = `translateX(${yes ? 500 : -500}px) rotate(${yes ? 25 : -25}deg)`; card.style.opacity = 0; }
-  setTimeout(() => {
-    quiz.i++; store.set("quiz_state", quiz);
-    if (quiz.i >= QUIZ.length) {
-      const order = ["data", "code", "design", "mkt", "ai"];
-      const best = order.reduce((a, b) => ((quiz.scores[b] || 0) > (quiz.scores[a] || 0) ? b : a), "data");
-      const total = Object.values(quiz.scores).reduce((a, b) => a + b, 0) || 1;
-      store.set("result", best);
-      store.set("match", Math.min(97, Math.round(60 + ((quiz.scores[best] || 0) / total) * 90)));
-      quiz = { i: 0, scores: {} }; store.set("quiz_state", quiz);
-      try { tg.HapticFeedback.notificationOccurred("success"); } catch {}
-      location.replace("#/natija");
-    } else render();
-  }, 220);
-};
-
-function Natija() {
-  const key = store.get("result");
-  if (!key) { location.replace("#/kompas"); return ""; }
-  const p = PERSONAS[key], m = store.get("match", 92), c = 2 * Math.PI * 24;
-  return `${navbar("Kasb Kompasi")}
-  <div class="res-hero">
-    <span class="glass g1">${ic(p.chips[0])}</span><span class="glass g2">${ic(p.chips[1])}</span>
-    <span class="res-icon">${ic(p.icon)}</span>
-  </div>
-  <div class="res-body">
-    <div class="pre">Sizning tipingiz</div>
-    <h2>${p.name}</h2>
-    <p>${p.desc}</p>
-    <div class="stats">
-      <div class="stat">
-        <svg class="ring" viewBox="0 0 58 58"><circle cx="29" cy="29" r="24" fill="none" stroke="var(--line)" stroke-width="6"/>
-        <circle cx="29" cy="29" r="24" fill="none" stroke="var(--p1)" stroke-width="6" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - m / 100)}" transform="rotate(-90 29 29)"/>
-        <text x="29" y="34" text-anchor="middle" font-size="14" font-weight="700" fill="var(--text)">${m}%</text></svg>
-        <div><small>Moslik darajasi</small><b>${m}%</b></div>
-      </div>
-      <div class="stat"><div><small>Kutiladigan maosh</small><b>${p.salary}</b><small>so'm / oyiga</small></div></div>
-    </div>
-    <p class="jobs"><b>${T("Kasblar:")}</b> ${p.jobs.map((j) => T(j)).join(", ")}</p>
-  </div>
-  <div class="section-title">Sizga tavsiya etilgan kurslar</div>
-  ${p.courses.map(([i, n]) => `<a class="list-item" href="#/kurslar">${chip(i, "sm")}${n}${ic("chev", "chev")}</a>`).join("")}
-  <div style="margin-top:16px"><button class="btn-primary" onclick="shareResult()">${ic("send")} Do'stlarga ulashish</button></div>
-  <button class="btn-ghost" onclick="quiz={i:0,scores:{}};location.hash='#/kompas'">Qaytadan topshirish</button>`;
-}
-window.shareResult = () => {
-  const p = PERSONAS[store.get("result")];
-  const link = `https://t.me/${BOT}?start=ref_${user.id}`;
-  const text = T("Men {p} ekanman! Siz kimsiz? Kasb Kompasini 90 soniyada toping", { p: T(p.name) });
-  const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
-  haptic();
-  if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
-};
+// Kasb Kompasi lives in kompas.js (loaded when it opens)
 
 // Tanlov lives in tanlov.js (loaded when the page opens)
 
@@ -352,9 +261,9 @@ function bindDuo() {
 
 /* ---------- router ---------- */
 const ROUTES = {
-  "#/": Home, "#/kompas": Kompas, "#/natija": Natija, "#/tanlov": () => needScript("tanlov.js", "Contest", "Screen", T("Tanlov")), "#/profil": Profil,
+  "#/": Home, "#/kompas": () => needScript("kompas.js", "Compass", "Screen", T("Kasb Kompasi")), "#/natija": () => needScript("kompas.js", "Compass", "Result", T("Kasb Kompasi")), "#/tanlov": () => needScript("tanlov.js", "Contest", "Screen", T("Tanlov")), "#/profil": Profil,
   "#/kurslar": () => Kurslar.List(), "#/kurs": () => Kurslar.Detail(location.hash.slice(7)), "#/oyin": () => "", "#/mutolaa": () => Soon("mutolaa"),
-  "#/duo": DuoScreen, "#/chegirma": () => Soon("chegirma"), "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/admin": () => AdminScreen(), "#/kashf": () => Soon("kashf"),
+  "#/duo": DuoScreen, "#/chegirma": () => Soon("chegirma"), "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/dtm": () => needScript("study.js", "Study", "DTM", T("DTM ball kalkulyatori")), "#/ielts": () => needScript("study.js", "Study", "IELTS", T("IELTS ball kalkulyatori")), "#/unis": () => needScript("study.js", "Study", "Unis", T("Top 300 universitet va grantlar")), "#/admin": () => AdminScreen(), "#/kashf": () => Soon("kashf"),
 };
 let gameOn = false;
 // the 3D game is loaded on its own, after Home: it is not needed to open the app
@@ -372,7 +281,7 @@ const loadGame = () => typeof Game !== "undefined" ? Promise.resolve() : loadScr
 const loadTools = () => typeof Tools !== "undefined" ? Promise.resolve() : loadScripts(["tools.js"]);
 // a screen whose code is in its own file: show a spinner, load the file, then draw the screen
 function needScript(file, name, fn, title) {
-  if (typeof window[name] !== "undefined" || (name === "Contest" && typeof Contest !== "undefined")) return (window[name] || Contest)[fn]();
+  if (window[name]) return window[name][fn]();
   const h = location.hash;
   loadScripts([file]).then(() => { if (location.hash === h) render(); }).catch(() => toast(T("Yuklab bo'lmadi")));
   return `${navbar(title)}${spinner()}`;
@@ -416,7 +325,6 @@ function render() {
   // the soft fade plays only when a different page opens, never when the same page refreshes its data
   if (newPage) { app.classList.remove("enter"); void app.offsetWidth; app.classList.add("enter"); }
   renderTabs(route === "#/kurs" ? "#/kurslar" : route);
-  if (route === "#/kompas") bindSwipe();
   if (route === "#/") bindBannerWheel();
   if (route === "#/duo") bindDuo(); else if (duoSubs.length) { duoSubs.forEach((u) => u()); duoSubs = []; }
   try { route === "#/" ? tg.BackButton.hide() : tg.BackButton.show(); } catch {}

@@ -196,7 +196,11 @@ const Tools = (() => {
 
   /* ---------- screens ---------- */
   function Screen() {
-    const soon = [["calc", T("DTM ball kalkulyatori va OTM kirish ballari")], ["mic", T("IELTS ball kalkulyatori va AI speaking sherigi")], ["clock", T("Imtihonlarga qolgan vaqt")], ["cap", T("Grant va stipendiyalar qidiruvi")]];
+    const links = [
+      ["#/dtm", "calc", "c1", T("DTM ball kalkulyatori"), T("Ballingizni hisoblang va qaysi OTMda grant yoki shartnomaga yetishini ko'ring")],
+      ["#/ielts", "chat", "c5", T("IELTS ball kalkulyatori"), T("To'g'ri javoblaringizdan har bir ko'nikma va umumiy bandni hisoblang")],
+      ["#/unis", "globe", "c6", T("Top 300 universitet va grantlar"), T("THE reytingi, mahalliy grantlar, stipendiyalar va sertifikatlar")],
+    ];
     return `${navbar(T("Foydali vositalar"))}
     <a class="card tool-cv" href="#/cv">
       <div class="tool-top">${chip("file", "solid")}<span><b>${T("CV, rezyume va obyektivka")}</b><small>${T("Bepul, 3 tilda")}</small></span><em class="tool-n">1</em></div>
@@ -208,15 +212,15 @@ const Tools = (() => {
       </ul>
       <span class="btn-primary">${ic("pen")} ${T("Hujjat tayyorlash")}</span>
     </a>
+    ${links.map(([h, i, c, t, d], n) => `<a class="card tool-link" href="${h}">${chip(i, c)}<span><b>${t}</b><small>${d}</small></span><em class="tool-n">${n + 2}</em></a>`).join("")}
     <div class="card tool-bot">
-      <em class="tool-n">2</em>
+      <em class="tool-n">${links.length + 2}</em>
       <img src="img/poyezdbilet24.webp" alt="" width="56" height="56">
       <span><b>Poyezd Bilet 24</b><small>@poyezdbilet24_bot · ${T("Bepul bot")}</small>
       <p>${T("Poyezd chiptasini oson oling: bo'sh joy bo'lmasa ham bot yo'nalishni 24/7 kuzatadi va joy paydo bo'lishi bilan uni 2 soniyada bron qiladi.")}</p></span>
       <button class="btn-primary" onclick="openTg('https://t.me/poyezdbilet24_bot')">${ic("send")} ${T("Botni ochish")}</button>
     </div>
-    <div class="section-title">${T("Tez kunda")}</div>
-    <div class="card soon-list">${soon.map(([i, t], n) => `<div>${chip(i, "sm")}<span>${t}</span><em class="tool-n sm">${n + 3}</em></div>`).join("")}</div>`;
+`;
   }
 
   const field = (path, label, val, opt = {}) => `<label class="cvf ${opt.cls || ""}"><small>${label}</small>${opt.area

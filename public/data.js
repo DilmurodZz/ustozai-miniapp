@@ -1,54 +1,6 @@
 // Demo data. Course names and contest results are samples until Ustoz AI sends the real lists.
 // "i" / icon fields are names from the ICONS set in app.js.
 
-const QUIZ = [
-  { i: "chart", q: "Jadval va raqamlar ichidan qonuniyat topish menga zavq beradi", t: { data: 2, ai: 1 } },
-  { i: "code", q: "Biror narsani o'zim dasturlab, ishlashini ko'rishni xohlayman", t: { code: 2, ai: 1 } },
-  { i: "palette", q: "Chiroyli dizayn va ranglar uyg'unligini darrov sezaman", t: { design: 2 } },
-  { i: "trend", q: "Ijtimoiy tarmoqlarda nima \"trend\" bo'lishini oldindan sezaman", t: { mkt: 2 } },
-  { i: "bot", q: "ChatGPT kabi AI vositalarini har kuni sinab ko'raman", t: { ai: 2, code: 1 } },
-  { i: "layers", q: "Murakkab masalani bo'laklarga ajratib yechishni yoqtiraman", t: { code: 1, data: 1, ai: 1 } },
-  { i: "chat", q: "Odamlarni biror g'oyaga ishontirish menga oson", t: { mkt: 2 } },
-  { i: "phone", q: "Ilovalardagi noqulay tugma yoki ekran meni bezovta qiladi", t: { design: 2, code: 1 } },
-  { i: "search", q: "Biror qaror qilishdan oldin faktlarni chuqur o'rganaman", t: { data: 2 } },
-  { i: "rocket", q: "Kelajakda o'z startapimni ochishni orzu qilaman", t: { mkt: 1, ai: 1, code: 1 } },
-  { i: "pen", q: "Bo'sh vaqtimda chizish, montaj yoki video qilishni yoqtiraman", t: { design: 2, mkt: 1 } },
-  { i: "zap", q: "Zerikarli ishni avtomatlashtirish yo'lini qidiraman", t: { ai: 2, code: 1, data: 1 } },
-];
-
-const PERSONAS = {
-  data: {
-    name: "Data Detektiv", icon: "search", chips: ["chart", "trend"],
-    desc: "Siz ma'lumotlar ichidan muhim xulosalarni topishni yoqtiradigan, tahliliy fikrlaydigan va muammolarga yechim izlaydigan insonsiz.",
-    salary: "8-15 mln", jobs: ["Data analitik", "BI mutaxassisi", "Biznes tahlilchi"],
-    courses: [["chart", "Ma'lumotlar tahlili va vizualizatsiya"], ["code", "Python bilan ma'lumotlar tahlili"], ["trend", "Biznes tahlilchilik asoslari"]],
-  },
-  code: {
-    name: "Kod Sehrgari", icon: "code", chips: ["laptop", "zap"],
-    desc: "Siz g'oyani kodga aylantirib, ishlaydigan mahsulot yaratishni yaxshi ko'rasiz. Mantiq va sabr sizning kuchli tomoningiz.",
-    salary: "10-25 mln", jobs: ["Frontend dasturchi", "Backend dasturchi", "Mobil dasturchi"],
-    courses: [["globe", "Web dasturlash: HTML, CSS, JavaScript"], ["code", "Python dasturlash noldan"], ["phone", "Mobil ilovalar yaratish"]],
-  },
-  design: {
-    name: "Raqamli Me'mor", icon: "palette", chips: ["pen", "sparkles"],
-    desc: "Siz go'zallik va qulaylikni his qilasiz. Odamlar foydalanadigan ekranlarni chiroyli va tushunarli qilish sizning iste'dodingiz.",
-    salary: "7-18 mln", jobs: ["UI/UX dizayner", "Grafik dizayner", "Motion dizayner"],
-    courses: [["palette", "Figma: UI/UX dizayn asoslari"], ["image", "Grafik dizayn va brending"], ["video", "Video montaj va motion dizayn"]],
-  },
-  mkt: {
-    name: "Trend Ovchisi", icon: "megaphone", chips: ["trend", "target"],
-    desc: "Siz odamlarni tushunasiz va ularni nima qiziqtirishini oldindan sezasiz. Brendlarni mashhur qilish sizning ishingiz.",
-    salary: "6-15 mln", jobs: ["SMM mutaxassisi", "Digital marketolog", "Kontent meyker"],
-    courses: [["megaphone", "SMM va kontent marketing"], ["target", "Target reklama: Instagram va Telegram"], ["pen", "Kopirayting va storytelling"]],
-  },
-  ai: {
-    name: "AI Kashfiyotchisi", icon: "bot", chips: ["sparkles", "zap"],
-    desc: "Siz yangi texnologiyalarni birinchilardan bo'lib sinab ko'rasiz va AI yordamida ishni 10 barobar tez bajarish yo'lini topasiz.",
-    salary: "12-30 mln", jobs: ["AI muhandis", "Prompt muhandis", "Avtomatlashtirish mutaxassisi"],
-    courses: [["bot", "Sun'iy intellekt vositalari bilan ishlash"], ["sparkles", "Machine Learning asoslari"], ["zap", "No-code avtomatlashtirish"]],
-  },
-};
-
 // [name, points, change in rank]
 const LEADERBOARD = {
   viloyat: [

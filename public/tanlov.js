@@ -38,7 +38,7 @@ const Contest = (() => {
 
   /* ---------- the road map: Tuman -> Viloyat -> Respublika -> Changan ---------- */
   // one drawing (viewBox 360 x 220) holds the road; the stops and the car sit on it at the same points
-  // a mountain: the road climbs in switchbacks past the three stages to the car on the summit
+  // a winding road past the three stages up to the car
   const VB = [360, 260], PTS = [[70, 230], [150, 172], [232, 110]], END = [292, 70], LAB = ["up", "right", "left"];
   const SEG = ["M8 252 C 30 246, 50 236, 70 230",
     "M70 230 C 140 216, 230 226, 236 204 C 242 184, 180 186, 150 172",
@@ -54,22 +54,10 @@ const Contest = (() => {
       <svg class="zk-road" viewBox="0 0 360 260" aria-hidden="true">
         <defs>
           <linearGradient id="zkg" x1="0" x2="1"><stop offset="0" stop-color="#FFE7A3"/><stop offset="1" stop-color="#F5A524"/></linearGradient>
-          <linearGradient id="zkm" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#5546C8"/><stop offset=".5" stop-color="#2A2478"/><stop offset="1" stop-color="#110E38"/></linearGradient>
-          <linearGradient id="zkrim" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#FFB861" stop-opacity=".55"/><stop offset=".5" stop-color="#FFB861" stop-opacity="0"/></linearGradient>
           <radialGradient id="zkglow"><stop offset="0" stop-color="#FFC861" stop-opacity=".8"/><stop offset="1" stop-color="#FFC861" stop-opacity="0"/></radialGradient>
           <filter id="zkblur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
-          <filter id="zkfog" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
         </defs>
         <ellipse cx="${END[0]}" cy="${END[1] - 10}" rx="80" ry="58" fill="url(#zkglow)"/>
-        <path d="M0 170 L30 136 L58 152 L100 96 L136 132 L176 80 L214 118 L246 88 L270 108 L300 60 L334 96 L360 78 V260 H0 Z" fill="#8B80F0" opacity=".22"/>
-        <path d="M0 204 L40 170 L76 188 L120 146 L158 176 L200 138 L236 160 L268 136 L314 156 L360 128 V260 H0 Z" fill="#5B50D0" opacity=".38"/>
-        <path d="M0 260 V236 C 40 220, 90 196, 130 166 C 180 128, 236 92, 292 64 C 318 76, 342 96, 360 108 V260 Z" fill="url(#zkm)"/>
-        <path d="M292 64 C 318 76, 342 96, 360 108 V260 H262 C 286 200, 296 130, 292 64 Z" fill="url(#zkrim)"/>
-        <path d="M0 236 C 40 220, 90 196, 130 166 C 180 128, 236 92, 292 64 C 318 76, 342 96, 360 108" fill="none" stroke="#FFC98A" stroke-width="1.4" opacity=".55"/>
-        <path d="M276 72 L292 64 L309 73 L301 75 L293 70 L284 77 Z" fill="#fff" opacity=".9"/>
-        <path d="M164 140 L178 133 L184 139 L174 142 Z M224 104 L236 98 L242 104 L232 106 Z" fill="#fff" opacity=".2"/>
-        <ellipse cx="40" cy="254" rx="80" ry="10" fill="#fff" opacity=".10" filter="url(#zkfog)"/>
-        <ellipse cx="250" cy="248" rx="120" ry="12" fill="#fff" opacity=".08" filter="url(#zkfog)"/>
         ${SEG.map((d) => `<path d="${d}" fill="none" stroke="rgba(6,8,30,.55)" stroke-width="10" stroke-linecap="round"/>`).join("")}
         ${SEG.map((d, i) => i <= cur ? `<path d="${d}" fill="none" stroke="#FFC861" stroke-width="7" stroke-linecap="round" filter="url(#zkblur)" opacity=".85"/><path d="${d}" fill="none" stroke="url(#zkg)" stroke-width="3.5" stroke-linecap="round"/>`
           : `<path d="${d}" fill="none" stroke="rgba(255,255,255,.65)" stroke-width="2" stroke-dasharray="5 6" stroke-linecap="round"/>`).join("")}
@@ -121,8 +109,7 @@ const Contest = (() => {
     </div>
     <div class="zk-title" style="--dc:${cur.c}">${chip(cur.icon, "sm")}<span><b>${cur.long}</b><small>${(STAGES().find((s) => s.k === stage) || {}).long}</small></span></div>
     <div id="zk-list">${listHTML()}</div>
-    <button class="btn-ghost zk-site" onclick="openExt('${encodeURIComponent(SITE)}')">${ic("globe")} ${T("Tanlov sayti: zamonaviykasblar2026.uz")}</button>
-    <p class="note">${T("G'oliblar ro'yxati tanlov saytidan avtomatik olinadi: yangi g'oliblar e'lon qilinishi bilan shu yerda ham chiqadi.")}</p>`;
+    <button class="btn-ghost zk-site" onclick="openExt('${encodeURIComponent(SITE)}')">${ic("globe")} ${T("Tanlov sayti: zamonaviykasblar2026.uz")}</button>`;
   }
   window.zkDir = (k) => { dir = k; store.set("zk_dir", k); haptic("light"); render(); };
   window.zkStage = (k) => { stage = k; store.set("zk_stage", k); haptic("light"); render(); };
@@ -279,3 +266,4 @@ const Contest = (() => {
   };
   return { Screen, load, _poster: poster };
 })();
+window.Contest = Contest;
