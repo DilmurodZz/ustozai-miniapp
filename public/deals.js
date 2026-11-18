@@ -67,6 +67,10 @@ const Deals = (() => {
       old: T("To'liq ekonom narx"), now: T("50 foizgacha arzon (soliq va yig'imlardan tashqari)"),
       where: T("O'zbekiston ichidagi barcha reyslar"),
       how: T("O'tgan mavsumda 2025-yil 26-dekabrdan 2026-yil 11-yanvargacha amal qilgan. Chipta olishda talabalik hujjatini ko'rsating."), u: "uzairways.com" },
+    { id: "poyezd", logo: "poyezd", brand: "Poyezd Bilet 24", until: "always", bottom: 1,
+      t: T("Poyezd Bilet 24: bo'sh joyni 2 soniyada bepul bron qiladi"), d: T("Chipta qolmagan bo'lsa ham bot yo'nalishni 24/7 kuzatadi va joy chiqishi bilan uni band qiladi"),
+      old: T("Bo'sh joyni o'zingiz soatlab kuzatasiz"), now: T("Bot bepul kuzatadi va 2 soniyada bron qiladi"),
+      where: T("Telegram, @poyezdbilet24_bot (O'zbekiston bo'ylab poyezdlar)"), how: T("Botni oching, yo'nalish va sanani tanlang: joy paydo bo'lishi bilan bot uni siz uchun bron qiladi."), u: "t.me/poyezdbilet24_bot" },
   ];
   const day = 86400000;
   const left = (x) => x.until === "always" || x.until === "season" ? null : Math.ceil((Date.parse(x.until + "T23:59:59+05:00") - Date.now()) / day);
@@ -79,13 +83,13 @@ const Deals = (() => {
   };
   const active = () => LIST().filter((x) => { const n = left(x); return n === null || n >= 0; });
   // ending soonest first; always-on next (similar ones stay side by side as listed); the seasonal ones last
-  const ordered = () => { const a = active(); return [...a.filter((x) => left(x) !== null).sort((x, y) => left(x) - left(y)), ...a.filter((x) => x.until === "always"), ...a.filter((x) => x.until === "season")]; };
+  const ordered = () => { const a = active(); return [...a.filter((x) => left(x) !== null).sort((x, y) => left(x) - left(y)), ...a.filter((x) => x.until === "always" && !x.bottom), ...a.filter((x) => x.until === "season"), ...a.filter((x) => x.bottom)]; };
 
   function Screen() {
     const list = ordered();
     return `${navbar(T("Top 20 chegirmalar"))}
     <p class="dl-lead">${T("Talabalar va yoshlar uchun onlayn va Toshkentdagi chegirmalar: tugash muddati yaqinlari birinchi.")}</p>
-    <div class="dl-list">${list.map((x) => `<button class="card dl-card" onclick="dealOpen('${x.id}')">
+    <div class="dl-list">${list.map((x) => `<button class="card dl-card" id="d-${x.id}" onclick="dealOpen('${x.id}')">
       <img class="dl-logo" src="img/deals/${x.logo}.webp" alt="" width="52" height="52" loading="lazy">
       <span class="dl-txt"><small class="notr">${esc(x.brand)}</small><b>${x.t}</b><span>${x.d}</span></span>${chipOf(x)}</button>`).join("")}</div>
     <p class="note">${T("Chegirma shartlari kompaniyalar tomonidan o'zgartirilishi mumkin. Xariddan oldin rasmiy sahifada tekshiring.")}</p>`;
@@ -105,7 +109,9 @@ const Deals = (() => {
       </div>
       <div class="dl-how"><b>${T("Qanday olish mumkin")}</b><p>${x.how}</p></div>
       ${x.check ? `<p class="dl-check">${ic("alert")} ${T("Bu taklif promokod saytlaridan olingan: ishlatishdan oldin ilovada tekshiring.")}</p>` : ""}
-      <button class="btn-primary dl-go" onclick="openExt('${encodeURIComponent("https://" + x.u)}')">${ic("globe")} ${T("Rasmiy sahifani ochish")}</button></div>`);
+      ${x.u.startsWith("t.me/") ? `<button class="btn-primary dl-go" onclick="openTg('https://${x.u}')">${ic("send")} ${T("Botni ochish")}</button>`
+        : `<button class="btn-primary dl-go" onclick="openExt('${encodeURIComponent("https://" + x.u)}')">${ic("globe")} ${T("Rasmiy sahifani ochish")}</button>`}
+      <button class="btn-ghost sd-share wide" onclick="shareSec('d_${x.id}', this.closest('.dl-sheet').querySelector('h3').textContent)">${ic("send")} ${T("Do'stga ulashish")}</button></div>`);
   };
   return { Screen };
 })();

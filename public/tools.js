@@ -202,7 +202,6 @@ const Tools = (() => {
       { go: "location.hash='#/dtm'", img: "img/tool-dtm.webp", t: T("DTM ball kalkulyatori"), d: T("Ballingizni hisoblang va qaysi OTMda grant yoki shartnomaga yetishini ko'ring") },
       { go: "location.hash='#/ielts'", img: "img/tool-ielts.webp", t: T("IELTS ball kalkulyatori"), d: T("To'g'ri javoblaringizdan har bir ko'nikma va umumiy bandni hisoblang") },
       { go: "location.hash='#/unis'", img: "img/tool-uni.webp", t: T("Top 300 universitet va grantlar"), d: T("THE reytingi, mahalliy grantlar, stipendiyalar va sertifikatlar") },
-      { go: "openTg('https://t.me/poyezdbilet24_bot')", img: "img/tool-train.webp", t: "Poyezd Bilet 24", d: T("Poyezd chiptasi: bot bo'sh joyni 24/7 kuzatadi va paydo bo'lishi bilan bron qiladi") },
     ];
     return `${navbar(T("Foydali vositalar"))}
     ${window.News ? News.ribbon() : ""}

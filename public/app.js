@@ -362,6 +362,9 @@ if ("serviceWorker" in navigator) {
 window.addEventListener("DOMContentLoaded", () => {
   if (!location.hash) location.replace("#/");
   render();
+  // opened from a shared section link (t.me/<bot>?startapp=g_cefr): go there and glow it; "?shared=" works in a browser too
+  const shared = startParam || new URLSearchParams(location.search).get("shared");
+  if (shared && /^[gdu]_[A-Za-z0-9_-]{1,40}$/.test(shared)) setTimeout(() => openShared(shared), 500);
   // course data is fetched quietly in the background, so the Kurslar page opens complete in one go
   // course data and the CV maker come when the phone is idle (or at once when their page opens)
   const idle = (f, ms) => setTimeout(() => (window.requestIdleCallback || setTimeout)(f), ms);
@@ -531,6 +534,46 @@ document.addEventListener("click", (e) => {
   a.onfinish = finish; a.oncancel = () => { d.style.overflow = ""; d._anim = null; };
   if (!opening) d.classList.add("closing"); a.finished.then(() => d.classList.remove("closing")).catch(() => {});
 });
+
+/* ---------- sharing one section: the link opens the mini app right at that section ---------- */
+// key: g_<grant card> | d_<deal> | u_<university index>; Telegram passes it back as start_param
+window.shareSec = (key, title) => {
+  haptic("light");
+  const link = `https://t.me/${BOT}?startapp=${key}`;
+  const text = `${title}\n${T("Ustoz AI mini ilovasida sizga foydali ma'lumot")}`;
+  openTg(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+};
+// waits for the section to appear (its page may still be loading), then glows it green twice
+function openShared(key) {
+  const [kind, id] = [key.slice(0, 1), key.slice(2)];
+  const plan = kind === "g" ? { hash: "#/unis", prep: () => store.set("uni_tab", "grant"), find: () => { if (window.uniTab && !document.querySelector(".sd-g") && document.querySelector(".sd-tabs")) uniTab("grant"); return document.getElementById("g-" + id); } }
+    : kind === "d" ? { hash: "#/chegirma", find: () => document.getElementById("d-" + id) }
+    : kind === "u" ? { hash: "#/unis", prep: () => store.set("uni_tab", "top"), find: () => { if (window.uniOpen && !document.querySelector(".sd-uni") && document.querySelector(".sd-tabs")) uniTab("top"); return window.uniOpen && document.querySelector(".sd-uni") && document.getElementById("app"); } } : null;
+  if (!plan) return;
+  if (plan.prep) plan.prep();
+  location.hash = plan.hash;
+  let tries = 0;
+  const look = () => {
+    const el = plan.find();
+    if (!el) { if (++tries < 40) setTimeout(look, 200); return; }
+    if (kind === "u") { window.uniOpen(+id); setTimeout(() => glow(document.querySelector(".sd-usheet")), 350); return; }
+    if (el.tagName === "DETAILS") el.open = true;
+    // the page may still jump to the top as it appears, so the scroll is checked once more
+    setTimeout(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => { const r = el.getBoundingClientRect(); if (r.top < 0 || r.bottom > innerHeight) el.scrollIntoView({ block: "center" }); glow(el); }, 700);
+    }, 400);
+  };
+  setTimeout(look, 300);
+}
+function glow(el) {
+  if (!el) return;
+  const tag = document.createElement("div"); tag.className = "shared-tag"; tag.innerHTML = `${ic("send")} ${T("Shu bo'lim sizga ulashildi")}`;
+  el.parentNode.insertBefore(tag, el);
+  el.classList.add("shared-glow");
+  setTimeout(() => el.classList.remove("shared-glow"), 2600);
+  setTimeout(() => { tag.classList.add("out"); setTimeout(() => tag.remove(), 400); }, 6000);
+}
 
 /* ---------- a bottom sheet for small choices ---------- */
 function sheet(html) {

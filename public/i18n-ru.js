@@ -850,4 +850,15 @@ Object.assign(I18N.ru, {
 "Qanday olish mumkin": "Как получить",
 "Bu taklif promokod saytlaridan olingan: ishlatishdan oldin ilovada tekshiring.": "Это предложение взято с сайтов промокодов: проверьте его в приложении перед использованием.",
 "Rasmiy sahifani ochish": "Открыть официальную страницу",
+// sharing, poyezd
+"Ustoz AI mini ilovasida sizga foydali ma'lumot": "Полезная информация для вас в мини-приложении Ustoz AI",
+"Shu bo'lim sizga ulashildi": "Этим разделом поделились с вами",
+"Do'stga ulashish": "Поделиться с другом",
+"Ustoz AI mini ilovasida o'qing": "Читайте в мини-приложении Ustoz AI",
+"Poyezd Bilet 24: bo'sh joyni 2 soniyada bepul bron qiladi": "Poyezd Bilet 24: бесплатно бронирует свободное место за 2 секунды",
+"Chipta qolmagan bo'lsa ham bot yo'nalishni 24/7 kuzatadi va joy chiqishi bilan uni band qiladi": "Даже если билетов нет, бот следит за направлением 24/7 и бронирует место, как только оно появится",
+"Bo'sh joyni o'zingiz soatlab kuzatasiz": "Вы сами часами следите за местами",
+"Bot bepul kuzatadi va 2 soniyada bron qiladi": "Бот следит бесплатно и бронирует за 2 секунды",
+"Telegram, @poyezdbilet24_bot (O'zbekiston bo'ylab poyezdlar)": "Telegram, @poyezdbilet24_bot (поезда по Узбекистану)",
+"Botni oching, yo'nalish va sanani tanlang: joy paydo bo'lishi bilan bot uni siz uchun bron qiladi.": "Откройте бота, выберите направление и дату: как только появится место, бот забронирует его для вас.",
 });

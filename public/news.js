@@ -71,6 +71,7 @@ const News = (() => {
       <div class="nw-body notr" id="nw-body">${x.d ? `<p>${esc(x.d)}</p>` : ""}<div class="nw-loading"><div class="run-spin"></div><small>${x.o && x.o !== LANG ? T("Maqola tarjima qilinmoqda…") : T("Maqola yuklanmoqda…")}</small></div></div>
       <button class="btn-primary nw-go" onclick="openExt('${encodeURIComponent(x.u)}')">${ic("globe")} ${T("Asl manbani ochish")}</button>
       <button class="nw-link" onclick="openExt('${encodeURIComponent(x.u)}')">${esc(x.u.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60))}</button>
+      <button class="btn-ghost sd-share wide" onclick="shareNews(${i})">${ic("send")} ${T("Do'stga ulashish")}</button>
       ${from === "list" ? `<button class="btn-ghost" onclick="newsList()">${ic("back")} ${T("Barcha yangiliklar")}</button>` : ""}</div>`);
     const key = x.u + "|" + LANG;
     const show = (r) => {
@@ -81,6 +82,7 @@ const News = (() => {
     if (artCache[key]) return show(artCache[key]);
     fetch(SHARE_API + "/news/read?" + new URLSearchParams({ u: x.u, l: LANG, o: x.o || LANG })).then((r) => r.json()).then((r) => { artCache[key] = r; show(r); }).catch(() => show(null));
   };
+  window.shareNews = (i) => { const x = items()[i]; if (!x) return; haptic("light"); openTg(`https://t.me/share/url?url=${encodeURIComponent(x.u)}&text=${encodeURIComponent(x.t + "\n\n" + T("Ustoz AI mini ilovasida o'qing") + ": https://t.me/" + BOT)}`); };
   let tab = "news";
   window.newsList = (t) => {
     if (t) tab = t; haptic("light");

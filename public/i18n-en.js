@@ -850,4 +850,15 @@ Object.assign(I18N.en, {
 "Qanday olish mumkin": "How to get it",
 "Bu taklif promokod saytlaridan olingan: ishlatishdan oldin ilovada tekshiring.": "This offer comes from promo code sites: check it in the app before using it.",
 "Rasmiy sahifani ochish": "Open the official page",
+// sharing, poyezd
+"Ustoz AI mini ilovasida sizga foydali ma'lumot": "Useful info for you in the Ustoz AI mini app",
+"Shu bo'lim sizga ulashildi": "This section was shared with you",
+"Do'stga ulashish": "Share with a friend",
+"Ustoz AI mini ilovasida o'qing": "Read it in the Ustoz AI mini app",
+"Poyezd Bilet 24: bo'sh joyni 2 soniyada bepul bron qiladi": "Poyezd Bilet 24: books a free seat in 2 seconds, at no cost",
+"Chipta qolmagan bo'lsa ham bot yo'nalishni 24/7 kuzatadi va joy chiqishi bilan uni band qiladi": "Even when tickets are sold out, the bot watches the route 24/7 and books a seat the moment one appears",
+"Bo'sh joyni o'zingiz soatlab kuzatasiz": "You watch for seats yourself for hours",
+"Bot bepul kuzatadi va 2 soniyada bron qiladi": "The bot watches for free and books in 2 seconds",
+"Telegram, @poyezdbilet24_bot (O'zbekiston bo'ylab poyezdlar)": "Telegram, @poyezdbilet24_bot (trains across Uzbekistan)",
+"Botni oching, yo'nalish va sanani tanlang: joy paydo bo'lishi bilan bot uni siz uchun bron qiladi.": "Open the bot and choose the route and date: as soon as a seat appears, the bot books it for you.",
 });
