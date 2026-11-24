@@ -30,7 +30,7 @@ const Harvard = (() => {
     const items = list();
     if (!items) { const p = Kurslar.load(); if (p) p.then(() => { if (location.hash === "#/harvard") render(); }); return `<div class="busy-in"><div class="run-spin"></div></div>`; }
     return `<div class="hv-list">${items.map((x, i) => `<button class="hv-row" onclick="hvCourse(${i})" style="--i:${i}">
-        ${x.c.image ? `<img src="${esc(x.c.image)}" alt="" loading="lazy">` : `<i class="hv-noimg">${ic("play")}</i>`}
+        ${courseImg(x.c) || `<i class="hv-noimg">${ic("play")}</i>`}
         <span><em>${T(x.tag)}</em><b class="notr">${esc(x.c.title)}</b><small class="notr">${esc(x.c.teacher || "Ustoz AI")}</small></span>${ic("chev", "chev")}</button>`).join("")}
       <a class="hv-studio" href="#/ariza" style="--i:${items.length}"><img src="img/tool-studio.webp" alt="" decoding="async"><span><b>${T("Bizda top universitetlarga hujjat tayyorlash uchun Application Studio ham bor")}</b><small>${T("Profil, insholar, tavsiyanomalar va muddatlar bir joyda")}</small></span>${ic("chev", "chev")}</a></div>`;
   }
@@ -55,7 +55,7 @@ const Harvard = (() => {
     const x = list()[i]; if (!x) return; const c = x.c, h = hours(c);
     haptic("light");
     sheet(`<div class="hv-info">
-      ${c.image ? `<img class="hv-cover" src="${esc(c.image)}" alt="" decoding="async">` : ""}
+      ${courseImg(c, "hv-cover", true)}
       <em class="hv-tag">${T(x.tag)}</em>
       <h3 class="notr">${esc(c.title)}</h3>
       <small class="notr">${esc(c.teacher || "Ustoz AI")}</small>

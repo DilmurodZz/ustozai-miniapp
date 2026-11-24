@@ -1171,3 +1171,8 @@ html { -webkit-tap-highlight-color: transparent; }
 .lv-flash { position: absolute; inset: 0; background: radial-gradient(circle at 50% 40%, #FFFFFF 0%, #F3F6FF 60%, #E8EEFF 100%); opacity: 0; pointer-events: none; }
 .lv.flash .lv-flash { animation: lvFlash .45s ease-in forwards; }
 @keyframes lvFlash { 0% { opacity: 0; } 100% { opacity: 1; } }
+/* Profil rows never wider than the screen, whatever the phone's text size (a grid track would grow to fit one-line titles) */
+.pf-list { grid-template-columns: minmax(0, 1fr); }
+.pf-list > * { min-width: 0; max-width: 100%; }
+.lv-fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.kd-hero img { background: #EEF1F8; }

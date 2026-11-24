@@ -85,7 +85,7 @@ const Kurslar = (() => {
     return head + cvCard + `<div class="kc-list">${list.map((c, i) => {
       const g = G[c.g];
       return `<a class="kc" href="#/kurs/${c.id}">
-        <em class="kc-n">${i + 1}</em><span class="kc-img">${c.image ? `<img src="${esc(img(c.image, 256))}" alt="" loading="lazy" decoding="async">` : ""}</span>
+        <em class="kc-n">${i + 1}</em><span class="kc-img">${courseImg(c, "", i < 6)}</span>
         <span class="kc-body">
           <b class="notr">${esc(c.title)}</b>
           <small class="notr">${esc(c.teacher || "Ustoz AI")}</small>

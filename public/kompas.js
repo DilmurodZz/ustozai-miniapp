@@ -339,7 +339,7 @@ const Compass = (() => {
         <span class="kp-kind">${kind}</span>
         ${m === null ? `<span class="kp-tag">${T("Mavzu bo'yicha")}</span>` : `<svg class="kp-ring" viewBox="0 0 54 54"><circle cx="27" cy="27" r="22" fill="none" stroke="var(--line)" stroke-width="5"/><circle cx="27" cy="27" r="22" fill="none" stroke="var(--p1)" stroke-width="5" stroke-linecap="round" stroke-dasharray="${ring}" stroke-dashoffset="${ring * (1 - m / 100)}" transform="rotate(-90 27 27)"/><text x="27" y="31.5" text-anchor="middle" font-size="13" font-weight="800" fill="var(--text)">${m}%</text></svg>`}
       </div>
-      <a class="kp-res-c" href="#/kurs/${c.id}">${c.image ? `<img src="${esc(c.image)}" alt="" loading="lazy">` : ""}<span><b class="notr">${esc(c.title)}</b><small class="notr">${esc(c.teacher || "Ustoz AI")}</small></span></a>
+      <a class="kp-res-c" href="#/kurs/${c.id}">${courseImg(c)}<span><b class="notr">${esc(c.title)}</b><small class="notr">${esc(c.teacher || "Ustoz AI")}</small></span></a>
       <p class="kp-why">${why(r, a)}</p>
       <div class="kp-facts">
         <span>${ic("play")}${T("{n} dars", { n: c.lessons })}</span>${hours > 0 ? `<span>${ic("clock")}${dur(hours)}</span>` : ""}
