@@ -226,9 +226,14 @@ def city(c): return CITY.get(c, translit(c)) if c else c
 
 # course texts from ustoz.ai: Turkish letters and "ó" used instead of Uzbek Latin, and "5: 11" left where a dash was removed
 LATIN = {"ş": "sh", "Ş": "Sh", "ğ": "g'", "Ğ": "G'", "ó": "o'", "ò": "o'", "Ó": "O'", "Ò": "O'"}
+# emojis and "bold" maths letters are removed or turned into plain letters: the app shows no emojis
+EMOJI = re.compile(r"[\U0001F000-\U0001FFFF☀-➿⬀-⯿⏩-⏿️‍⃣]")
 def clean(s):
   if not s: return s
+  import unicodedata
   s = re.sub(r"(\d): (\d)", r"\1-\2", s)
+  s = "".join(unicodedata.normalize("NFKC", ch) if 0x1D400 <= ord(ch) <= 0x1D7FF else ch for ch in s)
+  s = re.sub(r"[ \t]{2,}", " ", EMOJI.sub("", s)).strip()
   return "".join(LATIN.get(ch, ch) for ch in s)
 
 # ---------------------------------------------------------------- data

@@ -169,7 +169,7 @@ const Study = (() => {
   const uf = { tab: store.get("uni_tab", "top"), q: "", country: "", sort: "overall", more: 50 };
   function loadUni() {
     if (uni || uniLoading) return; uniLoading = true;
-    fetch("top300.json").then((r) => r.json()).then((d) => { uni = d; if (location.hash === "#/unis") refreshUni(); })
+    fetch("top300.json").then((r) => r.json()).then((d) => { uni = d; if (location.hash === "#/unis" || location.hash === "#/ariza") refreshUni(); })
       .catch(() => { uniFail = true; refreshUni(); }).finally(() => { uniLoading = false; });
   }
   const refreshUni = () => { const el = document.getElementById("sd-uni"); if (el) el.innerHTML = uniList(); };
@@ -197,6 +197,23 @@ const Study = (() => {
     <div id="sd-uni">${uniList()}</div>
     <p class="note">${T("Manba: Times Higher Education, World University Rankings 2027. Ballar 100 ballik shkalada.")}</p>` : grantsHTML()}`;
   }
+  // the Top 300 list on its own (the "Top 300" tab of Application Studio)
+  function TopList() {
+    loadUni();
+    const countries = Object.keys(COUNTRY).sort((a, b) => cn(a).localeCompare(cn(b)));
+    return `<div class="card sd-uhead"><img class="sd-the" src="img/the-logo.webp" alt="THE" width="52" height="52"><span><b>World University Rankings 2027</b><small>${T("Times Higher Education reytingi: dunyodagi eng yaxshi 300 ta universitet")}</small></span></div>
+    <div class="sd-filters">
+      <label class="km-search">${ic("search")}<input id="sd-uq" placeholder="${T("Universitet yoki davlat nomi")}" value="${esc(uf.q)}" autocomplete="off"></label>
+      <div class="sd-f2"><select onchange="uniF('country',this.value)"><option value="">${T("Barcha davlatlar")}</option>${countries.map((c) => `<option value="${esc(c)}" ${uf.country === c ? "selected" : ""}>${esc(cn(c))}</option>`).join("")}</select>
+      <select onchange="uniF('sort',this.value)">${CRIT().map(([k, t]) => `<option value="${k}" ${uf.sort === k ? "selected" : ""}>${t}</option>`).join("")}</select></div>
+    </div>
+    <div id="sd-uni">${uniList()}</div>`;
+  }
+  // a university from the list into Application Studio's "Arizalar"
+  window.uniAdd = (i) => {
+    const r = uni && uni.rows[i]; if (!r) return;
+    if (appsAdd({ name: r[1], country: r[2], site: r[14] || "" })) { closeSheet(); store.set("studio_tab", "apps"); }
+  };
   window.uniTab = (k) => { uf.tab = k; store.set("uni_tab", k); haptic("light"); render(); };
   window.uniF = (k, v) => { uf[k] = v; uf.more = 50; refreshUni(); };
   window.uniMore = () => { uf.more += 50; refreshUni(); };
@@ -208,7 +225,8 @@ const Study = (() => {
     sheet(`<div class="sd-usheet"><span class="sd-rank big">${esc(r[0])}</span><h3 class="notr">${esc(r[1])}</h3><p>${esc(cn(r[2]))} · THE 2027</p>
       <div class="sd-bars">${CRIT().map(bar).join("")}</div>
       <div class="sd-stats">${r[15] != null ? `<span class="acc"><b>${r[15]}%</b><small>${T("qabul darajasi")}${r[16] ? ` (${r[16]})` : ""}</small></span>` : `<span class="acc"><b>${T("yo'q")}</b><small>${T("qabul darajasi")}</small></span>`}${stat(r[9], T("talaba"))}${stat(r[10], T("1 o'qituvchiga talaba"))}${stat(r[11], T("xorijiy talabalar"))}${stat(r[12], T("ayollar : erkaklar"))}</div>
-      ${r[14] ? `<button class="btn-primary sd-site" onclick="openExt('${encodeURIComponent(r[14])}')">${ic("globe")} ${T("Rasmiy sayt")}: ${esc(r[14].replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))}</button>` : ""}
+      <button class="btn-primary sd-site" onclick="uniAdd(${i})">${ic("plus")} ${T("Arizalarimga qo'shish")}</button>
+      ${r[14] ? `<button class="btn-ghost sd-site" onclick="openExt('${encodeURIComponent(r[14])}')">${ic("globe")} ${T("Rasmiy sayt")}: ${esc(r[14].replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))}</button>` : ""}
       <button class="btn-ghost sd-share wide" onclick="shareSec('u_${i}', '${esc(r[1]).replace(/'/g, "")}')">${ic("send")} ${T("Do'stga ulashish")}</button>
       <button class="btn-ghost sd-thebtn" onclick="openExt('${encodeURIComponent("https://www.timeshighereducation.com" + r[13])}')">${ic("chart")} ${T("THE saytida ko'rish")}</button>
       <p class="note">${T("Qabul darajasi: arizachilarning necha foizi qabul qilingani (Wikidata ma'lumoti, oxirgi mavjud yil).")}</p></div>`);
@@ -305,6 +323,6 @@ const Study = (() => {
       + `<p class="note">${T("Ma'lumotlar rasmiy manbalar asosida 2026-yil noyabr holatiga tayyorlandi.")}</p>`;
   }
 
-  return { DTM, IELTS, Unis };
+  return { DTM, IELTS, Unis, TopList };
 })();
 window.Study = Study;

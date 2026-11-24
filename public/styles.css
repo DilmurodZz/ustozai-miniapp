@@ -22,6 +22,12 @@ body[data-theme="green"] {
   --shadow: 0 14px 30px -14px rgba(11, 143, 106, .55);
   --bar1: #16B183; --bar2: #0B8F6A; --hero1: #1BBF8E; --hero2: #0B8F6A; --hero3: #087555; --hero-glow: rgba(11,143,106,.6); --art-tint: hue-rotate(-62deg) saturate(.95);
 }
+body[data-theme="bordo"] {
+  --p1: #8B0920; --p3: #A3112B; --p2: #D0475E;
+  --p-soft: #F8E9EC; --p-text: #7A0A1E;
+  --shadow: 0 14px 30px -14px rgba(139, 9, 32, .55);
+  --bar1: #A3112B; --bar2: #8B0920; --hero1: #B0182F; --hero2: #8B0920; --hero3: #6E0618; --hero-glow: rgba(139,9,32,.6); --art-tint: hue-rotate(128deg) saturate(1.05);
+}
 /* declared on body so the gradients pick up the theme colours set on body */
 body {
   --grad: linear-gradient(135deg, var(--p1) 0%, var(--p3) 55%, var(--p2) 100%);

@@ -67,13 +67,13 @@ export default {
     // colour choice counts: each Telegram user is counted once, with their latest colour
     if (url.pathname === "/colors" && req.method === "GET") {
       const c = (await env.COLORS.get("counts", "json")) || {};
-      return json({ blue: c.blue || 0, orange: c.orange || 0, green: c.green || 0 }, 200, origin);
+      return json({ blue: c.blue || 0, orange: c.orange || 0, green: c.green || 0, bordo: c.bordo || 0 }, 200, origin);
     }
     if (url.pathname === "/color" && req.method === "POST") {
       const user = await verifyInitData(req.headers.get("X-Init-Data"), env.BOT_TOKEN, 30 * 86400);
       if (!user || !user.id) return json({ error: "unauthorised" }, 401, origin);
       const pick = url.searchParams.get("c");
-      if (!["blue", "orange", "green"].includes(pick)) return json({ error: "bad colour" }, 400, origin);
+      if (!["blue", "orange", "green", "bordo"].includes(pick)) return json({ error: "bad colour" }, 400, origin);
       const key = "u:" + user.id, old = await env.COLORS.get(key);
       const c = (await env.COLORS.get("counts", "json")) || {};
       if (old !== pick) {
@@ -82,7 +82,7 @@ export default {
         await env.COLORS.put(key, pick);
         await env.COLORS.put("counts", JSON.stringify(c));
       }
-      return json({ blue: c.blue || 0, orange: c.orange || 0, green: c.green || 0 }, 200, origin);
+      return json({ blue: c.blue || 0, orange: c.orange || 0, green: c.green || 0, bordo: c.bordo || 0 }, 200, origin);
     }
     if (url.pathname === "/track" && req.method === "POST") return track(req, env, url, origin);
     if (url.pathname === "/stats" && req.method === "GET") return json(await stats(env), 200, origin);
@@ -501,7 +501,7 @@ async function botHook(req, env, url) {
     if (m && m.chat && m.chat.type === "private" && typeof m.text === "string" && m.text.startsWith("/start")) {
       const payload = (m.text.split(" ")[1] || "").trim();
       const l = String((m.from && m.from.language_code) || "uz").slice(0, 2), tx = BOT_TEXT[l === "ru" ? "ru" : l === "en" ? "en" : "uz"];
-      const shared = /^[gdu]_[A-Za-z0-9_-]{1,40}$/.test(payload);
+      const shared = /^[gdup]_[A-Za-z0-9_-]{1,40}$/.test(payload);   // p_ = a whole page (p_kompas, p_ariza...)
       await tg(env.BOT_TOKEN, "sendMessage", JSON.stringify({ chat_id: m.chat.id, text: shared ? tx.shared : tx.hello,
         reply_markup: { inline_keyboard: [[{ text: shared ? tx.open : tx.app, web_app: { url: APP_URL + (shared ? "?shared=" + payload : "") } }]] } }));
     }

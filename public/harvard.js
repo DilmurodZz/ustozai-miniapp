@@ -15,14 +15,6 @@ const Harvard = (() => {
       why: "Reading IELTS'ning to'rt qismidan biri. Top universitetlar har bir qism uchun ham alohida minimal ball qo'yadi.",
       what: "Reading savol turlari tahlili, vaqtni to'g'ri taqsimlash strategiyalari va amaliy mashqlar.",
       get: "Reading bo'limida yuqori ball olish uchun aniq usullarni o'rganasiz." },
-    { id: "c5d46b9a-79ea-40c5-8e73-a2749f73508b", tag: "Suhbat",
-      why: "Garvard Ta'lim oliy maktabi ingliz tili ona tili bo'lmagan nomzodlardan 120 soniyalik video javob so'raydi. Ayrim nomzodlar onlayn suhbatga ham chaqiriladi.",
-      what: "Nafas, ovoz, talaffuz, gapirish tezligi va ohang ustida mashqlar, omma oldida chiqish va taqdimot.",
-      get: "Video javob va suhbatda fikringizni aniq va ishonch bilan aytasiz." },
-    { id: "cde5ceee-c5bb-4132-b005-11346b35d5c7", tag: "Loyiha",
-      why: "Kuchli arizada sizning tashabbusingiz va real natijalaringiz ko'rinadi. Maqsad bayonotida aniq raqamlar bilan aytilgan o'z loyihangiz eng ishonchli dalil bo'ladi.",
-      what: "G'oya topish, MVP yaratish, mijozlarni jalb qilish va investorlar bilan ishlash.",
-      get: "Arizangizda ko'rsatish mumkin bo'lgan o'z loyihangizni boshlaysiz." },
   ];
   let open = false;
   // a plain smile, drawn in the text colour (no background)
@@ -39,7 +31,8 @@ const Harvard = (() => {
     if (!items) { const p = Kurslar.load(); if (p) p.then(() => { if (location.hash === "#/harvard") render(); }); return `<div class="busy-in"><div class="run-spin"></div></div>`; }
     return `<div class="hv-list">${items.map((x, i) => `<button class="hv-row" onclick="hvCourse(${i})" style="--i:${i}">
         ${x.c.image ? `<img src="${esc(x.c.image)}" alt="" loading="lazy">` : `<i class="hv-noimg">${ic("play")}</i>`}
-        <span><em>${T(x.tag)}</em><b class="notr">${esc(x.c.title)}</b><small class="notr">${esc(x.c.teacher || "Ustoz AI")}</small></span>${ic("chev", "chev")}</button>`).join("")}</div>`;
+        <span><em>${T(x.tag)}</em><b class="notr">${esc(x.c.title)}</b><small class="notr">${esc(x.c.teacher || "Ustoz AI")}</small></span>${ic("chev", "chev")}</button>`).join("")}
+      <a class="hv-studio" href="#/ariza" style="--i:${items.length}"><img src="img/tool-studio.webp" alt="" decoding="async"><span><b>${T("Bizda top universitetlarga hujjat tayyorlash uchun Application Studio ham bor")}</b><small>${T("Profil, insholar, tavsiyanomalar va muddatlar bir joyda")}</small></span>${ic("chev", "chev")}</a></div>`;
   }
   function Screen() {
     return `${navbar("Harvard Admission tips")}
@@ -47,8 +40,8 @@ const Harvard = (() => {
       <img class="hv-shield" src="img/hgse/harvard.webp" alt="Harvard" decoding="async">
       <small class="hv-kick">The Road to Harvard · ${T("Toshkent")}</small>
       <h2>Application Workshop</h2>
-      <p>${T("Garvard Ta'lim oliy maktabi qabul bo'limidan seminar: dasturlar, maqsad bayonoti, tavsiyanomalar, testlar va moliyaviy yordam.")}</p>
-      <span class="hv-author"><img src="img/hgse/rivkin.webp" alt="" decoding="async"><span><b>Stanislav Rivkin</b><small>Senior Associate Director of Admissions, HGSE</small></span></span>
+      <p>${T("Dasturlar, maqsadni to'g'ri ko'rsatish, tavsiyanomalar, testlar va moliyaviy yordam haqida")}</p>
+      <span class="hv-author"><img src="img/hgse/rivkin.webp" alt="" decoding="async"><span><b>Stanislav Rivkin</b><small>Senior Associate Director of Admissions</small><small>Harvard</small></span></span>
       <span class="hv-foot"><small>${T("40 sahifa · O'zbekcha va English")}</small><span class="hv-read">${T("O'qish")} ${ic("chev")}</span></span>
     </a>
     <section class="hv-help">

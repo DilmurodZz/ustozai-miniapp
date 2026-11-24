@@ -77,8 +77,7 @@ const adminCard = () => {
   if (!isAdmin()) return "";
   if (!adminInfo && !adminInfo_busy) loadAdminInfo(true);
   return `<div class="pf-cap">${T("Admin")}</div>
-  ${pfRow("users", "#DC2626", T("Foydalanuvchilar"), adminInfo ? T("{a} ta ochgan, {b} taga xabar yetadi", { a: fmtN(adminInfo.users), b: fmtN(adminInfo.reachable) }) : T("Yuklanmoqda…"), "location.hash='#/admin/users'")}
-  ${pfRow("send", "#E08A00", T("Barcha foydalanuvchilarga xabar"), T("Bot orqali har bir foydalanuvchiga"), "location.hash='#/admin/bc'")}
+  ${pfRow("send", "#E08A00", T("Barcha foydalanuvchilarga xabar"), adminInfo ? T("{n} kishiga yetib boradi", { n: fmtN(adminInfo.reachable) }) : T("Bot orqali har bir foydalanuvchiga"), "location.hash='#/admin/bc'")}
   ${pfRow("megaphone", "#7C3AED", T("Kanalga post"), (adminInfo && adminInfo.channel) || "@ustozai", "location.hash='#/admin/ch'")}
   ${pfRow("file", "#0891B2", T("Havolalar"), T("Nusxa olish yoki do'stlarga ulashish"), "location.hash='#/admin/links'")}
   <div class="pf-cap">${T("Sozlamalar")}</div>`;
@@ -102,6 +101,7 @@ function loadAdminInfo(quiet) {
   adminInfo_busy = true;
   adminFetch("info").then((j) => { adminInfo = j; if (location.hash.startsWith("#/admin") || location.hash === "#/profil") render(); }).catch((e) => { if (!quiet) toast(T("Xatolik: {e}", { e: e.message })); }).finally(() => { setTimeout(() => { adminInfo_busy = false; }, 5000); });
 }
+const admLink = ([l, u]) => `<div class="adm-link"><span><b>${l}</b><small>${u}</small></span><button class="icon-btn" onclick="admCopy('${u}')" aria-label="copy">${ic("file")}</button><button class="icon-btn" onclick="admShare('${u}')" aria-label="share">${ic("send")}</button></div>`;
 function AdminScreen(sec) {
   if (!isAdmin()) { location.replace("#/profil"); return ""; }
   if (!adminInfo && !adminInfo_busy) loadAdminInfo();
@@ -133,10 +133,14 @@ function AdminScreen(sec) {
     </div>`)],
   links: [T("Havolalar"), `<div class="card box">
     <h4>${ic("send")} ${T("Havolalar")}</h4><p>${T("Nusxa olish yoki do'stlarga ulashish")}</p>
-    ${[[T("Mini ilova"), APP_LINK], [T("Ustoz AI ilovasi (Android)"), PLAY_URL], [T("Ustoz AI ilovasi (iPhone)"), STORE_URL], [T("Ustoz AI kanali"), "https://t.me/ustozai"]]
-      .map(([l, u]) => `<div class="adm-link"><span><b>${l}</b><small>${u}</small></span><button class="icon-btn" onclick="admCopy('${u}')" aria-label="copy">${ic("file")}</button><button class="icon-btn" onclick="admShare('${u}')" aria-label="share">${ic("send")}</button></div>`).join("")}
+    <div class="adm-sub">${T("Ilova va kanal")}</div>
+    ${[[T("Mini ilova"), APP_LINK], [T("Ustoz AI ilovasi (Android)"), PLAY_URL], [T("Ustoz AI ilovasi (iPhone)"), STORE_URL], [T("Ustoz AI kanali"), "https://t.me/ustozai"]].map(admLink).join("")}
+    <div class="adm-sub">${T("Bo'limlar: havola shu bo'limni ochadi")}</div>
+    ${[[T("Kasb Kompasi"), "kompas"], [T("Kurslar"), "kurslar"], ["Harvard Admission tips", "harvard"], ["Application Studio", "ariza"], [T("CV, rezyume va obyektivka"), "cv"], [T("Tanlov"), "tanlov"], [T("Foydali vositalar"), "vositalar"], [T("Top 20 chegirmalar"), "chegirma"], [T("O'yin"), "oyin"]]
+      .map(([l, k]) => admLink([l, `${APP_LINK}?start=p_${k}`])).join("")}
   </div>`],
   };
+
   // one tool per page (from its Profil row); "#/admin" alone still shows all of them
   if (parts[sec]) return `${navbar(parts[sec][0])}${parts[sec][1]}`;
   return `${navbar(T("Admin bo'limi"))}${Object.values(parts).map((x) => x[1]).join("")}`;

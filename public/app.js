@@ -29,7 +29,7 @@ function toast(msg) {
 }
 
 /* ---------- theme ---------- */
-const THEMES = { blue: ["Ko'k", "#2748F5", "#6C95FF"], orange: ["To'q sariq", "#F2600C", "#FFB066"], green: ["Yashil", "#0B8F6A", "#5FD3AE"] };
+const THEMES = { blue: ["Ko'k", "#2748F5", "#6C95FF"], orange: ["To'q sariq", "#F2600C", "#FFB066"], green: ["Yashil", "#0B8F6A", "#5FD3AE"], bordo: ["Bordo", "#8B0920", "#D0475E"] };
 function applyTheme(name) {
   // another app on the same site address (dilmurodzz.github.io) once wrote its own colour name here: only known colours are used
   if (!THEMES[name]) name = "blue";
@@ -69,6 +69,8 @@ const ICONS = {
   briefcase: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  ext: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
   edit: '<path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   download: '<path d="M12 4v11M7 11l5 5 5-5M4 20h16"/>',
@@ -179,10 +181,13 @@ function Profil() {
   const theme = THEMES[store.get("theme", "blue")] ? store.get("theme", "blue") : "blue";
   const invited = store.get("invited", 1);
   const link = `https://t.me/${BOT}?start=ref_${user.id}`;
-  const avatar = `<div class="pf-ic pav">${user.photo_url ? `<img src="${esc(user.photo_url)}" alt="">` : esc((user.first_name || "U")[0])}</div>`;
   return `${navbar("Profil")}
+  <div class="card prof">
+    <div class="pav">${user.photo_url ? `<img src="${esc(user.photo_url)}" alt="">` : esc((user.first_name || "U")[0])}</div>
+    <h2>${esc(user.first_name)} ${esc(user.last_name || "")}</h2>
+    <small>${T("Ustoz AI ning qadrli o'quvchisi")}</small>
+  </div>
   <div class="pf-list">
-  ${pfRow("user", "#2748F5", `${esc(user.first_name)} ${esc(user.last_name || "")}`, user.username ? "@" + esc(user.username) : T("Ustoz AI o'quvchisi"), "", avatar)}
   ${statsCard()}
   ${adminCard()}
   ${pfRow("palette", "#7C3AED", T("Ilova rangi"), (THEMES[theme] || THEMES.blue)[0] + (colorCounts ? " · " + T("{n} kishi", { n: fmtN(colorCounts[theme] || 0) }) : ""), "pfColor()")}
@@ -272,7 +277,7 @@ function bindDuo() {
 const ROUTES = {
   "#/": Home, "#/kompas": () => needScript("kompas.js", "Compass", "Screen", T("Kasb Kompasi")), "#/natija": () => needScript("kompas.js", "Compass", "Result", T("Kasb Kompasi")), "#/tanlov": () => needScript("tanlov.js", "Contest", "Screen", T("Tanlov")), "#/profil": Profil,
   "#/kurslar": () => Kurslar.List(), "#/kurs": () => Kurslar.Detail(location.hash.slice(7)), "#/oyin": () => "", "#/mutolaa": () => Soon("mutolaa"),
-  "#/duo": DuoScreen, "#/chegirma": () => needScript("deals.js", "Deals", "Screen", T("Top 20 chegirmalar")), "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/dtm": () => needScript("study.js", "Study", "DTM", T("DTM ball kalkulyatori")), "#/ielts": () => needScript("study.js", "Study", "IELTS", T("IELTS ball kalkulyatori")), "#/unis": () => needScript("study.js", "Study", "Unis", T("Top 300 universitet va grantlar")), "#/admin": () => AdminScreen(), "#/admin/users": () => AdminScreen("users"), "#/admin/bc": () => AdminScreen("bc"), "#/admin/ch": () => AdminScreen("ch"), "#/admin/links": () => AdminScreen("links"), "#/workshop": () => needScript("workshop.js", "Workshop", "Screen", "Admission tips from Harvard"), "#/harvard": () => needScript("harvard.js", "Harvard", "Screen", "Harvard Admission tips"), "#/kashf": () => Soon("kashf"),
+  "#/duo": DuoScreen, "#/chegirma": () => needScript("deals.js", "Deals", "Screen", T("Top 20 chegirmalar")), "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/dtm": () => needScript("study.js", "Study", "DTM", T("DTM ball kalkulyatori")), "#/ielts": () => needScript("study.js", "Study", "IELTS", T("IELTS ball kalkulyatori")), "#/unis": () => needScript("study.js", "Study", "Unis", T("Top 300 universitet va grantlar")), "#/admin": () => AdminScreen(), "#/admin/users": () => AdminScreen("users"), "#/admin/bc": () => AdminScreen("bc"), "#/admin/ch": () => AdminScreen("ch"), "#/admin/links": () => AdminScreen("links"), "#/workshop": () => needScript("workshop.js", "Workshop", "Screen", "Admission tips from Harvard"), "#/harvard": () => needScript("harvard.js", "Harvard", "Screen", "Harvard Admission tips"), "#/ariza": () => needScript("ariza.js", "Ariza", "Screen", "Application Studio"), "#/muddatlar": () => needScript("ariza.js", "Ariza", "Deadlines", T("Muddatlar")), "#/kashf": () => Soon("kashf"),
 };
 let gameOn = false;
 // the 3D game is loaded on its own, after Home: it is not needed to open the app
@@ -374,7 +379,7 @@ window.addEventListener("DOMContentLoaded", () => {
   try { if (tg) { requestAnimationFrame(() => tg.ready()); setTimeout(() => tg.ready(), 400); } } catch {}
   // opened from a shared section link (t.me/<bot>?startapp=g_cefr): go there and glow it; "?shared=" works in a browser too
   const shared = startParam || new URLSearchParams(location.search).get("shared");
-  if (shared && /^[gdu]_[A-Za-z0-9_-]{1,40}$/.test(shared)) setTimeout(() => openShared(shared), 500);
+  if (shared && /^[gdup]_[A-Za-z0-9_-]{1,40}$/.test(shared)) setTimeout(() => openShared(shared), 500);
   // course data is fetched quietly in the background, so the Kurslar page opens complete in one go
   // course data and the CV maker come when the phone is idle (or at once when their page opens)
   const idle = (f, ms) => setTimeout(() => (window.requestIdleCallback || setTimeout)(f), ms);
@@ -587,8 +592,11 @@ window.shareSec = (key, title) => {
   openTg(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
 };
 // waits for the section to appear (its page may still be loading), then glows it green twice
+// pages a link can open directly (admin "Havolalar": t.me/<bot>?start=p_kompas)
+const PAGE_LINKS = { kompas: "#/kompas", kurslar: "#/kurslar", tanlov: "#/tanlov", harvard: "#/harvard", ariza: "#/ariza", cv: "#/cv", vositalar: "#/vositalar", chegirma: "#/chegirma", oyin: "#/oyin" };
 function openShared(key) {
   const [kind, id] = [key.slice(0, 1), key.slice(2)];
+  if (kind === "p") { if (PAGE_LINKS[id]) location.hash = PAGE_LINKS[id]; return; }
   const plan = kind === "g" ? { hash: "#/unis", prep: () => store.set("uni_tab", "grant"), find: () => { if (window.uniTab && !document.querySelector(".sd-g") && document.querySelector(".sd-tabs")) uniTab("grant"); return document.getElementById("g-" + id); } }
     : kind === "d" ? { hash: "#/chegirma", find: () => document.getElementById("d-" + id) }
     : kind === "u" ? { hash: "#/unis", prep: () => store.set("uni_tab", "top"), find: () => { if (window.uniOpen && !document.querySelector(".sd-uni") && document.querySelector(".sd-tabs")) uniTab("top"); return window.uniOpen && document.querySelector(".sd-uni") && document.getElementById("app"); } } : null;
@@ -630,6 +638,29 @@ window.kpSheet = (e) => {
 };
 // the test opens straight on the first question (or where the student stopped)
 window.kpGo = () => { store.set("kp_go", 1); closeSheet(); location.hash = "#/kompas"; };
+
+/* ---------- helpers for Application Studio (ariza.js) ---------- */
+// copying: the button that was pressed shows a green tick for a moment, so the student sees it worked
+window.evBtn = () => { const e = window.event; return (e && e.target && e.target.closest && e.target.closest("button")) || null; };
+window.copyTick = (b) => {
+  if (!b || b._ct) return; b._ct = 1; const old = b.innerHTML, icon = b.classList.contains("icon-btn");
+  b.classList.add("copied"); b.innerHTML = icon ? ic("check") : `${ic("check")} ${T("Nusxa olindi")}`; haptic("medium");
+  setTimeout(() => { b.innerHTML = old; b.classList.remove("copied"); b._ct = 0; }, 1600);
+};
+// "5-dekabr" style dates: browsers often have no Uzbek month names, so they are written here
+const UZ_MONTHS = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentyabr", "oktabr", "noyabr", "dekabr"];
+window.fmtDay = (d) => LANG === "uz" ? `${d.getDate()}-${UZ_MONTHS[d.getMonth()]}` : d.toLocaleDateString(LANG, { day: "numeric", month: "long" });
+// country names in Uzbek (the Top 300 table has them in English)
+const COUNTRY_UZ = { "United States": "AQSh", "United Kingdom": "Buyuk Britaniya", Germany: "Germaniya", China: "Xitoy", Australia: "Avstraliya", Canada: "Kanada", Netherlands: "Niderlandiya", "South Korea": "Janubiy Koreya", "Hong Kong": "Gonkong", Sweden: "Shvetsiya", Italy: "Italiya", Switzerland: "Shveytsariya", Japan: "Yaponiya", Belgium: "Belgiya", France: "Fransiya", Denmark: "Daniya", Austria: "Avstriya", Spain: "Ispaniya", Ireland: "Irlandiya", Finland: "Finlandiya", Norway: "Norvegiya", Malaysia: "Malayziya", Singapore: "Singapur", Qatar: "Qatar", Macao: "Makao", "Saudi Arabia": "Saudiya Arabistoni", Israel: "Isroil", "United Arab Emirates": "BAA", Taiwan: "Tayvan", Brazil: "Braziliya", "South Africa": "Janubiy Afrika", "New Zealand": "Yangi Zelandiya", Hungary: "Vengriya", Luxembourg: "Lyuksemburg", India: "Hindiston", Bahrain: "Bahrayn" };
+const cnUz = (c) => T(COUNTRY_UZ[c] || c);
+// the platform a university is usually applied through, from its country
+window.guessPlat = (country) => country === "United States" ? "commonapp" : country === "United Kingdom" ? "ucas" : country === "Germany" ? "daad" : "direct";
+window.appsAdd = (a) => {
+  const l = store.get("apps", []);
+  if (l.some((x) => x.name === a.name)) { toast(T("Bu universitet arizalaringizda bor")); return false; }
+  l.unshift(Object.assign({ id: Date.now(), status: "plan", docs: {}, deadline: "", country: "", site: "", plat: guessPlat(a.country) }, a));
+  store.set("apps", l); haptic("medium"); toast(T("Arizalarimga qo'shildi")); return true;
+};
 
 /* ---------- a bottom sheet for small choices ---------- */
 function sheet(html) {
