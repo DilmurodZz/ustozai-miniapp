@@ -31,6 +31,8 @@ function toast(msg) {
 /* ---------- theme ---------- */
 const THEMES = { blue: ["Ko'k", "#2748F5", "#6C95FF"], orange: ["To'q sariq", "#F2600C", "#FFB066"], green: ["Yashil", "#0B8F6A", "#5FD3AE"] };
 function applyTheme(name) {
+  // another app on the same site address (dilmurodzz.github.io) once wrote its own colour name here: only known colours are used
+  if (!THEMES[name]) name = "blue";
   document.body.dataset.theme = name;
   store.set("theme", name);
   try { tg.setHeaderColor("#F5F6FA"); tg.setBackgroundColor("#F5F6FA"); } catch {}
@@ -172,7 +174,7 @@ function Home() {
 const pfSec = (icon, color, title, sub, body, cls = "") => `<section class="pf-sec ${cls}" style="--sc:${color}"><div class="pf-h"><i class="pf-ic">${ic(icon)}</i><span><b>${title}</b>${sub ? `<small>${sub}</small>` : ""}</span></div>${body ? `<div class="pf-b">${body}</div>` : ""}</section>`;
 function Profil() {
   if (typeof loadColors === "function") setTimeout(loadColors, 0);
-  const theme = store.get("theme", "blue");
+  const theme = THEMES[store.get("theme", "blue")] ? store.get("theme", "blue") : "blue";
   const invited = store.get("invited", 1);
   const link = `https://t.me/${BOT}?start=ref_${user.id}`;
   return `${navbar("Profil")}
@@ -184,7 +186,7 @@ function Profil() {
   ${adminCard()}
   ${pfSec("palette", "#7C3AED", T("Ilova rangi"), T("O'zingizga yoqqan rangni tanlang"),
     (() => { const sw = ([k, [l, a, b]]) => `<i class="dd-sw" style="background:linear-gradient(135deg,${a},${b})"></i><b>${l}</b><small>${colorCounts ? T("{n} kishi", { n: fmtN(colorCounts[k] || 0) }) : ""}</small>`;
-      const cur = Object.entries(THEMES).find(([k]) => k === theme);
+      const cur = Object.entries(THEMES).find(([k]) => k === theme) || Object.entries(THEMES)[0];
       return `<details class="dd"><summary>${sw(cur)}${ic("chev", "dd-chev")}</summary><div class="dd-list">${Object.entries(THEMES).map((e) => `<button class="${e[0] === theme ? "on" : ""}" onclick="pickTheme('${e[0]}')">${sw(e)}${e[0] === theme ? ic("check", "dd-ok") : ""}</button>`).join("")}</div></details>`; })())}
   ${langCard()}
   ${startParam ? `<p class="note">Kirish manbasi: ${esc(startParam)}</p>` : ""}
