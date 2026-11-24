@@ -1490,4 +1490,5 @@ Object.assign(I18N.ru, {
 "Garvardning sun'iy intellekt xavfsizligi bo'yicha bepul kursi": "Бесплатный курс Гарварда по безопасности ИИ",
 "AI xavfsizligi · Garvard": "Безопасность ИИ · Гарвард",
 "Kelajakni kutmang. Uni o'zingiz quring.": "Не ждите будущего. Создайте его сами.",
+"Biz bilan bilim va ko'nikmalaringizni Oyga uchiring": "Поднимите свои знания и навыки до Луны вместе с нами",
 });

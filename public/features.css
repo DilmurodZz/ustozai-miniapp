@@ -1151,3 +1151,7 @@ html { -webkit-tap-highlight-color: transparent; }
   .lx-count, .lx-rocket, .lx-pad { display: none; }
   .lx-title img, .lx-title b, .lx-title span { opacity: 1; }
 }
+
+/* the canvas launch intro */
+.lx { animation: none; background: #02030A; }
+.lx canvas { display: block; }

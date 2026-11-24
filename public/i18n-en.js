@@ -1490,4 +1490,5 @@ Object.assign(I18N.en, {
 "Garvardning sun'iy intellekt xavfsizligi bo'yicha bepul kursi": "Harvard's free course on AI safety",
 "AI xavfsizligi · Garvard": "AI safety · Harvard",
 "Kelajakni kutmang. Uni o'zingiz quring.": "Don't wait for the future. Build it yourself.",
+"Biz bilan bilim va ko'nikmalaringizni Oyga uchiring": "Take your knowledge and skills to the Moon with us",
 });
