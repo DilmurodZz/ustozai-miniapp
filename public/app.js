@@ -357,18 +357,32 @@ if (tg) {
   try { tg.BackButton.onClick(goBack); } catch {}
   try { const top = tg.contentSafeAreaInset?.top + tg.safeAreaInset?.top; if (top) document.documentElement.style.setProperty("--tg-safe-top", top + "px"); } catch {}
 }
-// A short, calm intro on the first open of each day (Tashkent date), so every user sees it at least once a day.
+// The intro on the first open of each day (Tashkent date): a rocket launch. A 3-2-1 countdown, lift-off with flame and smoke,
+// stars streaking past, then the title. About 3.5 seconds; a tap skips it. Reduced-motion users get a short fade.
 (function intro() {
   const today = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
   if (store.get("intro_day", "") === today) return;
   store.set("intro_day", today);
+  const star = (n) => Array.from({ length: n }, () => `${Math.round(Math.random() * 100)}vw ${Math.round(Math.random() * 100)}vh ${Math.random() < .25 ? "#FFE7A3" : "#fff"}`).join(",");
   const el = document.createElement("div");
-  el.className = "intro";
-  el.innerHTML = `<div class="intro-in"><img src="logo.png" alt=""><b>USTOZ AI</b><span>Kelajak kasbingizni toping</span><i><em></em></i></div>`;
+  el.className = "lx";
+  el.innerHTML = `<div class="lx-sky"><i class="lx-st a" style="box-shadow:${star(70)}"></i><i class="lx-st b" style="box-shadow:${star(40)}"></i></div>
+    <div class="lx-count"><b>3</b><b>2</b><b>1</b></div>
+    <div class="lx-pad"><i class="lx-glow"></i>${[0, 1, 2, 3, 4, 5].map((k) => `<i class="lx-puff p${k}"></i>`).join("")}</div>
+    <div class="lx-rocket"><svg viewBox="0 0 60 140" aria-hidden="true">
+      <defs><linearGradient id="lxb" x1="0" x2="1"><stop offset="0" stop-color="#C9D3E6"/><stop offset=".45" stop-color="#FFFFFF"/><stop offset="1" stop-color="#AEB9CF"/></linearGradient>
+      <linearGradient id="lxf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF6C8"/><stop offset=".35" stop-color="#FFB627"/><stop offset="1" stop-color="#FF4D1A" stop-opacity="0"/></linearGradient></defs>
+      <path d="M30 2C44 18 48 44 48 70v34H12V70C12 44 16 18 30 2z" fill="url(#lxb)"/>
+      <path d="M30 2C38 11 42 22 44.5 34h-29C18 22 22 11 30 2z" fill="#2748F5"/>
+      <circle cx="30" cy="56" r="7.5" fill="#0B1033" stroke="#7FA2FF" stroke-width="2.5"/>
+      <path d="M12 84L0 108v8l12-6zM48 84l12 24v8l-12-6z" fill="#2748F5"/>
+      <rect x="20" y="104" width="20" height="8" rx="2" fill="#5B6478"/>
+      <path class="lx-fire" d="M20 112h20l-4 26q-6 8-12 0z" fill="url(#lxf)"/></svg></div>
+    <div class="lx-title"><img src="logo.png" alt=""><b>USTOZ AI</b><span>${T("Kelajakni kutmang. Uni o'zingiz quring.")}</span></div>`;
   document.body.appendChild(el);
-  const done = () => { if (el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => el.remove(), 600); };
+  const done = () => { if (el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => el.remove(), 500); };
   el.onclick = done;
-  setTimeout(done, 1100);
+  setTimeout(done, matchMedia("(prefers-reduced-motion: reduce)").matches ? 1400 : 3600);
 })();
 if ("serviceWorker" in navigator) {
   // app files are always fetched fresh (network first), so a new version shows without any reload

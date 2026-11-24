@@ -1489,4 +1489,5 @@ Object.assign(I18N.ru, {
 "Manba: Garvard universiteti, CS 2881R AI Safety kursi sayti. Auditoriyadagi darslar faqat ro'yxatdan o'tgan Garvard talabalari uchun, video va materiallar esa hamma uchun ochiq.": "Источник: Гарвардский университет, сайт курса CS 2881R AI Safety. Очные занятия только для зарегистрированных студентов Гарварда, а видео и материалы открыты для всех.",
 "Garvardning sun'iy intellekt xavfsizligi bo'yicha bepul kursi": "Бесплатный курс Гарварда по безопасности ИИ",
 "AI xavfsizligi · Garvard": "Безопасность ИИ · Гарвард",
+"Kelajakni kutmang. Uni o'zingiz quring.": "Не ждите будущего. Создайте его сами.",
 });
