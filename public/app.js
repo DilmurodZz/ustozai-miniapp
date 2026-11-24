@@ -359,9 +359,11 @@ if (tg) {
 }
 // The intro on the first open of each day (Tashkent date): a rocket launch. A 3-2-1 countdown, lift-off with flame and smoke,
 // stars streaking past, then the title. About 3.5 seconds; a tap skips it. Reduced-motion users get a short fade.
+// For now it plays on every open of the app. Set INTRO_DAILY to true to show it only on the first open of each day again.
+const INTRO_DAILY = false;
 (function intro() {
   const today = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
-  if (store.get("intro_day", "") === today) return;
+  if (INTRO_DAILY && store.get("intro_day", "") === today) return;
   store.set("intro_day", today);
   const star = (n) => Array.from({ length: n }, () => `${Math.round(Math.random() * 100)}vw ${Math.round(Math.random() * 100)}vh ${Math.random() < .25 ? "#FFE7A3" : "#fff"}`).join(",");
   const el = document.createElement("div");
