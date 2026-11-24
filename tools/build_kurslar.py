@@ -246,6 +246,27 @@ def load_vac(path):
   V = [dict(zip(h, r)) for r in rows if r and r[0]]
   return V, fx
 
+# the fields the matching rules use (also used by tools/check_kurslar.py, so both count the same way)
+def prep(v):
+  v["_t"] = str(v["job_title"] or "")
+  v["_role"] = int(v["role_id"]) if v["role_id"] not in (None, "") else None
+  v["_rem"] = str(v["remote"]) == "1" or "REMOTE" in str(v["work_format"] or "")
+  v["_sal"] = v["salary_mid_UZS"] if v["pay_mode"] == "MONTH" and isinstance(v["salary_mid_UZS"], (int, float)) and v["salary_mid_UZS"] > 0 else None
+
+# a course type's rule: True when the vacancy counts for it
+def matcher(g):
+  inc = re.compile(g["inc"], re.I) if g.get("inc") else None
+  exc = re.compile(g["exc"], re.I) if g.get("exc") else None
+  roles = set(g.get("roles", []))
+  def m(v):
+    t = v["_t"]
+    if exc and exc.search(t): return False
+    if g.get("remote"): return v["_rem"]
+    if g.get("noexp"): return v["experience"] == "noExperience"
+    if g.get("aiclass") and v["ai_class"] == g["aiclass"]: return True
+    return (v["_role"] in roles) or bool(inc and inc.search(t))
+  return m
+
 MIN_PAY = 3.5   # mln so'm a month: lower paid vacancies and ads are not shown
 
 def mln(x): return None if x is None else round(x / 1e6 * 2) / 2 if x >= 1e6 else round(x / 1e6, 1)
@@ -262,24 +283,7 @@ def main():
   # OLX ads collected on 16-17.11.2026 (OLX blocks scripted downloads, so the pool is kept in a file)
   pool = json.load(open(os.path.join(ROOT, "tools", "olx_pool.json"), encoding="utf-8"))
 
-  for v in V:
-    v["_t"] = str(v["job_title"] or "")
-    v["_role"] = int(v["role_id"]) if v["role_id"] not in (None, "") else None
-    v["_rem"] = str(v["remote"]) == "1" or "REMOTE" in str(v["work_format"] or "")
-    v["_sal"] = v["salary_mid_UZS"] if v["pay_mode"] == "MONTH" and isinstance(v["salary_mid_UZS"], (int, float)) and v["salary_mid_UZS"] > 0 else None
-
-  def matcher(g):
-    inc = re.compile(g["inc"], re.I) if g.get("inc") else None
-    exc = re.compile(g["exc"], re.I) if g.get("exc") else None
-    roles = set(g.get("roles", []))
-    def m(v):
-      t = v["_t"]
-      if exc and exc.search(t): return False
-      if g.get("remote"): return v["_rem"]
-      if g.get("noexp"): return v["experience"] == "noExperience"
-      if g.get("aiclass") and v["ai_class"] == g["aiclass"]: return True
-      return (v["_role"] in roles) or bool(inc and inc.search(t))
-    return m
+  for v in V: prep(v)
 
   need = set()
   def uz_title(t):
