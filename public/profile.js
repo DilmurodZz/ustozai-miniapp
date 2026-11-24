@@ -29,10 +29,10 @@ function loadStats(force) {
     if (changed && (location.hash === "#/profil" || location.hash === "#/admin")) render();
   }).catch(() => {});
 }
-function statsCard() {
+function statsBody() {
   setTimeout(loadStats, 0);
   const s = appStats;
-  if (!s) return pfSec("chart", "#2748F5", T("Ilova statistikasi"), T("Yuklanmoqda…"), "");
+  if (!s) return `<p class="note">${T("Yuklanmoqda…")}</p>`;
   const tile = (n, l, sub) => `<span class="st-tile"><b>${fmtN(n)}</b><small>${l}</small>${sub ? `<em>${sub}</em>` : ""}</span>`;
   // always the last 7 days, empty days as short grey bars
   const got = Object.fromEntries((s.days || []).map((d) => [d.d, d.n]));
@@ -40,7 +40,7 @@ function statsCard() {
   const max = Math.max(1, ...days.map((d) => d.n));
   const top = s.top || [], tmax = Math.max(1, ...top.map((t) => t.n)), names = SECTION_NAME();
   const wd = (d) => new Date(d + "T12:00:00").toLocaleDateString(LANG === "uz" ? "uz-Latn-UZ" : LANG, { weekday: "short" }).replace(".", "");
-  return pfSec("chart", "#2748F5", T("Ilova statistikasi"), T("Foydalanuvchilar va faol bo'limlar"), `
+  return `<div class="stats-card">
     <div class="st-grid">
       ${tile(s.total, T("Jami foydalanuvchilar"), s.newToday ? T("bugun +{n}", { n: fmtN(s.newToday) }) : "")}
       ${tile(s.dau, T("Bugun faol (DAU)"), T("kecha: {n}", { n: fmtN(s.dauYesterday) }))}
@@ -52,16 +52,21 @@ function statsCard() {
     ${top.length ? `<div class="st-sub">${T("Eng ko'p ochilgan bo'limlar (7 kun)")}</div>
     <div class="st-top">${top.map((t) => `<div><span>${esc(names[t.s] || t.s)}</span><i><em style="width:${(t.n / tmax) * 100}%"></em></i><b>${fmtN(t.n)}</b></div>`).join("")}</div>` : ""}
     <p class="st-note">${T("Har bir foydalanuvchi kuniga bir marta sanaladi. Hisob 17.11.2026 dan boshlangan.")}</p>
-  `, "stats-card");
+  </div>`;
 }
+// Profil row: same size as the others; the numbers open in a panel
+function statsCard() {
+  setTimeout(loadStats, 0);
+  return pfRow("chart", "#2748F5", T("Ilova statistikasi"), appStats ? T("{n} foydalanuvchi", { n: fmtN(appStats.total) }) : T("Yuklanmoqda…"), "pfStats()");
+}
+window.pfStats = () => { haptic("light"); sheet(`<h3>${T("Ilova statistikasi")}</h3>${statsBody()}`); };
 
 /* ---------- language ---------- */
-function langCard() {
-  return pfSec("globe", "#0FB07F", T("Ilova tili"), T("Interfeys tilini tanlang"),
-    `<div class="seg">${Object.entries(LANGS).map(([k, l]) => `<button class="${k === LANG ? "on" : ""}" onclick="setLang('${k}')">${l}</button>`).join("")}</div>`);
-}
+function langCard() { return pfRow("globe", "#0FB07F", T("Ilova tili"), LANGS[LANG], "pfLang()"); }
+window.pfLang = () => { haptic("light"); sheet(`<h3>${T("Ilova tili")}</h3><p>${T("Interfeys tilini tanlang")}</p>
+  <div class="pf-pick">${Object.entries(LANGS).map(([k, l]) => `<button class="${k === LANG ? "on" : ""}" onclick="closeSheet();setLang('${k}')"><b>${l}</b>${k === LANG ? ic("check") : ""}</button>`).join("")}</div>`); };
 
-const adminCard = () => isAdmin() ? `<a class="pf-sec pf-link" href="#/admin" style="--sc:#DC2626"><div class="pf-h"><i class="pf-ic">${ic("shield")}</i><span><b>${T("Admin bo'limi")}</b><small>${T("Xabar yuborish, kanalga post, havolalar")}</small></span>${ic("chev", "chev")}</div></a>` : "";
+const adminCard = () => isAdmin() ? pfRow("shield", "#DC2626", T("Admin bo'limi"), T("Xabar yuborish, kanalga post, havolalar"), "location.hash='#/admin'") : "";
 
 /* ---------- admin screen ---------- */
 let adminInfo = null, adminInfo_busy = false;

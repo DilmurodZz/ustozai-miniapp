@@ -170,29 +170,34 @@ function Home() {
 
 // Tanlov lives in tanlov.js (loaded when the page opens)
 
-// every Profil section is the same card: a coloured icon, a title with a short line under it, then its content
+// every Profil section is one row of the same size and shape: icon, title, one line, arrow; tapping opens its content
+const pfRow = (icon, color, title, sub, go, lead) => `<button class="pf-sec pf-row" style="--sc:${color}" ${go ? `onclick="${go}"` : "disabled"}>${lead || `<i class="pf-ic">${ic(icon)}</i>`}<span><b>${title}</b><small>${sub || ""}</small></span>${go ? ic("chev", "chev") : ""}</button>`;
+// (older card helper, kept for other pages): a coloured icon, a title with a short line under it, then its content
 const pfSec = (icon, color, title, sub, body, cls = "") => `<section class="pf-sec ${cls}" style="--sc:${color}"><div class="pf-h"><i class="pf-ic">${ic(icon)}</i><span><b>${title}</b>${sub ? `<small>${sub}</small>` : ""}</span></div>${body ? `<div class="pf-b">${body}</div>` : ""}</section>`;
 function Profil() {
   if (typeof loadColors === "function") setTimeout(loadColors, 0);
   const theme = THEMES[store.get("theme", "blue")] ? store.get("theme", "blue") : "blue";
   const invited = store.get("invited", 1);
   const link = `https://t.me/${BOT}?start=ref_${user.id}`;
+  const avatar = `<div class="pf-ic pav">${user.photo_url ? `<img src="${esc(user.photo_url)}" alt="">` : esc((user.first_name || "U")[0])}</div>`;
   return `${navbar("Profil")}
-  <section class="pf-sec pf-me"><div class="pf-h">
-    <div class="pav">${user.photo_url ? `<img src="${esc(user.photo_url)}" alt="">` : esc((user.first_name || "U")[0])}</div>
-    <span><b>${esc(user.first_name)} ${esc(user.last_name || "")}</b><small>${user.username ? "@" + esc(user.username) : T("Ustoz AI o'quvchisi")}</small></span>
-  </div></section>
+  <div class="pf-list">
+  ${pfRow("user", "#2748F5", `${esc(user.first_name)} ${esc(user.last_name || "")}`, user.username ? "@" + esc(user.username) : T("Ustoz AI o'quvchisi"), "", avatar)}
   ${statsCard()}
   ${adminCard()}
-  ${pfSec("palette", "#7C3AED", T("Ilova rangi"), T("O'zingizga yoqqan rangni tanlang"),
-    (() => { const sw = ([k, [l, a, b]]) => `<i class="dd-sw" style="background:linear-gradient(135deg,${a},${b})"></i><b>${l}</b><small>${colorCounts ? T("{n} kishi", { n: fmtN(colorCounts[k] || 0) }) : ""}</small>`;
-      const cur = Object.entries(THEMES).find(([k]) => k === theme) || Object.entries(THEMES)[0];
-      return `<details class="dd"><summary>${sw(cur)}${ic("chev", "dd-chev")}</summary><div class="dd-list">${Object.entries(THEMES).map((e) => `<button class="${e[0] === theme ? "on" : ""}" onclick="pickTheme('${e[0]}')">${sw(e)}${e[0] === theme ? ic("check", "dd-ok") : ""}</button>`).join("")}</div></details>`; })())}
+  ${pfRow("palette", "#7C3AED", T("Ilova rangi"), (THEMES[theme] || THEMES.blue)[0] + (colorCounts ? " · " + T("{n} kishi", { n: fmtN(colorCounts[theme] || 0) }) : ""), "pfColor()")}
   ${langCard()}
+  </div>
   ${startParam ? `<p class="note">Kirish manbasi: ${esc(startParam)}</p>` : ""}
   <p class="credit">O'yin 3D modellari (CC BY 4.0): own.guest, Nicholas-3D, Dimiter, Tom (trbaker), te1ko</p>`;
 }
-window.pickTheme = (k) => { applyTheme(k); haptic("medium"); render(); sendColor(); };
+window.pickTheme = (k) => { applyTheme(k); haptic("medium"); closeSheet(); render(); sendColor(); };
+window.pfColor = () => {
+  const theme = THEMES[store.get("theme", "blue")] ? store.get("theme", "blue") : "blue";
+  haptic("light");
+  sheet(`<h3>${T("Ilova rangi")}</h3><p>${T("O'zingizga yoqqan rangni tanlang")}</p>
+    <div class="pf-pick">${Object.entries(THEMES).map(([k, [l, a, b]]) => `<button class="${k === theme ? "on" : ""}" onclick="pickTheme('${k}')"><i class="dd-sw" style="background:linear-gradient(135deg,${a},${b})"></i><b>${l}</b><small>${colorCounts ? T("{n} kishi", { n: fmtN(colorCounts[k] || 0) }) : ""}</small>${k === theme ? ic("check") : ""}</button>`).join("")}</div>`);
+};
 // how many people chose each colour: real counts kept by the share server, one vote per Telegram user
 const fmtN = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 let colorCounts = store.get("color_counts", null);

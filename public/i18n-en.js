@@ -1179,4 +1179,5 @@ Object.assign(I18N.en, {
 "Ko'p savolga \"Hali bilmayman\" deb javob berdingiz. Quyidagi kurslar bilan tanishib chiqing yoki so'rovnomani qayta topshiring.": "You answered \"I don't know yet\" to many questions. Look through the courses below or take the questionnaire again.",
 "Tanlagan shartlaringizga mos kurs topilmadi. Narx chegarasi yoki mavzuni o'zgartirib ko'ring.": "No course fits the conditions you chose. Try changing the price limit or the topic.",
 "Mening yetakchi yo'nalishim: {p}. Sizga qaysi kurs mos? Kasb Kompasida 7 daqiqada bilib oling.": "My leading direction: {p}. Which course suits you? Find out in 7 minutes with the Career Compass.",
+"{n} foydalanuvchi": "{n} users",
 });

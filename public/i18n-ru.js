@@ -1179,4 +1179,5 @@ Object.assign(I18N.ru, {
 "Ko'p savolga \"Hali bilmayman\" deb javob berdingiz. Quyidagi kurslar bilan tanishib chiqing yoki so'rovnomani qayta topshiring.": "Вы ответили «Пока не знаю» на многие вопросы. Ознакомьтесь с курсами ниже или пройдите опрос заново.",
 "Tanlagan shartlaringizga mos kurs topilmadi. Narx chegarasi yoki mavzuni o'zgartirib ko'ring.": "Курсов под выбранные условия не найдено. Попробуйте изменить лимит цены или тему.",
 "Mening yetakchi yo'nalishim: {p}. Sizga qaysi kurs mos? Kasb Kompasida 7 daqiqada bilib oling.": "Моё ведущее направление: {p}. Какой курс подходит вам? Узнайте за 7 минут в Компасе профессий.",
+"{n} foydalanuvchi": "{n} пользователей",
 });

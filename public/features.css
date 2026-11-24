@@ -973,3 +973,22 @@ html { -webkit-tap-highlight-color: transparent; }
 .ask-btns .btn-ghost, .ask-btns .btn-primary { margin: 0; }
 /* lines of the Harvard book that are not shown in this app: blurred */
 .wb-blur { filter: blur(5px); pointer-events: none; }
+
+/* Profil: one list of rows, every row the same height and shape */
+.pf-list { display: grid; gap: 10px; margin-top: 4px; }
+.pf-row { display: flex; align-items: center; gap: 12px; width: 100%; height: 76px; margin: 0; padding: 0 14px; border: 0; font: inherit; color: var(--text); text-align: left; cursor: pointer; }
+.pf-row:disabled { cursor: default; opacity: 1; color: var(--text); }
+.pf-row:not(:disabled):active { transform: scale(.985); }
+.pf-row > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pf-row b { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-row small { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-row .chev { width: 18px; height: 18px; color: #A3A9B8; flex: none; }
+.pf-row .pav { background: var(--grad); color: #fff; font-size: 20px; font-weight: 700; overflow: hidden; }
+.pf-row .pav img { width: 100%; height: 100%; object-fit: cover; }
+.pf-pick { display: grid; gap: 8px; margin-top: 4px; }
+.pf-pick button { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 14px; border-radius: 16px; border: 2px solid var(--line); background: var(--card); font: inherit; color: var(--text); text-align: left; }
+.pf-pick button b { flex: 1; font-size: 15px; font-weight: 600; }
+.pf-pick button small { color: var(--muted); font-size: 12.5px; }
+.pf-pick button .ic { width: 20px; height: 20px; color: var(--p1); }
+.pf-pick button.on { border-color: var(--p1); background: var(--p-soft); }
+.sheet .stats-card .st-grid { margin-top: 8px; }
