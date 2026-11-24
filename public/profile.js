@@ -6,7 +6,7 @@ const APP_LINK = `https://t.me/${BOT}`;
 
 /* ---------- tracking ---------- */
 const SECTION_OF = { "#/": "home", "#/kompas": "kompas", "#/natija": "natija", "#/kurslar": "kurslar", "#/kurs": "kurs", "#/tanlov": "tanlov", "#/profil": "profil",
-  "#/oyin": "oyin", "#/duo": "duo", "#/vositalar": "vositalar", "#/cv": "cv", "#/chegirma": "chegirma", "#/admin": "admin", "#/workshop": "harvard", "#/harvard": "harvard" };
+  "#/oyin": "oyin", "#/duo": "duo", "#/vositalar": "vositalar", "#/cv": "cv", "#/chegirma": "chegirma", "#/admin": "admin", "#/workshop": "harvard", "#/harvard": "harvard", "#/ariza": "ariza", "#/aisafety": "aisafety" };
 const tkDay = () => new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);   // Tashkent date
 function track(route) {
   const s = SECTION_OF[route]; if (!s || !tg || !tg.initData) return;
@@ -17,7 +17,7 @@ function track(route) {
 
 /* ---------- statistics card ---------- */
 const SECTION_NAME = () => ({ kompas: T("Kasb Kompasi"), natija: T("Kompas natijasi"), kurslar: T("Kurslar"), kurs: T("Kurs sahifalari"), tanlov: T("Tanlov"), profil: T("Profil"),
-  oyin: T("O'yin"), duo: T("Do'st bilan o'yin"), vositalar: T("Foydali vositalar"), cv: T("CV va rezyume"), chegirma: T("Chegirmalar"), harvard: "Harvard Admission tips" });
+  oyin: T("O'yin"), duo: T("Do'st bilan o'yin"), vositalar: T("Foydali vositalar"), cv: T("CV va rezyume"), chegirma: T("Chegirmalar"), harvard: "Harvard Admission tips", ariza: "Application Studio", aisafety: "AI Safety · Harvard" });
 let appStats = store.get("app_stats", null), statsAt = 0;
 function loadStats(force) {
   if (!force && Date.now() - statsAt < 60e3) return;
@@ -136,7 +136,7 @@ function AdminScreen(sec) {
     <div class="adm-sub">${T("Ilova va kanal")}</div>
     ${[[T("Mini ilova"), APP_LINK], [T("Ustoz AI ilovasi (Android)"), PLAY_URL], [T("Ustoz AI ilovasi (iPhone)"), STORE_URL], [T("Ustoz AI kanali"), "https://t.me/ustozai"]].map(admLink).join("")}
     <div class="adm-sub">${T("Bo'limlar: havola shu bo'limni ochadi")}</div>
-    ${[[T("Kasb Kompasi"), "kompas"], [T("Kurslar"), "kurslar"], ["Harvard Admission tips", "harvard"], ["Application Studio", "ariza"], [T("CV, rezyume va obyektivka"), "cv"], [T("Tanlov"), "tanlov"], [T("Foydali vositalar"), "vositalar"], [T("Top 20 chegirmalar"), "chegirma"], [T("O'yin"), "oyin"]]
+    ${[[T("Kasb Kompasi"), "kompas"], [T("Kurslar"), "kurslar"], ["Harvard Admission tips", "harvard"], ["Application Studio", "ariza"], ["Harvard: AI security", "aisafety"], [T("CV, rezyume va obyektivka"), "cv"], [T("Tanlov"), "tanlov"], [T("Foydali vositalar"), "vositalar"], [T("Top 20 chegirmalar"), "chegirma"], [T("O'yin"), "oyin"]]
       .map(([l, k]) => admLink([l, `${APP_LINK}?start=p_${k}`])).join("")}
   </div>`],
   };

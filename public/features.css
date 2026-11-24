@@ -1063,3 +1063,48 @@ html { -webkit-tap-highlight-color: transparent; }
 .hv-studio small { font-size: 12.5px; color: var(--muted); }
 .hv-studio .chev { width: 18px; height: 18px; color: #8AA2D8; flex: none; }
 .adm-sub { margin: 14px 0 4px; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+
+/* Harvard free courses on AI security */
+.ais-cover { position: relative; display: block; width: 100%; padding: 0; border: 0; border-radius: 22px; overflow: hidden; background: #111; aspect-ratio: 16 / 9; box-shadow: 0 16px 30px -18px rgba(0,0,0,.55); }
+.ais-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ais-play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; background: rgba(139,9,32,.92); color: #fff; box-shadow: 0 8px 20px rgba(0,0,0,.35); }
+.ais-play .ic { width: 26px; height: 26px; margin-left: 3px; }
+.ais-badge { position: absolute; top: 12px; left: 12px; padding: 5px 11px; border-radius: 99px; background: #16A34A; color: #fff; font-size: 12px; font-weight: 800; letter-spacing: .03em; }
+.ais-head { padding: 16px 4px 4px; }
+.ais-head > small { font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #8B0920; }
+.ais-head h2 { margin: 4px 0 8px; font-size: 23px; line-height: 1.2; }
+.ais-head p { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--muted); }
+.ais-teacher { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 10px 12px; border-radius: 16px; background: var(--card); box-shadow: var(--shadow-card); }
+.ais-teacher > .ic { width: 22px; height: 22px; color: #8B0920; flex: none; }
+.ais-teacher b { display: block; font-size: 14.5px; } .ais-teacher small { font-size: 12.5px; color: var(--muted); }
+.btn-primary.ais-go { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 14px 0 4px; background: linear-gradient(180deg, #A3112B, #8B0920); box-shadow: 0 12px 24px -14px rgba(139,9,32,.8); }
+.btn-primary.ais-go .ic { width: 18px; height: 18px; }
+.ais-pt { margin-top: 12px; padding: 14px 16px; border-radius: 20px; background: var(--card); box-shadow: var(--shadow-card); }
+.ais-pt h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 15.5px; }
+.ais-pt h3 .ic { width: 20px; height: 20px; color: #8B0920; }
+.ais-pt p { margin: 0; font-size: 14.5px; line-height: 1.55; }
+.ais-pt .ais-small { margin-top: 8px; font-size: 13px; color: var(--muted); }
+.ais-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; }
+.ais-list li { position: relative; padding-left: 16px; font-size: 14px; line-height: 1.45; }
+.ais-list li::before { content: ""; position: absolute; left: 2px; top: .6em; width: 6px; height: 6px; border-radius: 50%; background: #8B0920; opacity: .7; }
+.ais-guests { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ais-guests span { padding: 10px; border-radius: 14px; background: #FBF8F3; border: 1px solid #EFE7DB; }
+.ais-guests b { display: block; font-size: 14px; } .ais-guests small { font-size: 12px; color: var(--muted); line-height: 1.3; }
+.ais-note { display: flex; gap: 10px; margin-top: 12px; padding: 12px 14px; border-radius: 16px; background: #FFF8E6; border: 1px solid #F6E3B4; }
+.ais-note .ic { width: 20px; height: 20px; color: #B7791F; flex: none; margin-top: 1px; }
+.ais-note p { margin: 0; font-size: 13.5px; line-height: 1.5; }
+.btn-ghost.ais-py { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
+.btn-ghost.ais-py .ic { width: 17px; height: 17px; }
+.ais-links { display: grid; gap: 8px; }
+.ais-link { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border: 0; border-radius: 18px; background: var(--card); box-shadow: var(--shadow-card); font: inherit; color: var(--text); text-align: left; }
+.ais-link:active { transform: scale(.99); }
+.ais-link i { width: 42px; height: 42px; flex: none; border-radius: 13px; display: grid; place-items: center; background: #F8E9EC; color: #8B0920; }
+.ais-link i .ic { width: 20px; height: 20px; }
+.ais-link.main i { background: #8B0920; color: #fff; }
+.ais-link > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ais-link b { font-size: 14.5px; } .ais-link small { font-size: 12.5px; color: var(--muted); }
+.ais-link .ext { width: 17px; height: 17px; color: #A3A9B8; flex: none; }
+@media (min-width: 700px) { .ais-guests { grid-template-columns: repeat(4, 1fr); } }
+.kp-restart { display: block; width: 100%; margin-top: 8px; padding: 12px; border: 0; background: none; font: inherit; font-size: 15px; font-weight: 600; color: rgba(255,255,255,.8); }
+.kp-again { margin-top: 2px; }
+.ais-badge { top: auto; bottom: 12px; }

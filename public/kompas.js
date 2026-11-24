@@ -256,10 +256,12 @@ const Compass = (() => {
   function Question() {
     const list = steps(), s = list[st.step], last = st.step + 1 >= list.length;
     const num = s.t === "q" ? s.i + 1 : s.x.n;
+    if (st.num !== num) { st.num = num; save(); }
     const head = `${navbar(T("Kasb Kompasi"))}
       <div class="kp-top"><span>${s.t === "q" ? T(THEMES[themeOf(s.i)].name) : T("Kurs tanlash shartlari")}</span><em>${num} / ${NSHOW}</em></div>
       <div class="progress kp-prog"><span style="width:${(st.step / list.length) * 100}%"></span></div>`;
     const back = st.step > 0 ? `<button class="kp-back" onclick="kpPrev()">${ic("back")} ${T("Oldingi savol")}</button>` : "";
+    const again = st.step > 0 ? `<button class="kp-back kp-again" onclick="kpAgain()">${ic("refresh")} ${T("Boshidan boshlash")}</button>` : "";
     if (s.t === "q") {
       const t = THEMES[themeOf(s.i)], q = QS[s.i], cur = st.a[s.i];
       // A-E = 4-0 points, F = not tried yet
@@ -271,7 +273,7 @@ const Compass = (() => {
       </div>
       <div class="kp-scale">${q.o.slice(0, 5).map((o, k) => `<button class="kp-opt kp-l ${isOn(k) ? "on" : ""}" style="--tc:${t.c}" onclick="kpAns(${val(k)})"><span class="kp-letter">${L[k]}</span><b>${T(o)}</b></button>`).join("")}</div>
       <button class="kp-skip kp-l ${isOn(5) ? "on" : ""}" onclick="kpAns('n')"><span class="kp-letter">F</span><span>${T(q.o[5])}</span></button>
-      ${nextBtn(cur !== undefined, last)}${back}`;
+      ${nextBtn(cur !== undefined, last)}${back}${again}`;
     }
     const x = s.x, cur = st.f[x.k];
     if (x.input) {
@@ -279,16 +281,18 @@ const Compass = (() => {
       <div class="kp-card fit"><div class="kp-th">${chip("search", "sm")}<small>${x.n}-${T("savol")}</small></div><h3>${T(x.q)}</h3><p class="kp-hint">${T(x.hint)}</p></div>
       <label class="kp-input">${ic("edit")}<input id="kp-topic" maxlength="60" placeholder="${T("Men qiziqqan mavzu")}" value="${esc(cur && cur !== "-" ? cur : "")}" autocomplete="off" oninput="kpTopic(this.value)"></label>
       <button class="kp-skip ${cur === "-" ? "on" : ""}" onclick="kpFit('topic','-')">${ic("compass")} ${T("Hali tanlamadim. Qiziqishlarimga qarab taklif bering.")}</button>
-      ${nextBtn(!!cur, last)}${back}`;
+      ${nextBtn(!!cur, last)}${back}${again}`;
     }
     return `${head}
     <div class="kp-card fit ${x.img ? "kp-pq" : ""}">${x.img ? pic(x.img) : ""}<div class="kp-th">${chip(x.icons[0], "sm")}<small>${x.n}-${T("savol")}${x.sub ? ` · ${T("qo'shimcha")}` : ""}</small></div><h3>${T(x.q)}</h3>${x.hint ? `<p class="kp-hint">${T(x.hint)}</p>` : ""}</div>
     <div class="kp-fit">${x.o.map((label, k) => `<button class="kp-opt ${cur === x.v[k] ? "on" : ""}" onclick="kpFit('${x.k}','${x.v[k]}')"><i>${ic(x.icons[k] || "check")}</i><b>${T(label)}</b></button>`).join("")}</div>
     ${x.k === "budget" && cur === "B" ? `<label class="kp-input">${ic("coin")}<input id="kp-sum" inputmode="numeric" placeholder="${T("Masalan, 300 000")}" value="${st.f.sum ? fmtN(st.f.sum) : ""}" autocomplete="off" oninput="kpSum(this.value)"><span>${T("so'm")}</span></label>` : ""}
-    ${nextBtn(cur !== undefined && !(x.k === "budget" && cur === "B" && !(Number(st.f.sum) > 0)), last)}${back}`;
+    ${nextBtn(cur !== undefined && !(x.k === "budget" && cur === "B" && !(Number(st.f.sum) > 0)), last)}${back}${again}`;
   }
+  // every answer is saved at once, so a student who leaves the app comes back to the same question
   function Screen() {
-    if (store.get("kp_go", 0)) { store.set("kp_go", 0); if (st.step < 0 || st.step >= steps().length) { st = fresh(); st.step = 0; save(); } }
+    const go = store.get("kp_go", 0);
+    if (go) { store.set("kp_go", 0); if (go === 2 || st.step < 0 || st.step >= steps().length) { st = fresh(); st.step = 0; save(); } }
     if (st.step < 0 || st.step >= steps().length) return Intro();
     return Question();
   }
@@ -310,6 +314,7 @@ const Compass = (() => {
     if (!ok) { toast(T("Avval javobni tanlang")); return; }
     haptic("medium"); next();
   };
+  window.kpAgain = () => confirmAsk(T("Javoblaringiz o'chadi va test boshidan boshlanadi. Davom etasizmi?"), T("Boshidan boshlash")).then((ok) => { if (ok) { st = fresh(); st.step = 0; save(); render(); window.scrollTo(0, 0); } });
   window.kpPrev = () => { if (st.step > 0) { st.step--; save(); haptic("light"); render(); } };
 
   /* ---------- result ---------- */

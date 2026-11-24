@@ -131,7 +131,7 @@ export default {
 };
 
 /* ---------- usage statistics ---------- */
-const SECTIONS = ["home", "kompas", "natija", "kurslar", "kurs", "tanlov", "profil", "oyin", "duo", "vositalar", "cv", "chegirma", "admin", "harvard"];
+const SECTIONS = ["home", "kompas", "natija", "kurslar", "kurs", "tanlov", "profil", "oyin", "duo", "vositalar", "cv", "chegirma", "admin", "harvard", "ariza", "aisafety"];
 const tashkentDay = (offsetDays = 0) => new Date(Date.now() + 5 * 3600e3 - offsetDays * 86400e3).toISOString().slice(0, 10);
 
 // the Mini App reports each section a user opens, at most once a day per section

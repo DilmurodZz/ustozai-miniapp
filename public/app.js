@@ -277,7 +277,7 @@ function bindDuo() {
 const ROUTES = {
   "#/": Home, "#/kompas": () => needScript("kompas.js", "Compass", "Screen", T("Kasb Kompasi")), "#/natija": () => needScript("kompas.js", "Compass", "Result", T("Kasb Kompasi")), "#/tanlov": () => needScript("tanlov.js", "Contest", "Screen", T("Tanlov")), "#/profil": Profil,
   "#/kurslar": () => Kurslar.List(), "#/kurs": () => Kurslar.Detail(location.hash.slice(7)), "#/oyin": () => "", "#/mutolaa": () => Soon("mutolaa"),
-  "#/duo": DuoScreen, "#/chegirma": () => needScript("deals.js", "Deals", "Screen", T("Top 20 chegirmalar")), "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/dtm": () => needScript("study.js", "Study", "DTM", T("DTM ball kalkulyatori")), "#/ielts": () => needScript("study.js", "Study", "IELTS", T("IELTS ball kalkulyatori")), "#/unis": () => needScript("study.js", "Study", "Unis", T("Top 300 universitet va grantlar")), "#/admin": () => AdminScreen(), "#/admin/users": () => AdminScreen("users"), "#/admin/bc": () => AdminScreen("bc"), "#/admin/ch": () => AdminScreen("ch"), "#/admin/links": () => AdminScreen("links"), "#/workshop": () => needScript("workshop.js", "Workshop", "Screen", "Admission tips from Harvard"), "#/harvard": () => needScript("harvard.js", "Harvard", "Screen", "Harvard Admission tips"), "#/ariza": () => needScript("ariza.js", "Ariza", "Screen", "Application Studio"), "#/muddatlar": () => needScript("ariza.js", "Ariza", "Deadlines", T("Muddatlar")), "#/kashf": () => Soon("kashf"),
+  "#/duo": DuoScreen, "#/chegirma": () => needScript("deals.js", "Deals", "Screen", T("Top 20 chegirmalar")), "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/dtm": () => needScript("study.js", "Study", "DTM", T("DTM ball kalkulyatori")), "#/ielts": () => needScript("study.js", "Study", "IELTS", T("IELTS ball kalkulyatori")), "#/unis": () => needScript("study.js", "Study", "Unis", T("Top 300 universitet va grantlar")), "#/admin": () => AdminScreen(), "#/admin/users": () => AdminScreen("users"), "#/admin/bc": () => AdminScreen("bc"), "#/admin/ch": () => AdminScreen("ch"), "#/admin/links": () => AdminScreen("links"), "#/workshop": () => needScript("workshop.js", "Workshop", "Screen", "Admission tips from Harvard"), "#/harvard": () => needScript("harvard.js", "Harvard", "Screen", "Harvard Admission tips"), "#/ariza": () => needScript("ariza.js", "Ariza", "Screen", "Application Studio"), "#/aisafety": () => needScript("aisafety.js", "AiSafety", "Screen", "AI Safety · Harvard"), "#/muddatlar": () => needScript("ariza.js", "Ariza", "Deadlines", T("Muddatlar")), "#/kashf": () => Soon("kashf"),
 };
 let gameOn = false;
 // the 3D game is loaded on its own, after Home: it is not needed to open the app
@@ -593,7 +593,7 @@ window.shareSec = (key, title) => {
 };
 // waits for the section to appear (its page may still be loading), then glows it green twice
 // pages a link can open directly (admin "Havolalar": t.me/<bot>?start=p_kompas)
-const PAGE_LINKS = { kompas: "#/kompas", kurslar: "#/kurslar", tanlov: "#/tanlov", harvard: "#/harvard", ariza: "#/ariza", cv: "#/cv", vositalar: "#/vositalar", chegirma: "#/chegirma", oyin: "#/oyin" };
+const PAGE_LINKS = { aisafety: "#/aisafety", kompas: "#/kompas", kurslar: "#/kurslar", tanlov: "#/tanlov", harvard: "#/harvard", ariza: "#/ariza", cv: "#/cv", vositalar: "#/vositalar", chegirma: "#/chegirma", oyin: "#/oyin" };
 function openShared(key) {
   const [kind, id] = [key.slice(0, 1), key.slice(2)];
   if (kind === "p") { if (PAGE_LINKS[id]) location.hash = PAGE_LINKS[id]; return; }
@@ -629,15 +629,18 @@ function glow(el) {
 /* ---------- Kasb Kompasi: the start panel from Home ---------- */
 window.kpSheet = (e) => {
   if (e) e.preventDefault(); haptic("light");
+  // a test left half way: the panel offers to go on from the same question
+  const st = store.get("kp_state", null), going = st && st.v === 2 && st.step >= 0 && st.num;
   sheet(`<div class="kp-sheet"><img src="img/kompas-start.webp" alt="" decoding="async">
     <h3>${T("Kasb Kompasi")}</h3>
-    <p>${T("Test taxminan 6-7 daqiqa davom etadi.")}</p>
-    <p>${T("Testni tugatishingiz bilan qiziqishlaringiz va ko'nikmalaringizga mos 3 ta kursni tavsiya qilamiz.")}</p>
-    <button class="btn-primary" onclick="kpGo()">${T("Boshlash")}</button></div>`);
+    ${going ? `<p>${T("Siz {n}-savolda to'xtagan edingiz. Javoblaringiz saqlangan.", { n: st.num })}</p>` : `<p>${T("Test taxminan 6-7 daqiqa davom etadi.")}</p>
+    <p>${T("Testni tugatishingiz bilan qiziqishlaringiz va ko'nikmalaringizga mos 3 ta kursni tavsiya qilamiz.")}</p>`}
+    <button class="btn-primary" onclick="kpGo(1)">${going ? T("Davom etish ({a} / {b})", { a: st.num, b: 29 }) : T("Boshlash")}</button>
+    ${going ? `<button class="kp-restart" onclick="kpGo(2)">${T("Boshidan boshlash")}</button>` : ""}</div>`);
   return false;
 };
-// the test opens straight on the first question (or where the student stopped)
-window.kpGo = () => { store.set("kp_go", 1); closeSheet(); location.hash = "#/kompas"; };
+// 1: start, or go on where the student stopped; 2: start again from the first question
+window.kpGo = (k) => { store.set("kp_go", k || 1); closeSheet(); location.hash = "#/kompas"; };
 
 /* ---------- helpers for Application Studio (ariza.js) ---------- */
 // copying: the button that was pressed shows a green tick for a moment, so the student sees it worked
