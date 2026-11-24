@@ -238,6 +238,7 @@ const Compass = (() => {
     <button class="kp-back" onclick="kpPrev()">${ic("back")} ${T("Oldingi savol")}</button>`;
   }
   function Screen() {
+    if (store.get("kp_go", 0)) { store.set("kp_go", 0); if (st.step < 0 || st.step >= N) { st = fresh(); st.step = 0; save(); } }
     if (st.step < 0 || st.step >= N) return Intro();
     return Question();
   }

@@ -144,10 +144,10 @@ window.goBack = () => { if (document.getElementById("sheet")) return closeSheet(
 
 /* ---------- screens ---------- */
 function Home() {
-  const tiles = [["game", "O'yin", "#/oyin", "k1"], ["zkt", "Tanlov", "#/tanlov", "k2"], ["sale", "Top 20 chegirmalar", "#/chegirma", "k3"], ["tools", "Foydali vositalar", "#/vositalar", "k4"]];
+  const tiles = [["zkt", "Tanlov", "#/tanlov", "k2"], ["sale", "Top 20 chegirmalar", "#/chegirma", "k3"], ["game", "O'yin", "#/oyin", "k1"], ["tools", "Foydali vositalar", "#/vositalar", "k4"]];
   return `
   <div class="topbar"><div class="brand"><img class="logo" src="logo.png" alt="">USTOZ AI</div><img class="partner" src="img/turonbank.png" alt="Turon Bank"></div>
-  <a class="hero2" href="#/kompas">
+  <a class="hero2" href="#/kompas" onclick="return kpSheet(event)">
     <img class="hero2-art" src="img/hero-compass.webp" alt="" decoding="async">
     <span class="hero2-tag">5 daqiqa</span>
     <h3>Kasb Kompasi</h3>
@@ -608,6 +608,19 @@ function glow(el) {
   setTimeout(() => el.classList.remove("shared-glow"), 2600);
   setTimeout(() => { tag.classList.add("out"); setTimeout(() => tag.remove(), 400); }, 6000);
 }
+
+/* ---------- Kasb Kompasi: the start panel from Home ---------- */
+window.kpSheet = (e) => {
+  if (e) e.preventDefault(); haptic("light");
+  sheet(`<div class="kp-sheet"><img src="img/kompas-start.webp" alt="" decoding="async">
+    <h3>${T("Kasb Kompasi")}</h3>
+    <p>${T("Test taxminan 6-7 daqiqa davom etadi.")}</p>
+    <p>${T("Testni tugatishingiz bilan qiziqishlaringiz va ko'nikmalaringizga mos 3 ta kursni tavsiya qilamiz.")}</p>
+    <button class="btn-primary" onclick="kpGo()">${T("Boshlash")}</button></div>`);
+  return false;
+};
+// the test opens straight on the first question (or where the student stopped)
+window.kpGo = () => { store.set("kp_go", 1); closeSheet(); location.hash = "#/kompas"; };
 
 /* ---------- a bottom sheet for small choices ---------- */
 function sheet(html) {

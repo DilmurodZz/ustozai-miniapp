@@ -34,6 +34,43 @@ const Contest = (() => {
     }).catch(() => { failed = true; if (!data && location.hash === "#/tanlov") render(); }).finally(() => { loadingNow = false; });
   }
   const all = () => (data && data.winners) || [];
+
+  /* ---------- Toshkent shahri, hududiy bosqich: scores of every participant (data/zk-toshkent.json) ---------- */
+  let tsh = store.get("zk_tsh", null), tshOpen = -1;
+  function loadTsh() {
+    fetch("data/zk-toshkent.json?t=" + Math.floor(Date.now() / 6e5)).then((r) => r.json()).then((d) => {
+      const changed = JSON.stringify(d) !== JSON.stringify(tsh); tsh = d; store.set("zk_tsh", d);
+      if (changed && location.hash === "#/tanlov") { const el = document.getElementById("zk-tsh"); if (el) el.outerHTML = tshHTML(); }
+    }).catch(() => {});
+  }
+  // order: final score, then criterion 1, then criterion 5 (the competition's own rule); equal on all three share a place
+  function tshRanked() {
+    const sum = (a) => a.reduce((x, y) => x + y, 0);
+    const done = tsh.rows.filter((r) => r.s).map((r) => ({ ...r, total: sum(r.s), fin: sum(r.s) + (r.bonus || 0) }))
+      .sort((a, b) => b.fin - a.fin || b.s[0] - a.s[0] || b.s[4] - a.s[4]);
+    done.forEach((r, i) => { const p = done[i - 1]; r.place = p && p.fin === r.fin && p.s[0] === r.s[0] && p.s[4] === r.s[4] ? p.place : i + 1; });
+    return { done, wait: tsh.rows.filter((r) => !r.s) };
+  }
+  function tshHTML() {
+    if (!tsh) return `<section class="zk-tsh" id="zk-tsh"><div class="busy-in"><div class="run-spin"></div></div></section>`;
+    const { done, wait } = tshRanked(), top = done.filter((r) => r.place <= 3);
+    const podium = [2, 1, 3].map((pl) => top.find((r) => r.place === pl)).filter(Boolean);
+    return `<section class="zk-tsh" id="zk-tsh">
+      <div class="zk-tsh-head">${chip("trophy", "sm")}<span><b>${T("Toshkent shahri: hududiy bosqich natijalari")}</b><small>${T(tsh.dir)} · ${T("{n} ishtirokchi", { n: tsh.rows.length })}</small></span></div>
+      <div class="zk-pod">${podium.map((r) => `<div class="zk-pod-c p${r.place}"><span class="zk-medal p${r.place}">${r.place}</span><b class="notr">${esc(r.n.split(" ").slice(0, 2).join(" "))}</b><small>${esc(r.t || "")}</small><em>${r.fin}</em><i>${r.place}</i></div>`).join("")}</div>
+      <div class="zk-tsh-list">${done.map((r, k) => `<button class="zk-trow ${tshOpen === k ? "on" : ""}" onclick="zkTsh(${k})">
+          <span class="zk-medal p${Math.min(r.place, 4)}">${r.place}</span>
+          <span class="notr"><b>${esc(r.n)}</b><small>${esc([r.t, r.b].filter(Boolean).join(" · "))}</small></span>
+          <em>${r.fin}<small>/100</small></em></button>
+          ${tshOpen === k ? `<div class="zk-crit">${tsh.criteria.map(([name, max], i) => `<div><span>${i + 1}. ${T(name)}</span><b>${r.s[i]}<small>/${max}</small></b><i style="--w:${(r.s[i] / max) * 100}%"></i></div>`).join("")}
+            ${r.bonus ? `<p>${T("Instagram bonusi")}: +${r.bonus}</p>` : ""}</div>` : ""}`).join("")}
+        ${wait.map((r) => `<div class="zk-trow wait"><span class="zk-medal p4">${ic("clock")}</span><span class="notr"><b>${esc(r.n)}</b><small>${esc(r.t || "")}</small></span><em class="w">${T("Ish topshirmagan")}</em></div>`).join("")}
+      </div>
+      <p class="zk-tsh-note">${T("Ballar jonli yangilanadi. 6 mezon, jami 100 ball va Instagram bonusi (+3).")} ${T("Oxirgi yangilanish")}: ${esc(tsh.updated)}</p>
+      <button class="btn-ghost zk-site" onclick="openExt('${encodeURIComponent(tsh.site)}')">${ic("globe")} ${T("Batafsil: zamonaviykasblar.uz")}</button>
+    </section>`;
+  }
+  window.zkTsh = (k) => { tshOpen = tshOpen === k ? -1 : k; haptic("light"); const el = document.getElementById("zk-tsh"); if (el) el.outerHTML = tshHTML(); };
   const count = (f) => all().filter(f).length;
 
   /* ---------- the road map: Tuman -> Viloyat -> Respublika -> Changan ---------- */
@@ -112,7 +149,7 @@ const Contest = (() => {
   const refreshList = () => { const el = document.getElementById("zk-list"); if (el) el.innerHTML = listHTML(); };
 
   function Screen() {
-    load();
+    load(); loadTsh();
     const d = DIRS(), cur = d.find((x) => x.k === dir) || d[0];
     const regions = [...new Set([...REGIONS, ...all().map((w) => w.r)])].sort((a, b) => a.localeCompare(b));
     return `${navbar(T("Tanlov"))}
@@ -120,6 +157,7 @@ const Contest = (() => {
       <img class="zk-logo" src="img/zk-logo-w.png" alt="Zamonaviy kasblar tanlovi 2026">
       ${roadMap()}
     </div>
+    ${tshHTML()}
     <div class="zk-dirs">${d.map((x) => `<button class="zk-dir ${x.k === dir ? "on" : ""}" style="--dc:${x.c}" onclick="zkDir('${x.k}')">
         <i>${ic(x.icon)}</i><b>${x.name}</b><small>${T("{n} g'olib", { n: fmtN(count((w) => w.d === x.k && w.s === stage)) })}</small></button>`).join("")}</div>
     <div class="seg zk-stages">${STAGES().map((s) => `<button class="${s.k === stage ? "on" : ""}" onclick="zkStage('${s.k}')">${s.name} <small>${count((w) => w.s === s.k && w.d === dir)}</small></button>`).join("")}</div>

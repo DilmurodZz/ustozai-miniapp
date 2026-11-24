@@ -1,0 +1,22 @@
+{
+  "title": "Toshkent shahri: hududiy bosqich natijalari",
+  "dir": "Eng yaxshi veb-sayt",
+  "updated": "24.11.2026, 18:07",
+  "site": "https://zamonaviykasblar.uz",
+  "criteria": [
+    ["Veb-saytning sifati va funksionalligi", 30], ["Dolzarbligi va mazmuni", 20], ["Dizayn va foydalanuvchi tajribasi", 10],
+    ["Taqdimot sifati", 10], ["Zamonaviy texnologiyalardan foydalanish", 20], ["Kreativlik va originallik", 10]
+  ],
+  "rows": [
+    { "n": "Xusanov Ibrohim Qodir o'g'li", "t": "Chilonzor" },
+    { "n": "Ikromov Bahodir", "t": "Bektemir", "b": "010 · Uyda ishlovchi ustaning buyurtmalar daftari", "s": [25, 15, 6, 10, 17, 8], "bonus": 0 },
+    { "n": "Nematjonov Akromjon G'olibbek o'g'li", "t": "Mirobod", "b": "005 · Qurilishdan ortgan materiallar savdosi", "s": [23, 19, 9, 8, 10, 10], "bonus": 0 },
+    { "n": "Amir Nigmanov Jamshidovich", "t": "Sergeli", "b": "006 · Kichik yuk uchun transport topish", "s": [25, 17, 10, 9, 13, 6], "bonus": 0 },
+    { "n": "Abrorov Baxtinur", "t": "Shayxontohur" },
+    { "n": "To'lqinov Abdunabi Anvar o'g'li", "t": "Yangihayot", "b": "002 · Birgalikda ulgurji xarid qilish", "s": [1, 1, 0, 0, 2, 2], "bonus": 0 },
+    { "n": "Abdujabborov Abdujalil", "t": "Yangihayot" },
+    { "n": "Shoymardonov Javlon", "t": "Yunusobod", "b": "003 · Xonalarni soatbay ijaraga olish", "s": [25, 20, 10, 9, 14, 5], "bonus": 0 },
+    { "n": "Omonov Nurabdulloh", "t": "", "b": "008 · Yetkazib beruvchilar narxlarini taqqoslash", "s": [22, 16, 9, 8, 15, 3], "bonus": 0 },
+    { "n": "Askarova Mehribon", "t": "", "b": "004 · Asbob-uskunalar ijarasi", "s": [21, 11, 9, 7, 14, 10], "bonus": 0 }
+  ]
+}
