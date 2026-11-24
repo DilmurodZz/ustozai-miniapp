@@ -20,7 +20,7 @@ const AiSafety = (() => {
   const block = (icon, title, body) => `<section class="ais-pt"><h3>${ic(icon)}${title}</h3>${body}</section>`;
   function Screen() {
     const L = LINKS();
-    return `${navbar("AI Safety · Harvard")}
+    return `${navbar(T("AI xavfsizligi · Garvard"))}
     <button class="ais-cover" onclick="${open(L[0].u)}" aria-label="${T("Barcha ma'ruzalar")}">
       <img src="https://i.ytimg.com/vi/j4WSktB5Ni0/maxresdefault.jpg" alt="" decoding="async">
       <span class="ais-play">${ic("play")}</span>
@@ -28,7 +28,7 @@ const AiSafety = (() => {
     </button>
     <div class="ais-head">
       <small>Harvard CS 2881R · Fall 2026</small>
-      <h2>Harvard free courses on AI security</h2>
+      <h2>${T("Garvardning sun'iy intellekt xavfsizligi bo'yicha bepul kursi")}</h2>
       <p>${T("Garvardning sun'iy intellekt xavfsizligi bo'yicha kursi. Ma'ruzalar YouTube'da, konspekt va taqdimotlar kurs saytida bepul.")}</p>
       <div class="ais-teacher">${ic("cap")}<span><b>Boaz Barak</b><small>${T("Garvard professori va OpenAI tadqiqotchisi")}</small></span></div>
     </div>

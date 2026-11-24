@@ -1487,4 +1487,6 @@ Object.assign(I18N.en, {
 "Kurs ingliz tilida va murakkab: Python, matematika va mashinali o'qitish asoslarini biladiganlar uchun. Yangi boshlayotgan bo'lsangiz, avval Ustoz AI'dagi Python va sun'iy intellekt kurslaridan boshlang.": "The course is in English and advanced: for people who know Python, maths and machine learning basics. If you are just starting, begin with the Python and AI courses in Ustoz AI.",
 "Ustoz AI: Python kursi (bepul)": "Ustoz AI: Python course (free)",
 "Manba: Garvard universiteti, CS 2881R AI Safety kursi sayti. Auditoriyadagi darslar faqat ro'yxatdan o'tgan Garvard talabalari uchun, video va materiallar esa hamma uchun ochiq.": "Source: Harvard University, CS 2881R AI Safety course site. In-person classes are only for registered Harvard students; videos and materials are open to everyone.",
+"Garvardning sun'iy intellekt xavfsizligi bo'yicha bepul kursi": "Harvard's free course on AI safety",
+"AI xavfsizligi · Garvard": "AI safety · Harvard",
 });
