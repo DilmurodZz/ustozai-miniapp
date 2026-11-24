@@ -1108,3 +1108,6 @@ html { -webkit-tap-highlight-color: transparent; }
 .kp-restart { display: block; width: 100%; margin-top: 8px; padding: 12px; border: 0; background: none; font: inherit; font-size: 15px; font-weight: 600; color: rgba(255,255,255,.8); }
 .kp-again { margin-top: 2px; }
 .ais-badge { top: auto; bottom: 12px; }
+/* news panel a little taller */
+.nw-card { min-height: 136px; padding: 16px 14px; }
+.nw-img { width: 100px; height: 100px; }
