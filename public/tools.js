@@ -199,6 +199,7 @@ const Tools = (() => {
     // every tool is the same card: picture, name, one line about it, order number
     const items = [
       { go: "location.hash='#/cv'", img: "img/tool-cv.webp", t: T("CV, rezyume va obyektivka"), d: T("Bepul, 3 tilda tayyorlang va sizga mos ishlarga ariza topshiring") },
+      { go: "location.hash='#/chegirma'", img: "img/ic-sale.webp", t: T("Top 20 chegirmalar"), d: T("Talabalar uchun eng foydali chegirmalar va bepul obunalar") },
       { go: "location.hash='#/dtm'", img: "img/tool-dtm.webp", t: T("DTM ball kalkulyatori"), d: T("Ballingizni hisoblang va qaysi OTMda grant yoki shartnomaga yetishini ko'ring") },
       { go: "location.hash='#/ielts'", img: "img/tool-ielts.webp", t: T("IELTS ball kalkulyatori"), d: T("To'g'ri javoblaringizdan har bir ko'nikma va umumiy bandni hisoblang") },
       { go: "location.hash='#/unis'", img: "img/tool-uni.webp", t: T("Top 300 universitet va grantlar"), d: T("THE reytingi, mahalliy grantlar, stipendiyalar va sertifikatlar") },

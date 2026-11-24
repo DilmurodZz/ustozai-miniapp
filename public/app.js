@@ -67,6 +67,8 @@ const ICONS = {
   briefcase: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   download: '<path d="M12 4v11M7 11l5 5 5-5M4 20h16"/>',
   file: '<path d="M6 3h8l5 5v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM14 3v5h5M9 13h6M9 17h6"/>',
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
@@ -134,7 +136,7 @@ const compassSVG = `<svg class="compass" viewBox="0 0 200 200" aria-hidden="true
 /* ---------- tab bar ---------- */
 const TABS = [["#/", "Asosiy", "home"], ["#/kurslar", "Kurslar", "play"], ["#/tanlov", "Tanlov", "trophy"], ["#/profil", "Profil", "user"]];
 function renderTabs(route) {
-  const hidden = ["#/kompas", "#/natija", "#/oyin", "#/duo"].includes(route);
+  const hidden = ["#/kompas", "#/natija", "#/oyin", "#/duo", "#/workshop"].includes(route);
   tabbar.classList.toggle("hide", hidden);
   tabbar.innerHTML = TABS.map(([h, l, i]) => `<a href="${h}" class="${h === route ? "on" : ""}">${ic(i)}<span>${l}</span></a>`).join("");
 }
@@ -144,12 +146,12 @@ window.goBack = () => { if (document.getElementById("sheet")) return closeSheet(
 
 /* ---------- screens ---------- */
 function Home() {
-  const tiles = [["zkt", "Tanlov", "#/tanlov", "k2"], ["sale", "Top 20 chegirmalar", "#/chegirma", "k3"], ["game", "O'yin", "#/oyin", "k1"], ["tools", "Foydali vositalar", "#/vositalar", "k4"]];
+  const tiles = [["zkt", "Tanlov", "#/tanlov", "k2"], ["harvard", "Harvard Admission tips", "#/workshop", "k3"], ["game", "O'yin", "#/oyin", "k1"], ["tools", "Foydali vositalar", "#/vositalar", "k4"]];
   return `
   <div class="topbar"><div class="brand"><img class="logo" src="logo.png" alt="">USTOZ AI</div><img class="partner" src="img/turonbank.png" alt="Turon Bank"></div>
   <a class="hero2" href="#/kompas" onclick="return kpSheet(event)">
     <img class="hero2-art" src="img/hero-compass.webp" alt="" decoding="async">
-    <span class="hero2-tag">5 daqiqa</span>
+    <span class="hero2-tag">${T("6-7 daqiqa")}</span>
     <h3>Kasb Kompasi</h3>
     <p>O'zingizga mos kasb va kurslarni toping</p>
     <span class="btn-orange">Boshlash ${ic("chev")}</span>
@@ -166,25 +168,24 @@ function Home() {
 
 // Tanlov lives in tanlov.js (loaded when the page opens)
 
+// every Profil section is the same card: a coloured icon, a title with a short line under it, then its content
+const pfSec = (icon, color, title, sub, body, cls = "") => `<section class="pf-sec ${cls}" style="--sc:${color}"><div class="pf-h"><i class="pf-ic">${ic(icon)}</i><span><b>${title}</b>${sub ? `<small>${sub}</small>` : ""}</span></div>${body ? `<div class="pf-b">${body}</div>` : ""}</section>`;
 function Profil() {
   if (typeof loadColors === "function") setTimeout(loadColors, 0);
   const theme = store.get("theme", "blue");
   const invited = store.get("invited", 1);
   const link = `https://t.me/${BOT}?start=ref_${user.id}`;
   return `${navbar("Profil")}
-  <div class="card prof">
+  <section class="pf-sec pf-me"><div class="pf-h">
     <div class="pav">${user.photo_url ? `<img src="${esc(user.photo_url)}" alt="">` : esc((user.first_name || "U")[0])}</div>
-    <h2>${esc(user.first_name)} ${esc(user.last_name || "")}</h2>
-    <small>${user.username ? "@" + esc(user.username) : "Ustoz AI o'quvchisi"}</small>
-  </div>
+    <span><b>${esc(user.first_name)} ${esc(user.last_name || "")}</b><small>${user.username ? "@" + esc(user.username) : T("Ustoz AI o'quvchisi")}</small></span>
+  </div></section>
   ${statsCard()}
   ${adminCard()}
-  <div class="card box">
-    <h4>${ic("palette")} Ilova rangi</h4><p>O'zingizga yoqqan rangni tanlang</p>
-    ${(() => { const sw = ([k, [l, a, b]]) => `<i class="dd-sw" style="background:linear-gradient(135deg,${a},${b})"></i><b>${l}</b><small>${colorCounts ? T("{n} kishi", { n: fmtN(colorCounts[k] || 0) }) : ""}</small>`;
+  ${pfSec("palette", "#7C3AED", T("Ilova rangi"), T("O'zingizga yoqqan rangni tanlang"),
+    (() => { const sw = ([k, [l, a, b]]) => `<i class="dd-sw" style="background:linear-gradient(135deg,${a},${b})"></i><b>${l}</b><small>${colorCounts ? T("{n} kishi", { n: fmtN(colorCounts[k] || 0) }) : ""}</small>`;
       const cur = Object.entries(THEMES).find(([k]) => k === theme);
-      return `<details class="dd"><summary>${sw(cur)}${ic("chev", "dd-chev")}</summary><div class="dd-list">${Object.entries(THEMES).map((e) => `<button class="${e[0] === theme ? "on" : ""}" onclick="pickTheme('${e[0]}')">${sw(e)}${e[0] === theme ? ic("check", "dd-ok") : ""}</button>`).join("")}</div></details>`; })()}
-  </div>
+      return `<details class="dd"><summary>${sw(cur)}${ic("chev", "dd-chev")}</summary><div class="dd-list">${Object.entries(THEMES).map((e) => `<button class="${e[0] === theme ? "on" : ""}" onclick="pickTheme('${e[0]}')">${sw(e)}${e[0] === theme ? ic("check", "dd-ok") : ""}</button>`).join("")}</div></details>`; })())}
   ${langCard()}
   ${startParam ? `<p class="note">Kirish manbasi: ${esc(startParam)}</p>` : ""}
   <p class="credit">O'yin 3D modellari (CC BY 4.0): own.guest, Nicholas-3D, Dimiter, Tom (trbaker), te1ko</p>`;
@@ -264,7 +265,7 @@ function bindDuo() {
 const ROUTES = {
   "#/": Home, "#/kompas": () => needScript("kompas.js", "Compass", "Screen", T("Kasb Kompasi")), "#/natija": () => needScript("kompas.js", "Compass", "Result", T("Kasb Kompasi")), "#/tanlov": () => needScript("tanlov.js", "Contest", "Screen", T("Tanlov")), "#/profil": Profil,
   "#/kurslar": () => Kurslar.List(), "#/kurs": () => Kurslar.Detail(location.hash.slice(7)), "#/oyin": () => "", "#/mutolaa": () => Soon("mutolaa"),
-  "#/duo": DuoScreen, "#/chegirma": () => needScript("deals.js", "Deals", "Screen", T("Top 20 chegirmalar")), "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/dtm": () => needScript("study.js", "Study", "DTM", T("DTM ball kalkulyatori")), "#/ielts": () => needScript("study.js", "Study", "IELTS", T("IELTS ball kalkulyatori")), "#/unis": () => needScript("study.js", "Study", "Unis", T("Top 300 universitet va grantlar")), "#/admin": () => AdminScreen(), "#/kashf": () => Soon("kashf"),
+  "#/duo": DuoScreen, "#/chegirma": () => needScript("deals.js", "Deals", "Screen", T("Top 20 chegirmalar")), "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/dtm": () => needScript("study.js", "Study", "DTM", T("DTM ball kalkulyatori")), "#/ielts": () => needScript("study.js", "Study", "IELTS", T("IELTS ball kalkulyatori")), "#/unis": () => needScript("study.js", "Study", "Unis", T("Top 300 universitet va grantlar")), "#/admin": () => AdminScreen(), "#/workshop": () => needScript("workshop.js", "Workshop", "Screen", "Admission tips from Harvard"), "#/kashf": () => Soon("kashf"),
 };
 let gameOn = false;
 // the 3D game is loaded on its own, after Home: it is not needed to open the app
@@ -327,6 +328,7 @@ function render() {
   if (newPage) { app.classList.remove("enter"); void app.offsetWidth; app.classList.add("enter"); }
   renderTabs(route === "#/kurs" ? "#/kurslar" : route);
   if (route === "#/") { bindBannerWheel(); bannerOrbit(); }
+  if (route === "#/workshop" && window.Workshop) Workshop.mount();
   if (route === "#/duo") bindDuo(); else if (duoSubs.length) { duoSubs.forEach((u) => u()); duoSubs = []; }
   try { route === "#/" ? tg.BackButton.hide() : tg.BackButton.show(); } catch {}
   track(route);
@@ -631,5 +633,5 @@ function sheet(html) {
   requestAnimationFrame(() => el.classList.add("on"));
   try { tg.BackButton.show(); } catch {}   // back closes this panel first
 }
-window.closeSheet = () => { const el = document.getElementById("sheet"); if (el) { el.classList.remove("on"); el.id = ""; setTimeout(() => el.remove(), 250); } try { if ((location.hash || "#/") === "#/") tg.BackButton.hide(); } catch {} };
+window.closeSheet = () => { if (window.askEnd) { const e = window.askEnd; window.askEnd = null; return e(false); } const el = document.getElementById("sheet"); if (el) { el.classList.remove("on"); el.id = ""; setTimeout(() => el.remove(), 250); } try { if ((location.hash || "#/") === "#/") tg.BackButton.hide(); } catch {} };
 window.openTg = (u) => { haptic("light"); if (tg && tg.openTelegramLink) tg.openTelegramLink(u); else window.open(u, "_blank"); };

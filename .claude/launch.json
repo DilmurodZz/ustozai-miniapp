@@ -4,8 +4,26 @@
     {
       "name": "miniapp",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8080", "--directory", "public"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8080",
+        "--directory",
+        "public"
+      ],
       "port": 8080
+    },
+    {
+      "name": "urganch",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8091",
+        "--directory",
+        "C:/Users/Dilmurod/Downloads/urganchmaktab-miniapp/public"
+      ],
+      "port": 8091
     }
   ]
 }

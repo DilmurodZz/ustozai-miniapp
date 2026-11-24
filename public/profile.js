@@ -6,7 +6,7 @@ const APP_LINK = `https://t.me/${BOT}`;
 
 /* ---------- tracking ---------- */
 const SECTION_OF = { "#/": "home", "#/kompas": "kompas", "#/natija": "natija", "#/kurslar": "kurslar", "#/kurs": "kurs", "#/tanlov": "tanlov", "#/profil": "profil",
-  "#/oyin": "oyin", "#/duo": "duo", "#/vositalar": "vositalar", "#/cv": "cv", "#/chegirma": "chegirma", "#/admin": "admin" };
+  "#/oyin": "oyin", "#/duo": "duo", "#/vositalar": "vositalar", "#/cv": "cv", "#/chegirma": "chegirma", "#/admin": "admin", "#/workshop": "harvard" };
 const tkDay = () => new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);   // Tashkent date
 function track(route) {
   const s = SECTION_OF[route]; if (!s || !tg || !tg.initData) return;
@@ -17,7 +17,7 @@ function track(route) {
 
 /* ---------- statistics card ---------- */
 const SECTION_NAME = () => ({ kompas: T("Kasb Kompasi"), natija: T("Kompas natijasi"), kurslar: T("Kurslar"), kurs: T("Kurs sahifalari"), tanlov: T("Tanlov"), profil: T("Profil"),
-  oyin: T("O'yin"), duo: T("Do'st bilan o'yin"), vositalar: T("Foydali vositalar"), cv: T("CV va rezyume"), chegirma: T("Chegirmalar") });
+  oyin: T("O'yin"), duo: T("Do'st bilan o'yin"), vositalar: T("Foydali vositalar"), cv: T("CV va rezyume"), chegirma: T("Chegirmalar"), harvard: "Harvard Admission tips" });
 let appStats = store.get("app_stats", null), statsAt = 0;
 function loadStats(force) {
   if (!force && Date.now() - statsAt < 60e3) return;
@@ -32,7 +32,7 @@ function loadStats(force) {
 function statsCard() {
   setTimeout(loadStats, 0);
   const s = appStats;
-  if (!s) return `<div class="card box"><h4>${ic("chart")} ${T("Ilova statistikasi")}</h4><p>${T("Yuklanmoqda…")}</p></div>`;
+  if (!s) return pfSec("chart", "#2748F5", T("Ilova statistikasi"), T("Yuklanmoqda…"), "");
   const tile = (n, l, sub) => `<span class="st-tile"><b>${fmtN(n)}</b><small>${l}</small>${sub ? `<em>${sub}</em>` : ""}</span>`;
   // always the last 7 days, empty days as short grey bars
   const got = Object.fromEntries((s.days || []).map((d) => [d.d, d.n]));
@@ -40,8 +40,7 @@ function statsCard() {
   const max = Math.max(1, ...days.map((d) => d.n));
   const top = s.top || [], tmax = Math.max(1, ...top.map((t) => t.n)), names = SECTION_NAME();
   const wd = (d) => new Date(d + "T12:00:00").toLocaleDateString(LANG === "uz" ? "uz-Latn-UZ" : LANG, { weekday: "short" }).replace(".", "");
-  return `<div class="card box stats-card">
-    <h4>${ic("chart")} ${T("Ilova statistikasi")}</h4>
+  return pfSec("chart", "#2748F5", T("Ilova statistikasi"), T("Foydalanuvchilar va faol bo'limlar"), `
     <div class="st-grid">
       ${tile(s.total, T("Jami foydalanuvchilar"), s.newToday ? T("bugun +{n}", { n: fmtN(s.newToday) }) : "")}
       ${tile(s.dau, T("Bugun faol (DAU)"), T("kecha: {n}", { n: fmtN(s.dauYesterday) }))}
@@ -53,24 +52,30 @@ function statsCard() {
     ${top.length ? `<div class="st-sub">${T("Eng ko'p ochilgan bo'limlar (7 kun)")}</div>
     <div class="st-top">${top.map((t) => `<div><span>${esc(names[t.s] || t.s)}</span><i><em style="width:${(t.n / tmax) * 100}%"></em></i><b>${fmtN(t.n)}</b></div>`).join("")}</div>` : ""}
     <p class="st-note">${T("Har bir foydalanuvchi kuniga bir marta sanaladi. Hisob 17.11.2026 dan boshlangan.")}</p>
-  </div>`;
+  `, "stats-card");
 }
 
 /* ---------- language ---------- */
 function langCard() {
-  return `<div class="card box">
-    <h4>${ic("globe")} ${T("Ilova tili")}</h4><p>${T("Interfeys tilini tanlang")}</p>
-    <div class="seg">${Object.entries(LANGS).map(([k, l]) => `<button class="${k === LANG ? "on" : ""}" onclick="setLang('${k}')">${l}</button>`).join("")}</div>
-  </div>`;
+  return pfSec("globe", "#0FB07F", T("Ilova tili"), T("Interfeys tilini tanlang"),
+    `<div class="seg">${Object.entries(LANGS).map(([k, l]) => `<button class="${k === LANG ? "on" : ""}" onclick="setLang('${k}')">${l}</button>`).join("")}</div>`);
 }
 
-const adminCard = () => isAdmin() ? `<a class="card list-item admin-entry" href="#/admin">${chip("shield", "sm admin-ic")}<span><b>${T("Admin bo'limi")}</b><small>${T("Xabar yuborish, kanalga post, havolalar")}</small></span>${ic("chev", "chev")}</a>` : "";
+const adminCard = () => isAdmin() ? `<a class="pf-sec pf-link" href="#/admin" style="--sc:#DC2626"><div class="pf-h"><i class="pf-ic">${ic("shield")}</i><span><b>${T("Admin bo'limi")}</b><small>${T("Xabar yuborish, kanalga post, havolalar")}</small></span>${ic("chev", "chev")}</div></a>` : "";
 
 /* ---------- admin screen ---------- */
 let adminInfo = null, adminInfo_busy = false;
 const adminFetch = (path, body) => fetch(SHARE_API + "/admin/" + path, body ? { method: "POST", headers: { "X-Init-Data": tg.initData, "Content-Type": "application/json" }, body: JSON.stringify(body) } : { headers: { "X-Init-Data": (tg && tg.initData) || "" } })
   .then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || r.status); return j; });
-const confirmAsk = (text) => new Promise((res) => { try { tg.showConfirm(text, res); } catch { res(window.confirm(text)); } });
+// a yes / no question as the app's own panel: the browser's confirm box shows the site address, so it is never used
+const confirmAsk = (text, yes) => new Promise((res) => {
+  let done = false; const end = (v) => { if (done) return; done = true; window.askEnd = null; closeSheet(); res(v); };
+  sheet(`<div class="ask"><i class="ask-ic">${ic("info")}</i><p>${esc(text)}</p>
+    <div class="ask-btns"><button class="btn-ghost" onclick="askEnd(false)">${T("Bekor qilish")}</button><button class="btn-primary" onclick="askEnd(true)">${esc(yes || T("Ha"))}</button></div></div>`);
+  window.askEnd = end;   // set after sheet(): opening a panel first closes the one before
+  // tapping outside the panel or the back button means "no"
+  const wrap = document.getElementById("sheet"); if (wrap) wrap.addEventListener("click", () => end(false), { once: true });
+});
 
 function AdminScreen() {
   if (!isAdmin()) { location.replace("#/profil"); return ""; }
