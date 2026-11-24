@@ -1491,4 +1491,6 @@ Object.assign(I18N.en, {
 "AI xavfsizligi · Garvard": "AI safety · Harvard",
 "Kelajakni kutmang. Uni o'zingiz quring.": "Don't wait for the future. Build it yourself.",
 "Biz bilan bilim va ko'nikmalaringizni Oyga uchiring": "Take your knowledge and skills to the Moon with us",
+"Oyga parvoz Yerdan boshlanadi.": "The flight to the Moon starts on Earth.",
+"Marsga esa: Ustoz AI’dan.": "And to Mars: from Ustoz AI.",
 });

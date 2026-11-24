@@ -357,196 +357,54 @@ if (tg) {
   try { tg.BackButton.onClick(goBack); } catch {}
   try { const top = tg.contentSafeAreaInset?.top + tg.safeAreaInset?.top; if (top) document.documentElement.style.setProperty("--tg-safe-top", top + "px"); } catch {}
 }
-// The intro: a slow-motion rocket launch toward the Moon, drawn on a canvas at the screen's full resolution.
-// Ignition, fire and smoke billowing out, a slow climb that leaves a smoke trail, then the burning edge writes the title
-// in cold, icy letters. About 6.5 seconds; a tap skips it. Reduced-motion users see the title only.
+// The intro: a 6-second cinematic rocket launch video (img/intro/launch.mp4, 1080x1920, silent, 1.6 MB).
+// The title is laid over the video by the app (sharp at any size), the phone vibrates with the launch
+// (Telegram haptics, synced to the video's own clock), and a white flash at the end opens the app.
+// The poster (first frame) shows at once; if the video cannot start within 2.5 s (slow network), the intro is skipped.
+// A tap skips it. Reduced-motion users skip it too.
 // For now it plays on every open of the app. Set INTRO_DAILY to true to show it only on the first open of each day again.
 const INTRO_DAILY = false;
 (function intro() {
   const today = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
   if (INTRO_DAILY && store.get("intro_day", "") === today) return;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   store.set("intro_day", today);
   const el = document.createElement("div");
-  el.className = "lx";
-  const cv = document.createElement("canvas"); el.appendChild(cv); document.body.appendChild(el);
-  const g = cv.getContext("2d");
-  const DPR = Math.min(window.devicePixelRatio || 1, 2.5);
-  let W = 0, H = 0;
-  const size = () => { W = innerWidth; H = innerHeight; cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); cv.style.width = W + "px"; cv.style.height = H + "px"; };
-  size();
-  const END = 6.6, reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let stopped = false;
-  const done = () => { if (el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => { stopped = true; el.remove(); }, 500); };
-  el.onclick = done;
-
-  const R = (a, b) => a + Math.random() * (b - a);
-  const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
-  // soft round textures drawn once, then stamped many times: fast enough for phones
-  const sprite = (stops) => { const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d"), gr = x.createRadialGradient(64, 64, 0, 64, 64, 64); stops.forEach(([o, col]) => gr.addColorStop(o, col)); x.fillStyle = gr; x.fillRect(0, 0, 128, 128); return c; };
-  const SP = {
-    hot: sprite([[0, "rgba(255,255,250,1)"], [.35, "rgba(255,240,200,.8)"], [1, "rgba(255,200,120,0)"]]),
-    amber: sprite([[0, "rgba(255,200,90,.95)"], [.45, "rgba(255,150,50,.5)"], [1, "rgba(255,110,30,0)"]]),
-    red: sprite([[0, "rgba(255,110,50,.7)"], [.5, "rgba(220,60,30,.3)"], [1, "rgba(160,30,20,0)"]]),
-    smoke: sprite([[0, "rgba(225,228,238,.9)"], [.45, "rgba(190,196,212,.55)"], [1, "rgba(150,158,180,0)"]]),
-    lit: sprite([[0, "rgba(255,190,120,.85)"], [.5, "rgba(230,150,100,.4)"], [1, "rgba(200,120,90,0)"]]),
+  el.className = "lv";
+  el.innerHTML = `<video class="lv-vid" src="img/intro/launch.mp4?v=1" poster="img/intro/launch.jpg" muted playsinline webkit-playsinline preload="auto" disablepictureinpicture></video>
+    <div class="lv-title"><p class="l1">${T("Oyga parvoz Yerdan boshlanadi.")}</p><p class="l2">${T("Marsga esa: Ustoz AI’dan.")}</p></div>
+    <i class="lv-flash"></i>`;
+  document.body.appendChild(el);
+  const v = el.querySelector("video");
+  v.muted = true;
+  let finished = false, started = false;
+  const done = () => {
+    if (finished) return; finished = true;
+    el.classList.add("out"); setTimeout(() => { try { v.pause(); v.removeAttribute("src"); v.load(); } catch {} el.remove(); }, 600);
   };
-  const stamp = (s, x, y, r, a) => { g.globalAlpha = a; g.drawImage(s, x - r, y - r, r * 2, r * 2); };
-  const stars = Array.from({ length: 200 }, () => ({ x: Math.random(), y: Math.random(), r: R(.3, 1.4), a: R(.35, 1), tw: R(0, 6.3) }));
-  const fire = [], smoke = [], embers = [];
-  const TITLE = T("Biz bilan bilim va ko'nikmalaringizni Oyga uchiring").split(" ");
-
-  // the title in up to three balanced lines, sized to the screen
-  let lines = [], fs = 30, lineY = [];
-  function layout() {
-    const maxW = Math.min(W * .86, 540);
-    fs = Math.round(clamp(W / 10.5, 24, 48));
-    for (;;) {
-      g.font = `800 ${fs}px Inter, system-ui, sans-serif`;
-      lines = []; let cur = "";
-      for (const w of TITLE) { const t = cur ? cur + " " + w : w; if (g.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t; }
-      lines.push(cur);
-      if (lines.length <= 3 || fs <= 20) break;
-      fs -= 2;
-    }
-    const lh = fs * 1.2, top = H * .46 - (lines.length - 1) * lh / 2;
-    lineY = lines.map((_, i) => top + i * lh);
-  }
-  layout();
-
-  // the rocket: a white booster with dark bands, grid fins and an engine bell, lit from the left; (0,0) is the engine
-  function rocket(h) {
-    const w = h * .17, nose = h * .2;
-    const body = g.createLinearGradient(-w / 2, 0, w / 2, 0);
-    body.addColorStop(0, "#8E9AB2"); body.addColorStop(.28, "#FFFFFF"); body.addColorStop(.6, "#E6EBF5"); body.addColorStop(1, "#6F7B93");
-    g.fillStyle = body;
-    g.beginPath(); g.moveTo(0, -h); g.bezierCurveTo(w * .5, -h + nose * .35, w / 2, -h + nose * .8, w / 2, -h + nose);
-    g.lineTo(w / 2, -h * .06); g.lineTo(-w / 2, -h * .06); g.lineTo(-w / 2, -h + nose); g.bezierCurveTo(-w / 2, -h + nose * .8, -w * .5, -h + nose * .35, 0, -h); g.fill();
-    const band = g.createLinearGradient(-w / 2, 0, w / 2, 0); band.addColorStop(0, "#0B1020"); band.addColorStop(.35, "#3A4156"); band.addColorStop(1, "#05070F");
-    g.fillStyle = band; g.fillRect(-w / 2, -h * .64, w, h * .07); g.fillRect(-w / 2, -h * .21, w, h * .045);
-    g.fillStyle = "#2748F5"; g.fillRect(-w / 2 + w * .08, -h * .46, w * .1, h * .17);
-    g.fillStyle = "#262C40";
-    g.beginPath(); g.moveTo(-w / 2, -h * .22); g.lineTo(-w, -h * .02); g.lineTo(-w, h * .02); g.lineTo(-w / 2, -h * .06); g.fill();
-    g.beginPath(); g.moveTo(w / 2, -h * .22); g.lineTo(w, -h * .02); g.lineTo(w, h * .02); g.lineTo(w / 2, -h * .06); g.fill();
-    const bell = g.createLinearGradient(-w * .4, 0, w * .4, 0); bell.addColorStop(0, "#1A1E2B"); bell.addColorStop(.5, "#555D76"); bell.addColorStop(1, "#11141E");
-    g.fillStyle = bell; g.beginPath(); g.moveTo(-w * .26, -h * .06); g.lineTo(w * .26, -h * .06); g.lineTo(w * .4, h * .03); g.lineTo(-w * .4, h * .03); g.fill();
-  }
-  function moon(t) {
-    const r = Math.min(W, H) * .085, mx = W * .78, my = H * .13;
-    const glow = g.createRadialGradient(mx, my, r * .6, mx, my, r * 3.2); glow.addColorStop(0, "rgba(200,215,255,.24)"); glow.addColorStop(1, "rgba(200,215,255,0)");
-    g.fillStyle = glow; g.beginPath(); g.arc(mx, my, r * 3.2, 0, 7); g.fill();
-    const m = g.createRadialGradient(mx - r * .35, my - r * .35, r * .1, mx, my, r); m.addColorStop(0, "#FBFCFF"); m.addColorStop(.7, "#D6DCE8"); m.addColorStop(1, "#97A2B8");
-    g.fillStyle = m; g.beginPath(); g.arc(mx, my, r, 0, 7); g.fill();
-    g.fillStyle = "rgba(115,125,150,.33)";
-    [[.3, -.2, .18], [-.25, .25, .14], [.1, .42, .1], [-.42, -.3, .09], [.46, .3, .07], [-.05, -.05, .06]].forEach(([a, b, c]) => { g.beginPath(); g.arc(mx + a * r, my + b * r, c * r, 0, 7); g.fill(); });
-    return [mx, my];
-  }
-
-  let t0 = 0, last = 0;
-  function frame(now) {
-    if (stopped) return;
-    if (!t0) { t0 = now; last = now; }
-    const t = reduced ? END - .6 : (now - t0) / 1000, dt = Math.min(.05, (now - last) / 1000); last = now;
-    if (cv.width !== Math.round(innerWidth * DPR)) { size(); layout(); }
-    g.setTransform(DPR, 0, 0, DPR, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
-    const shake = t > .9 && t < 2.8 ? (1 - Math.abs(t - 1.7) / 1.1) * 2.4 : 0;
-    g.save(); g.translate(R(-shake, shake), R(-shake, shake));
-    // sky, stars (they drift down as the rocket climbs), Moon
-    const sky = g.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, "#02030A"); sky.addColorStop(.55, "#070C24"); sky.addColorStop(1, "#16234F");
-    g.fillStyle = sky; g.fillRect(-10, -10, W + 20, H + 20);
-    const p = clamp((t - 1.25) / 2.6), climb = p * p * p;
-    for (const s of stars) {
-      g.globalAlpha = s.a * (.7 + .3 * Math.sin(t * 2 + s.tw)); g.fillStyle = s.r > 1.1 ? "#FFF3D6" : "#FFFFFF";
-      g.beginPath(); g.arc(s.x * W, (s.y * H + climb * H * .3 * s.r) % H, s.r, 0, 7); g.fill();
-    }
-    g.globalAlpha = 1;
-    const [mx, my] = moon(t);
-    // the rocket's path: up from the pad, leaning toward the Moon
-    const ground = H * .9, rh = clamp(H * .21, 120, 200);
-    const sx = W / 2, sy = ground, ex = mx - W * .05, ey = -rh * 1.3;
-    const rx = sx + (ex - sx) * climb * climb, ry = sy + (ey - sy) * climb;
-    const ang = Math.atan2(ex - sx, sy - ey) * clamp(climb * 3) * .9;
-    const engine = t > .8, visible = ry > -rh * 1.4;
-    const nzx = rx - Math.sin(ang) * 0, nzy = ry;            // nozzle at the rocket's origin
-    const dirx = -Math.sin(ang), diry = Math.cos(ang);         // exhaust direction (down along the rocket)
-    const heat = engine ? clamp((t - .8) / .35) * clamp(1 - (ground - ry) / (H * .7)) : 0;
-    // horizon glow lit by the engine, then the ground
-    const hz = g.createRadialGradient(sx, ground + 30, 10, sx, ground + 30, W);
-    hz.addColorStop(0, `rgba(255,150,60,${.6 * heat})`); hz.addColorStop(.45, `rgba(255,90,30,${.2 * heat})`); hz.addColorStop(1, "rgba(0,0,0,0)");
-    g.fillStyle = hz; g.fillRect(0, 0, W, H);
-    g.fillStyle = "#02040A"; g.fillRect(-10, ground, W + 20, H - ground + 10);
-    // new particles
-    if (engine && visible) {
-      const near = clamp(1 - (ground - ry) / (H * .3));
-      for (let k = 0; k < 12; k++) {
-        const sp = R(320, 560), sw = R(-.12, .12);
-        fire.push({ x: nzx + R(-2, 2), y: nzy, vx: (dirx + sw) * sp, vy: diry * sp, life: R(.28, .6), age: 0, s: R(9, 16) });
-      }
-      // billowing smoke at the pad while the rocket is low, then a thinner trail behind it
-      const n = near > .15 ? 6 : 3;
-      for (let k = 0; k < n; k++) {
-        if (near > .15) { const side = Math.random() < .5 ? -1 : 1; smoke.push({ x: sx + R(-10, 10), y: ground - R(0, 14), vx: side * R(70, 230), vy: R(-40, -8), life: R(2.6, 3.8), age: 0, s: R(22, 36), grow: R(45, 80), lit: 1 }); }
-        else smoke.push({ x: nzx + dirx * R(20, 60) + R(-6, 6), y: nzy + diry * R(20, 60), vx: R(-14, 14), vy: R(-6, 10), life: R(2.4, 3.4), age: 0, s: R(10, 18), grow: R(16, 28), lit: 0 });
-      }
-    }
-    // smoke: soft and lingering, warm-lit near the flame
-    for (let i = smoke.length - 1; i >= 0; i--) {
-      const q = smoke[i]; q.age += dt; if (q.age > q.life) { smoke.splice(i, 1); continue; }
-      q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= .986; q.vy *= .986;
-      const k = q.age / q.life, r = q.s + q.grow * q.age, a = .34 * (1 - k) * clamp(q.age * 5);
-      stamp(SP.smoke, q.x, q.y, r, a);
-      if (q.lit && heat > .05) stamp(SP.lit, q.x, q.y, r * .9, a * heat * .7);
-    }
-    // fire: additive light, white-hot, amber, then red as it cools
-    g.globalCompositeOperation = "lighter";
-    for (let i = fire.length - 1; i >= 0; i--) {
-      const f = fire[i]; f.age += dt; if (f.age > f.life) { fire.splice(i, 1); continue; }
-      f.x += f.vx * dt; f.y += f.vy * dt; f.vx *= .97; f.vy *= .97;
-      const k = f.age / f.life, r = f.s * (1 + k * 2.6);
-      stamp(k < .2 ? SP.hot : k < .55 ? SP.amber : SP.red, f.x, f.y, r, (1 - k) * .9);
-    }
-    if (engine && visible) {   // the bright core and a short flare at the nozzle
-      g.save(); g.translate(nzx, nzy); g.rotate(ang);
-      g.globalAlpha = .95; g.drawImage(SP.hot, -rh * .07, -rh * .02, rh * .14, rh * .62);
-      g.globalAlpha = .55; g.drawImage(SP.amber, -rh * .16, -rh * .1, rh * .32, rh * .5);
-      g.restore();
-    }
-    g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
-    if (visible) { g.save(); g.translate(rx, ry); g.rotate(ang); rocket(rh); g.restore(); }
-    // the title, once the rocket has climbed past: the burning edge writes it, the letters cool to icy white
-    const T0 = 3.45, per = .7;
-    g.font = `800 ${fs}px Inter, system-ui, sans-serif`; g.textAlign = "left"; g.textBaseline = "middle";
-    lines.forEach((ln, i) => {
-      const q = clamp((t - T0 - i * per) / per); if (q <= 0) return;
-      const tw = g.measureText(ln).width, x0 = (W - tw) / 2, y = lineY[i], edge = x0 + tw * q;
-      g.save(); g.beginPath(); g.rect(x0 - 12, y - fs, edge - x0 + 12, fs * 2); g.clip();
-      const cold = g.createLinearGradient(0, y - fs / 2, 0, y + fs / 2); cold.addColorStop(0, "#FFFFFF"); cold.addColorStop(.55, "#DCE7FF"); cold.addColorStop(1, "#97B2F2");
-      g.shadowColor = "rgba(120,165,255,.8)"; g.shadowBlur = 20; g.fillStyle = cold; g.fillText(ln, x0, y);
-      g.shadowBlur = 0; g.strokeStyle = "rgba(255,255,255,.3)"; g.lineWidth = 1; g.strokeText(ln, x0, y);
-      g.restore();
-      if (q < 1) {
-        g.globalCompositeOperation = "lighter";
-        stamp(SP.hot, edge, y, fs * .45, .9); stamp(SP.amber, edge, y, fs * 1.1, .7);
-        g.globalCompositeOperation = "source-over";
-        for (let k = 0; k < 4; k++) embers.push({ x: edge + R(-4, 4), y: y + R(-fs * .4, fs * .4), vx: R(-50, 25), vy: R(-70, -10), life: R(.5, 1.2), age: 0 });
-      }
-    });
-    g.globalCompositeOperation = "lighter";
-    for (let i = embers.length - 1; i >= 0; i--) {
-      const e = embers[i]; e.age += dt; if (e.age > e.life) { embers.splice(i, 1); continue; }
-      e.x += e.vx * dt; e.y += e.vy * dt; e.vy += 35 * dt;
-      const k = e.age / e.life; stamp(k < .4 ? SP.hot : SP.amber, e.x, e.y, 3.2 * (1 - k) + 1, 1 - k);
-    }
-    g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
-    const b = clamp((t - (T0 + lines.length * per + .1)) / .6);
-    if (b > 0) {
-      g.globalAlpha = b; g.font = `700 ${Math.round(fs * .42)}px Inter, system-ui, sans-serif`; g.textAlign = "center"; g.fillStyle = "rgba(220,230,255,.85)";
-      g.fillText("U S T O Z   A I", W / 2, lineY[lineY.length - 1] + fs * 1.3); g.globalAlpha = 1;
-    }
-    g.restore();
-    if (t >= END) { done(); return; }
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
+  el.onclick = done;
+  // haptics: a heavy hit at ignition, a rumble while the smoke billows, lighter pulses as it climbs, a sharp hit at the flash
+  const hap = (k) => { try { k === "rigid" || k === "heavy" || k === "medium" || k === "light" ? tg.HapticFeedback.impactOccurred(k) : 0; } catch {} };
+  let lastBeat = -1, hitIgn = false, hitFlash = false;
+  const tick = () => {
+    if (finished) return;
+    const t = v.currentTime;
+    if (t >= 1.0 && !hitIgn) { hitIgn = true; hap("heavy"); }
+    if (t > 1.05 && t < 2.6) { const b = Math.floor(t / .12); if (b !== lastBeat) { lastBeat = b; hap("medium"); } }
+    else if (t >= 2.6 && t < 3.9) { const b = Math.floor(t / .2); if (b !== lastBeat) { lastBeat = b; hap("light"); } }
+    if (t >= 3.6) el.classList.add("t1");
+    if (t >= 4.2) el.classList.add("t2");
+    if (t >= 5.55 && !hitFlash) { hitFlash = true; el.classList.add("flash"); hap("rigid"); setTimeout(done, 420); }
+  };
+  // driven by every frame for smooth haptics, and by the video's own time updates as a backup (a paused frame loop never stalls the title)
+  const loop = () => { if (finished) return; tick(); requestAnimationFrame(loop); };
+  v.addEventListener("timeupdate", tick);
+  v.addEventListener("playing", () => { if (!started) { started = true; el.classList.add("on"); requestAnimationFrame(loop); } });
+  v.addEventListener("ended", () => { if (!hitFlash) { el.classList.add("flash"); setTimeout(done, 420); } });
+  v.addEventListener("error", done);
+  const go = () => { const p = v.play(); if (p && p.catch) p.catch(done); };
+  if (v.readyState >= 3) go(); else v.addEventListener("canplay", go, { once: true });
+  setTimeout(() => { if (!started) done(); }, 2500);
 })();
 if ("serviceWorker" in navigator) {
   // app files are always fetched fresh (network first), so a new version shows without any reload

@@ -243,6 +243,10 @@ def load_vac(path):
   rows = ws.iter_rows(values_only=True)
   h = next(rows)
   fx = {r[0]: r[1] for r in wb["FX_rates"].iter_rows(min_row=2, values_only=True) if r[0] and isinstance(r[1], (int, float))}
+  # so'm is the base currency (a sheet may leave it out), and hh writes roubles as RUR while the CBU writes RUB
+  fx.setdefault("UZS", 1)
+  if "RUB" in fx: fx.setdefault("RUR", fx["RUB"])
+  if "RUR" in fx: fx.setdefault("RUB", fx["RUR"])
   V = [dict(zip(h, r)) for r in rows if r and r[0]]
   return V, fx
 
@@ -320,13 +324,14 @@ def main():
       named = re.compile(g["inc"], re.I) if g.get("inc") else None
       seen, shown, remote = set(), [], []
       for v in sorted(hit, key=lambda v: (str(v["published_at"])[:10] >= RECENT, bool(named and named.search(v["_t"])), str(v["published_at"])), reverse=True):
-        key = (v["_t"].lower(), str(v["employer_name"]).lower())
-        if key in seen: continue
+        # the same job reposted with slightly different wording reads the same in Uzbek: one of them is enough
+        key = (v["_t"].lower(), str(v["employer_name"]).lower()); key2 = (tr.get(v["_t"], v["_t"]).lower(), str(v["employer_name"]).lower())
+        if key in seen or key2 in seen: continue
         rate = fx.get(v["currency"]) if v["pay_mode"] == "MONTH" else None
         lo = mln(v["salary_from"] * rate) if rate and v["salary_from"] else None
         hi = mln(v["salary_to"] * rate) if rate and v["salary_to"] else None
         if (lo or hi or 0) < MIN_PAY: continue
-        seen.add(key)
+        seen.add(key); seen.add(key2)
         if len(shown) >= 10 and not (v["_rem"] and len(remote) < 8): continue
         j = dict(t=uz_title(v["_t"]), src=v["_t"], e=translit(str(v["employer_name"] or "")), c=city(v["city"]), u=v["url"], lo=lo, hi=hi, r=int(v["_rem"]), d=str(v["published_at"])[:10])
         (shown if len(shown) < 10 else remote).append(j)
@@ -382,7 +387,8 @@ def main():
   good = [c for c in jobc if groups[c["g"]]["related"] >= 100]
   summary = dict(old["summary"], analyzed=N, courses=len(courses), groups=len(groups), jobCourses=len(jobc),
                  avgDemand=avg, highDemandCourses=len(good),
-                 studentsHighDemand=round(st(good) / st(courses) * 100), uzsPerUsd=round(fx["USD"]))
+                 studentsHighDemand=round(st(good) / st(courses) * 100), uzsPerUsd=round(fx["USD"]),
+                 period=" - ".join(datetime.date.fromisoformat(d).strftime("%d.%m.%Y") for d in (min(str(v["published_at"])[:10] for v in V), last)))
   summary.pop("olxActive", None)
 
   if review:

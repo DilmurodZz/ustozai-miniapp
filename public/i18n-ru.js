@@ -1491,4 +1491,6 @@ Object.assign(I18N.ru, {
 "AI xavfsizligi · Garvard": "Безопасность ИИ · Гарвард",
 "Kelajakni kutmang. Uni o'zingiz quring.": "Не ждите будущего. Создайте его сами.",
 "Biz bilan bilim va ko'nikmalaringizni Oyga uchiring": "Поднимите свои знания и навыки до Луны вместе с нами",
+"Oyga parvoz Yerdan boshlanadi.": "Полёт на Луну начинается с Земли.",
+"Marsga esa: Ustoz AI’dan.": "А на Марс: с Ustoz AI.",
 });

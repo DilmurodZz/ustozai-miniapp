@@ -1,5 +1,5 @@
 // "Kurslar": every Ustoz AI course with its mentor, students and rating, and for each course a plain-language
-// explanation of what it teaches, how long it takes and how it can earn money, based on 11 088 hh.uz vacancies
+// explanation of what it teaches, how long it takes and how it can earn money, based on the hh.uz vacancies of the last 30 days (data/kurslar.json, summary.period)
 // plus OLX.uz job ads (data/kurslar.json, built by tools/build_kurslar.py: each course type counts only the vacancies that ask for that job or skill).
 const Kurslar = (() => {
   let data = null, loading = null, query = null, sort = null;
