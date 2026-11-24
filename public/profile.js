@@ -6,7 +6,7 @@ const APP_LINK = `https://t.me/${BOT}`;
 
 /* ---------- tracking ---------- */
 const SECTION_OF = { "#/": "home", "#/kompas": "kompas", "#/natija": "natija", "#/kurslar": "kurslar", "#/kurs": "kurs", "#/tanlov": "tanlov", "#/profil": "profil",
-  "#/oyin": "oyin", "#/duo": "duo", "#/vositalar": "vositalar", "#/cv": "cv", "#/chegirma": "chegirma", "#/admin": "admin", "#/workshop": "harvard" };
+  "#/oyin": "oyin", "#/duo": "duo", "#/vositalar": "vositalar", "#/cv": "cv", "#/chegirma": "chegirma", "#/admin": "admin", "#/workshop": "harvard", "#/harvard": "harvard" };
 const tkDay = () => new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);   // Tashkent date
 function track(route) {
   const s = SECTION_OF[route]; if (!s || !tg || !tg.initData) return;
@@ -26,7 +26,7 @@ function loadStats(force) {
     if (typeof s.total !== "number") return;
     const changed = JSON.stringify(s) !== JSON.stringify(appStats);
     appStats = s; store.set("app_stats", s);
-    if (changed && (location.hash === "#/profil" || location.hash === "#/admin")) render();
+    if (changed && (location.hash === "#/profil" || location.hash.startsWith("#/admin"))) render();
   }).catch(() => {});
 }
 function statsBody() {
@@ -49,9 +49,9 @@ function statsBody() {
     </div>
     ${days.some((d) => d.n) ? `<div class="st-sub">${T("Kunlik faol foydalanuvchilar")}</div>
     <div class="st-bars">${days.map((d) => `<span><i class="${d.n ? "" : "zero"}" style="height:${Math.max(6, (d.n / max) * 100)}%">${d.n ? `<b>${d.n}</b>` : ""}</i><small>${wd(d.d)}</small></span>`).join("")}</div>` : ""}
-    ${top.length ? `<div class="st-sub">${T("Eng ko'p ochilgan bo'limlar (7 kun)")}</div>
+    ${top.length ? `<div class="st-sub">${T("Eng ko'p ochilgan bo'limlar (7 kunda, kishi)")}</div>
     <div class="st-top">${top.map((t) => `<div><span>${esc(names[t.s] || t.s)}</span><i><em style="width:${(t.n / tmax) * 100}%"></em></i><b>${fmtN(t.n)}</b></div>`).join("")}</div>` : ""}
-    <p class="st-note">${T("Har bir foydalanuvchi kuniga bir marta sanaladi. Hisob 17.11.2026 dan boshlangan.")}</p>
+    <p class="st-note">${T("Har bir foydalanuvchi bir marta sanaladi: necha kishi ochgani ko'rsatilgan. Hisob 17.11.2026 dan boshlangan.")}</p>
   </div>`;
 }
 // Profil row: same size as the others; the numbers open in a panel
@@ -62,11 +62,27 @@ function statsCard() {
 window.pfStats = () => { haptic("light"); sheet(`<h3>${T("Ilova statistikasi")}</h3>${statsBody()}`); };
 
 /* ---------- language ---------- */
-function langCard() { return pfRow("globe", "#0FB07F", T("Ilova tili"), LANGS[LANG], "pfLang()"); }
+// small flags for the three interface languages (drawn, so they look the same on every phone)
+const FLAG = {
+  uz: '<svg class="flag" viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#fff"/><rect width="30" height="6.4" fill="#0099B5"/><rect y="13.6" width="30" height="6.4" fill="#1EB53A"/><rect y="6.4" width="30" height=".6" fill="#CE1126"/><rect y="13" width="30" height=".6" fill="#CE1126"/><circle cx="5.2" cy="3.2" r="2.2" fill="#fff"/><circle cx="6" cy="3.2" r="2" fill="#0099B5"/><g fill="#fff"><circle cx="9" cy="2" r=".45"/><circle cx="10.6" cy="2" r=".45"/><circle cx="12.2" cy="2" r=".45"/><circle cx="9" cy="3.5" r=".45"/><circle cx="10.6" cy="3.5" r=".45"/><circle cx="12.2" cy="3.5" r=".45"/><circle cx="10.6" cy="5" r=".45"/><circle cx="12.2" cy="5" r=".45"/></g></svg>',
+  ru: '<svg class="flag" viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#fff"/><rect y="6.67" width="30" height="6.67" fill="#0039A6"/><rect y="13.33" width="30" height="6.67" fill="#D52B1E"/></svg>',
+  en: '<svg class="flag" viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#012169"/><path d="M0 0L60 40M60 0L0 40" stroke="#fff" stroke-width="8"/><path d="M0 0L60 40M60 0L0 40" stroke="#C8102E" stroke-width="3"/><path d="M30 0V40M0 20H60" stroke="#fff" stroke-width="12"/><path d="M30 0V40M0 20H60" stroke="#C8102E" stroke-width="7"/></svg>',
+};
+function langCard() { return pfRow("globe", "#0FB07F", T("Ilova tili"), `<span class="pf-lang">${FLAG[LANG] || ""}${LANGS[LANG]}</span>`, "pfLang()"); }
 window.pfLang = () => { haptic("light"); sheet(`<h3>${T("Ilova tili")}</h3><p>${T("Interfeys tilini tanlang")}</p>
-  <div class="pf-pick">${Object.entries(LANGS).map(([k, l]) => `<button class="${k === LANG ? "on" : ""}" onclick="closeSheet();setLang('${k}')"><b>${l}</b>${k === LANG ? ic("check") : ""}</button>`).join("")}</div>`); };
+  <div class="pf-pick">${Object.entries(LANGS).map(([k, l]) => `<button class="${k === LANG ? "on" : ""}" onclick="closeSheet();setLang('${k}')">${FLAG[k]}<b>${l}</b>${k === LANG ? ic("check") : ""}</button>`).join("")}</div>`); };
 
-const adminCard = () => isAdmin() ? pfRow("shield", "#DC2626", T("Admin bo'limi"), T("Xabar yuborish, kanalga post, havolalar"), "location.hash='#/admin'") : "";
+// admins see each admin tool as its own Profil row, one tap away
+const adminCard = () => {
+  if (!isAdmin()) return "";
+  if (!adminInfo && !adminInfo_busy) loadAdminInfo(true);
+  return `<div class="pf-cap">${T("Admin")}</div>
+  ${pfRow("users", "#DC2626", T("Foydalanuvchilar"), adminInfo ? T("{a} ta ochgan, {b} taga xabar yetadi", { a: fmtN(adminInfo.users), b: fmtN(adminInfo.reachable) }) : T("Yuklanmoqda…"), "location.hash='#/admin/users'")}
+  ${pfRow("send", "#E08A00", T("Barcha foydalanuvchilarga xabar"), T("Bot orqali har bir foydalanuvchiga"), "location.hash='#/admin/bc'")}
+  ${pfRow("megaphone", "#7C3AED", T("Kanalga post"), (adminInfo && adminInfo.channel) || "@ustozai", "location.hash='#/admin/ch'")}
+  ${pfRow("file", "#0891B2", T("Havolalar"), T("Nusxa olish yoki do'stlarga ulashish"), "location.hash='#/admin/links'")}
+  <div class="pf-cap">${T("Sozlamalar")}</div>`;
+};
 
 /* ---------- admin screen ---------- */
 let adminInfo = null, adminInfo_busy = false;
@@ -82,12 +98,13 @@ const confirmAsk = (text, yes) => new Promise((res) => {
   const wrap = document.getElementById("sheet"); if (wrap) wrap.addEventListener("click", () => end(false), { once: true });
 });
 
-function AdminScreen() {
+function loadAdminInfo(quiet) {
+  adminInfo_busy = true;
+  adminFetch("info").then((j) => { adminInfo = j; if (location.hash.startsWith("#/admin") || location.hash === "#/profil") render(); }).catch((e) => { if (!quiet) toast(T("Xatolik: {e}", { e: e.message })); }).finally(() => { setTimeout(() => { adminInfo_busy = false; }, 5000); });
+}
+function AdminScreen(sec) {
   if (!isAdmin()) { location.replace("#/profil"); return ""; }
-  if (!adminInfo && !adminInfo_busy) {
-    adminInfo_busy = true;
-    adminFetch("info").then((j) => { adminInfo = j; if (location.hash === "#/admin") render(); }).catch((e) => toast(T("Xatolik: {e}", { e: e.message }))).finally(() => { setTimeout(() => { adminInfo_busy = false; }, 5000); });
-  }
+  if (!adminInfo && !adminInfo_busy) loadAdminInfo();
   loadStats();
   const courses = (Kurslar.data() && Kurslar.data().courses) || [];
   const box = (id, title, sub, extra) => `<div class="card box adm">
@@ -99,26 +116,30 @@ function AdminScreen() {
     <button class="btn-primary" onclick="admSend('${id}', '${id === "bc" ? "broadcast" : "channel"}')">${ic("send")} ${id === "bc" ? T("Hammaga yuborish") : T("Kanalga yuborish")}</button></div>
     <div class="adm-st" id="${id}-st"></div>
   </div>`;
-  return `${navbar(T("Admin bo'limi"))}
-  <div class="card box">
+  const parts = {
+  users: [T("Foydalanuvchilar"), `<div class="card box">
     <h4>${ic("users")} ${T("Foydalanuvchilar")}</h4>
     ${adminInfo ? `<div class="st-grid">
       <span class="st-tile"><b>${fmtN(adminInfo.users)}</b><small>${T("Mini ilovani ochgan")}</small></span>
       <span class="st-tile"><b>${fmtN(adminInfo.reachable)}</b><small>${T("Xabar yetib boradi")}</small></span>
     </div>` : `<p>${T("Yuklanmoqda…")}</p>`}
     <p class="st-note">${T("Bot faqat u bilan suhbatni boshlagan va botni bloklamagan foydalanuvchilarga xabar yubora oladi.")}</p>
-  </div>
-  ${box("bc", T("Barcha foydalanuvchilarga xabar"), T("Xabar bot orqali har bir foydalanuvchining shaxsiy chatiga boradi."))}
-  ${box("ch", T("Kanalga post: {c}", { c: (adminInfo && adminInfo.channel) || "@ustozai" }), T("Bot kanalda admin bo'lishi kerak (Post messages huquqi bilan)."),
+  </div>`],
+  bc: [T("Barcha foydalanuvchilarga xabar"), box("bc", T("Barcha foydalanuvchilarga xabar"), T("Xabar bot orqali har bir foydalanuvchining shaxsiy chatiga boradi."))],
+  ch: [T("Kanalga post"), box("ch", T("Kanalga post: {c}", { c: (adminInfo && adminInfo.channel) || "@ustozai" }), T("Bot kanalda admin bo'lishi kerak (Post messages huquqi bilan)."),
     `<div class="adm-tpl"><small>${T("Tayyor matnlar:")}</small>
       <button onclick="admTpl('app')">${T("Mini ilova")}</button><button onclick="admTpl('cv')">${T("CV yaratish")}</button><button onclick="admTpl('kompas')">${T("Kasb Kompasi")}</button>
       <select class="notr" onchange="admTpl('course', this.value)"><option value="">${T("Kursni ulashish…")}</option>${courses.slice().sort((a, b) => (b.students || 0) - (a.students || 0)).map((c) => `<option value="${c.id}">${esc(c.title.slice(0, 60))}</option>`).join("")}</select>
-    </div>`)}
-  <div class="card box">
+    </div>`)],
+  links: [T("Havolalar"), `<div class="card box">
     <h4>${ic("send")} ${T("Havolalar")}</h4><p>${T("Nusxa olish yoki do'stlarga ulashish")}</p>
     ${[[T("Mini ilova"), APP_LINK], [T("Ustoz AI ilovasi (Android)"), PLAY_URL], [T("Ustoz AI ilovasi (iPhone)"), STORE_URL], [T("Ustoz AI kanali"), "https://t.me/ustozai"]]
       .map(([l, u]) => `<div class="adm-link"><span><b>${l}</b><small>${u}</small></span><button class="icon-btn" onclick="admCopy('${u}')" aria-label="copy">${ic("file")}</button><button class="icon-btn" onclick="admShare('${u}')" aria-label="share">${ic("send")}</button></div>`).join("")}
-  </div>`;
+  </div>`],
+  };
+  // one tool per page (from its Profil row); "#/admin" alone still shows all of them
+  if (parts[sec]) return `${navbar(parts[sec][0])}${parts[sec][1]}`;
+  return `${navbar(T("Admin bo'limi"))}${Object.values(parts).map((x) => x[1]).join("")}`;
 }
 window.admCopy = (u) => { try { navigator.clipboard.writeText(u); toast(T("Nusxa olindi")); } catch { toast(u); } };
 window.admShare = (u) => { const url = `https://t.me/share/url?url=${encodeURIComponent(u)}`; if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank"); };

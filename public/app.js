@@ -148,7 +148,7 @@ window.goBack = () => { if (document.getElementById("sheet")) return closeSheet(
 
 /* ---------- screens ---------- */
 function Home() {
-  const tiles = [["zkt", "Tanlov", "#/tanlov", "k2"], ["harvard", "Harvard Admission tips", "#/workshop", "k3"], ["game", "O'yin", "#/oyin", "k1"], ["tools", "Foydali vositalar", "#/vositalar", "k4"]];
+  const tiles = [["zkt", "Tanlov", "#/tanlov", "k2"], ["harvard", "Harvard Admission tips", "#/harvard", "k3"], ["game", "O'yin", "#/oyin", "k1"], ["tools", "Foydali vositalar", "#/vositalar", "k4"]];
   return `
   <div class="topbar"><div class="brand"><img class="logo" src="logo.png" alt="">USTOZ AI</div><img class="partner" src="img/turonbank.png" alt="Turon Bank"></div>
   <a class="hero2" href="#/kompas" onclick="return kpSheet(event)">
@@ -272,7 +272,7 @@ function bindDuo() {
 const ROUTES = {
   "#/": Home, "#/kompas": () => needScript("kompas.js", "Compass", "Screen", T("Kasb Kompasi")), "#/natija": () => needScript("kompas.js", "Compass", "Result", T("Kasb Kompasi")), "#/tanlov": () => needScript("tanlov.js", "Contest", "Screen", T("Tanlov")), "#/profil": Profil,
   "#/kurslar": () => Kurslar.List(), "#/kurs": () => Kurslar.Detail(location.hash.slice(7)), "#/oyin": () => "", "#/mutolaa": () => Soon("mutolaa"),
-  "#/duo": DuoScreen, "#/chegirma": () => needScript("deals.js", "Deals", "Screen", T("Top 20 chegirmalar")), "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/dtm": () => needScript("study.js", "Study", "DTM", T("DTM ball kalkulyatori")), "#/ielts": () => needScript("study.js", "Study", "IELTS", T("IELTS ball kalkulyatori")), "#/unis": () => needScript("study.js", "Study", "Unis", T("Top 300 universitet va grantlar")), "#/admin": () => AdminScreen(), "#/workshop": () => needScript("workshop.js", "Workshop", "Screen", "Admission tips from Harvard"), "#/kashf": () => Soon("kashf"),
+  "#/duo": DuoScreen, "#/chegirma": () => needScript("deals.js", "Deals", "Screen", T("Top 20 chegirmalar")), "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/dtm": () => needScript("study.js", "Study", "DTM", T("DTM ball kalkulyatori")), "#/ielts": () => needScript("study.js", "Study", "IELTS", T("IELTS ball kalkulyatori")), "#/unis": () => needScript("study.js", "Study", "Unis", T("Top 300 universitet va grantlar")), "#/admin": () => AdminScreen(), "#/admin/users": () => AdminScreen("users"), "#/admin/bc": () => AdminScreen("bc"), "#/admin/ch": () => AdminScreen("ch"), "#/admin/links": () => AdminScreen("links"), "#/workshop": () => needScript("workshop.js", "Workshop", "Screen", "Admission tips from Harvard"), "#/harvard": () => needScript("harvard.js", "Harvard", "Screen", "Harvard Admission tips"), "#/kashf": () => Soon("kashf"),
 };
 let gameOn = false;
 // the 3D game is loaded on its own, after Home: it is not needed to open the app

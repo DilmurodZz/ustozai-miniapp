@@ -131,7 +131,7 @@ export default {
 };
 
 /* ---------- usage statistics ---------- */
-const SECTIONS = ["home", "kompas", "natija", "kurslar", "kurs", "tanlov", "profil", "oyin", "duo", "vositalar", "cv", "chegirma", "admin"];
+const SECTIONS = ["home", "kompas", "natija", "kurslar", "kurs", "tanlov", "profil", "oyin", "duo", "vositalar", "cv", "chegirma", "admin", "harvard"];
 const tashkentDay = (offsetDays = 0) => new Date(Date.now() + 5 * 3600e3 - offsetDays * 86400e3).toISOString().slice(0, 10);
 
 // the Mini App reports each section a user opens, at most once a day per section
@@ -160,7 +160,8 @@ async function stats(env) {
     one("SELECT COUNT(DISTINCT user_id) n FROM visits WHERE day >= ?1", d6),
     one("SELECT COUNT(DISTINCT user_id) n FROM visits WHERE day >= ?1", d29),
     one("SELECT COUNT(*) n FROM users WHERE first_seen >= ?1", new Date(Date.parse(d0 + "T00:00:00+05:00")).toISOString()),
-    env.DB.prepare("SELECT section s, COUNT(*) n FROM visits WHERE day >= ?1 AND section NOT IN ('home', 'admin') GROUP BY section ORDER BY n DESC LIMIT 6").bind(d6).all(),
+    // each person counts once per section over the 7 days, however many days they opened it
+    env.DB.prepare("SELECT section s, COUNT(DISTINCT user_id) n FROM visits WHERE day >= ?1 AND section NOT IN ('home', 'admin') GROUP BY section ORDER BY n DESC LIMIT 6").bind(d6).all(),
     env.DB.prepare("SELECT day d, COUNT(DISTINCT user_id) n FROM visits WHERE day >= ?1 GROUP BY day ORDER BY day").bind(d6).all(),
   ]);
   return { total, dau, dauYesterday: dauY, wau, mau, newToday, top: top.results, days: days.results, day: d0 };
