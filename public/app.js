@@ -138,7 +138,8 @@ const compassSVG = `<svg class="compass" viewBox="0 0 200 200" aria-hidden="true
   <circle cx="100" cy="100" r="5" fill="#fff" stroke="var(--p1)" stroke-width="2.5"/></svg>`;
 
 /* ---------- tab bar ---------- */
-const TABS = [["#/", "Asosiy", "home"], ["#/kurslar", "Kurslar", "play"], ["#/tanlov", "Tanlov", "trophy"], ["#/profil", "Profil", "user"]];
+// Tanlov opens from its Home tile; the bottom bar keeps three buttons
+const TABS = [["#/", "Asosiy", "home"], ["#/kurslar", "Kurslar", "play"], ["#/profil", "Profil", "user"]];
 function renderTabs(route) {
   const hidden = ["#/kompas", "#/natija", "#/oyin", "#/duo", "#/workshop"].includes(route);
   tabbar.classList.toggle("hide", hidden);
