@@ -357,10 +357,11 @@ if (tg) {
   try { tg.BackButton.onClick(goBack); } catch {}
   try { const top = tg.contentSafeAreaInset?.top + tg.safeAreaInset?.top; if (top) document.documentElement.style.setProperty("--tg-safe-top", top + "px"); } catch {}
 }
-// A short, calm intro the very first time someone opens the Mini App; never again after that.
+// A short, calm intro on the first open of each day (Tashkent date), so every user sees it at least once a day.
 (function intro() {
-  if (store.get("intro_seen", false)) return;
-  store.set("intro_seen", true);
+  const today = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
+  if (store.get("intro_day", "") === today) return;
+  store.set("intro_day", today);
   const el = document.createElement("div");
   el.className = "intro";
   el.innerHTML = `<div class="intro-in"><img src="logo.png" alt=""><b>USTOZ AI</b><span>Kelajak kasbingizni toping</span><i><em></em></i></div>`;
