@@ -532,9 +532,13 @@ Garvard qabul bo‘limi vakili Stanislav Rivkinning maslahatlari sizga dastur ta
 Grafik dizayn, mobilografiya va veb-sayt yaratiş bo‘yiça tanlov g‘oliblari bilan tanişib boring.
 
 👇 <b><a href="https://t.me/ustozaiminibot?startapp">Boşlaş uçun quyidagi tugmani bosing!</a></b>`, button: { text: "Ilovani ochish", url: "https://t.me/ustozaiminibot?startapp", style: "primary" } };
+// after an edit (/tahrir) the post's current text, formatting and picture are kept in KV post1:data
+const getPost = async (env) => { try { return (await env.COLORS.get("post1:data", "json")) || null; } catch { return null; } };
+const capOf = (p) => (p ? { caption: p.caption, caption_entities: p.entities || [] } : { caption: POST1.caption, parse_mode: "HTML" });
 async function inlineAnswer(env, url, q) {
-  const r = { type: "photo", id: "post1", photo_url: url.origin + "/p/post1.jpg", thumbnail_url: url.origin + "/p/post1.jpg", photo_width: 2560, photo_height: 1440,
-    title: "Ustoz AI mini ilovasi", description: "Post: rasm, matn va tugma", caption: POST1.caption, parse_mode: "HTML", reply_markup: { inline_keyboard: [[POST1.button]] } };
+  const p = await getPost(env), pic = p && p.photo ? { photo_file_id: p.photo }
+    : { photo_url: url.origin + "/p/post1.jpg", thumbnail_url: url.origin + "/p/post1.jpg", photo_width: 2560, photo_height: 1440 };
+  const r = { type: "photo", id: "post1", ...pic, title: "Ustoz AI mini ilovasi", description: "Post: rasm, matn va tugma", ...capOf(p), reply_markup: { inline_keyboard: [[POST1.button]] } };
   await tg(env.BOT_TOKEN, "answerInlineQuery", JSON.stringify({ inline_query_id: q.id, results: [r], cache_time: 300, is_personal: false }));
 }
 // /kanal: a channel admin opens the bot and sends /kanal; the bot shows the post with a "Kanalga joylash" button.
@@ -544,8 +548,9 @@ const isChanAdmin = async (env, uid) => {
   if (String(env.ADMIN_IDS || "").split(",").map((s) => Number(s.trim())).includes(Number(uid))) return true;
   try { const r = await tg(env.BOT_TOKEN, "getChatMember", JSON.stringify({ chat_id: env.CHANNEL, user_id: uid })); return ["creator", "administrator"].includes(r.status); } catch { return null; }   // null: the bot is not in the channel yet
 };
-const postPhoto = (env, url, chat, extra) => tg(env.BOT_TOKEN, "sendPhoto", JSON.stringify({ chat_id: chat, photo: url.origin + "/p/post1.jpg", caption: POST1.caption, parse_mode: "HTML",
-  reply_markup: { inline_keyboard: [[POST1.button], ...(extra || [])] } }));
+const postPhoto = async (env, url, chat, extra) => { const p = await getPost(env);
+  return tg(env.BOT_TOKEN, "sendPhoto", JSON.stringify({ chat_id: chat, photo: (p && p.photo) || url.origin + "/p/post1.jpg", ...capOf(p),
+    reply_markup: { inline_keyboard: [[POST1.button], ...(extra || [])] } })); };
 async function kanalCmd(env, url, m) {
   const ok = await isChanAdmin(env, m.from.id);
   if (!ok) return tg(env.BOT_TOKEN, "sendMessage", JSON.stringify({ chat_id: m.chat.id, text: ok === null
@@ -562,11 +567,48 @@ async function kanalTap(env, url, q) {
   let msg;
   try { msg = await postPhoto(env, url, env.CHANNEL); }
   catch { return say(`Avval botni ${env.CHANNEL} kanaliga admin qiling: "Post messages" va "Pin messages" huquqlari bilan. Keyin tugmani yana bosing.`, true); }
+  await env.COLORS.put("post1:msg", String(msg.message_id));   // the channel post /tahrir edits
   let pinned = true;
   try { await tg(env.BOT_TOKEN, "pinChatMessage", JSON.stringify({ chat_id: env.CHANNEL, message_id: msg.message_id, disable_notification: false })); } catch { pinned = false; }
   // the publish button goes away, so the post is not placed twice
   if (q.message) await tg(env.BOT_TOKEN, "editMessageReplyMarkup", JSON.stringify({ chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [[POST1.button]] } })).catch(() => {});
   await say(pinned ? "Post kanalga joylandi va pin qilindi." : `Post kanalga joylandi, lekin pin qilinmadi: botga "Pin messages" huquqini bering.`, true);
+}
+// /tahrir: a channel admin changes the channel post through the bot, so the "Ilovani ochish" button stays.
+// The admin sends the new text (bold, links and other formatting are kept); a photo with the text as its caption
+// replaces the picture too. /bekor cancels. The bot waits 15 minutes for the new text.
+const say = (env, chat, text) => tg(env.BOT_TOKEN, "sendMessage", JSON.stringify({ chat_id: chat, text }));
+async function tahrirCmd(env, m) {
+  const ok = await isChanAdmin(env, m.from.id);
+  if (ok === null) return say(env, m.chat.id, `Avval botni ${env.CHANNEL} kanaliga admin qiling: "Post messages", "Edit messages" va "Pin messages" huquqlari bilan.`);
+  if (!ok) return say(env, m.chat.id, `Bu buyruq faqat ${env.CHANNEL} kanali adminlari uchun.`);
+  if (!(await env.COLORS.get("post1:msg"))) return say(env, m.chat.id, "Kanalda hali bot joylagan post yo'q. Avval /kanal orqali postni joylang.");
+  await env.COLORS.put("edit:" + m.from.id, "1", { expirationTtl: 900 });
+  return say(env, m.chat.id, "Kanaldagi post uchun yangi matnni yuboring. Qalin yozuv, havolalar va boshqa formatlash saqlanadi, tugma joyida qoladi.
+
+Rasmni ham almashtirmoqchi bo'lsangiz, yangi rasmni matn bilan birga (rasm izohi sifatida) yuboring.
+
+Matn 1024 belgidan oshmasin. Bekor qilish: /bekor");
+}
+async function tahrirApply(env, m) {
+  await env.COLORS.delete("edit:" + m.from.id);
+  if (!(await isChanAdmin(env, m.from.id))) return say(env, m.chat.id, `Bu amal faqat ${env.CHANNEL} kanali adminlari uchun.`);
+  const photo = m.photo && m.photo.length ? m.photo[m.photo.length - 1].file_id : null;
+  const caption = photo ? m.caption || "" : m.text || "", entities = (photo ? m.caption_entities : m.entities) || [];
+  if (!caption.trim()) { await env.COLORS.put("edit:" + m.from.id, "1", { expirationTtl: 900 }); return say(env, m.chat.id, "Matn bo'sh. Yangi matnni yuboring yoki /bekor."); }
+  if (caption.length > 1024) { await env.COLORS.put("edit:" + m.from.id, "1", { expirationTtl: 900 }); return say(env, m.chat.id, `Matn ${caption.length} belgi, Telegram rasm ostidagi matnga 1024 belgigacha ruxsat beradi. Qisqartirib qayta yuboring yoki /bekor.`); }
+  const id = Number(await env.COLORS.get("post1:msg")), old = (await getPost(env)) || {}, kb = { inline_keyboard: [[POST1.button]] };
+  try {
+    if (photo) await tg(env.BOT_TOKEN, "editMessageMedia", JSON.stringify({ chat_id: env.CHANNEL, message_id: id, media: { type: "photo", media: photo, caption, caption_entities: entities }, reply_markup: kb }));
+    else await tg(env.BOT_TOKEN, "editMessageCaption", JSON.stringify({ chat_id: env.CHANNEL, message_id: id, caption, caption_entities: entities, reply_markup: kb }));
+  } catch (e) {
+    const d = String(e.message || e);
+    return say(env, m.chat.id, /not modified/.test(d) ? "Matn avvalgisi bilan bir xil, o'zgarish yo'q." : `Post yangilanmadi: ${d}
+
+Botda "Edit messages" huquqi borligini tekshiring.`);
+  }
+  await env.COLORS.put("post1:data", JSON.stringify({ caption, entities, photo: photo || old.photo || null }));
+  return say(env, m.chat.id, `${env.CHANNEL} kanalidagi post yangilandi. "Ilovani ochish" tugmasi joyida qoldi.`);
 }
 async function botHook(req, env, url) {
   const key = await hookKey(env.BOT_TOKEN || "");
@@ -576,6 +618,9 @@ async function botHook(req, env, url) {
     if (up.inline_query) { await inlineAnswer(env, url, up.inline_query); return new Response("ok"); }
     if (up.callback_query) { await kanalTap(env, url, up.callback_query); return new Response("ok"); }
     if (m && m.chat && m.chat.type === "private" && /^\/kanal(@\w+)?$/.test(String(m.text || "").trim())) { await kanalCmd(env, url, m); return new Response("ok"); }
+    if (m && m.chat && m.chat.type === "private" && /^\/tahrir(@\w+)?$/.test(String(m.text || "").trim())) { await tahrirCmd(env, m); return new Response("ok"); }
+    if (m && m.chat && m.chat.type === "private" && /^\/bekor(@\w+)?$/.test(String(m.text || "").trim())) { await env.COLORS.delete("edit:" + m.from.id); await say(env, m.chat.id, "Bekor qilindi."); return new Response("ok"); }
+    if (m && m.chat && m.chat.type === "private" && m.from && !String(m.text || "").startsWith("/") && (await env.COLORS.get("edit:" + m.from.id))) { await tahrirApply(env, m); return new Response("ok"); }
     if (m && m.chat && m.chat.type === "private" && typeof m.text === "string" && m.text.startsWith("/start")) {
       const payload = (m.text.split(" ")[1] || "").trim();
       const l = String((m.from && m.from.language_code) || "uz").slice(0, 2), tx = BOT_TEXT[l === "ru" ? "ru" : l === "en" ? "en" : "uz"];
