@@ -537,12 +537,45 @@ async function inlineAnswer(env, url, q) {
     title: "Ustoz AI mini ilovasi", description: "Post: rasm, matn va tugma", caption: POST1.caption, parse_mode: "HTML", reply_markup: { inline_keyboard: [[POST1.button]] } };
   await tg(env.BOT_TOKEN, "answerInlineQuery", JSON.stringify({ inline_query_id: q.id, results: [r], cache_time: 300, is_personal: false }));
 }
+// /kanal: a channel admin opens the bot and sends /kanal; the bot shows the post with a "Kanalga joylash" button.
+// One tap: the bot itself posts it in the channel (no "forwarded" line, the button stays) and pins it.
+// Only admins of the channel can use it; the bot must be a channel admin with the right to post and pin.
+const isChanAdmin = async (env, uid) => {
+  if (String(env.ADMIN_IDS || "").split(",").map((s) => Number(s.trim())).includes(Number(uid))) return true;
+  try { const r = await tg(env.BOT_TOKEN, "getChatMember", JSON.stringify({ chat_id: env.CHANNEL, user_id: uid })); return ["creator", "administrator"].includes(r.status); } catch { return null; }   // null: the bot is not in the channel yet
+};
+const postPhoto = (env, url, chat, extra) => tg(env.BOT_TOKEN, "sendPhoto", JSON.stringify({ chat_id: chat, photo: url.origin + "/p/post1.jpg", caption: POST1.caption, parse_mode: "HTML",
+  reply_markup: { inline_keyboard: [[POST1.button], ...(extra || [])] } }));
+async function kanalCmd(env, url, m) {
+  const ok = await isChanAdmin(env, m.from.id);
+  if (!ok) return tg(env.BOT_TOKEN, "sendMessage", JSON.stringify({ chat_id: m.chat.id, text: ok === null
+    ? `Avval botni ${env.CHANNEL} kanaliga admin qiling: kanal sozlamalari, Administratorlar, Admin qo'shish, @ustozaiminibot. "Post messages" va "Pin messages" huquqlarini yoqing. Keyin /kanal ni yana yuboring.`
+    : `Bu buyruq faqat ${env.CHANNEL} kanali adminlari uchun.` }));
+  await postPhoto(env, url, m.chat.id, [[{ text: `${env.CHANNEL} kanaliga joylash va pin qilish`, callback_data: "post1" }]]);
+}
+async function kanalTap(env, url, q) {
+  const say = (text, alert) => tg(env.BOT_TOKEN, "answerCallbackQuery", JSON.stringify({ callback_query_id: q.id, text, show_alert: !!alert })).catch(() => {});
+  if (q.data !== "post1") return say("");
+  const ok = await isChanAdmin(env, q.from.id);
+  if (ok === null) return say(`Avval botni ${env.CHANNEL} kanaliga admin qiling: "Post messages" va "Pin messages" huquqlari bilan.`, true);
+  if (!ok) return say(`Faqat ${env.CHANNEL} kanali adminlari joylay oladi.`, true);
+  let msg;
+  try { msg = await postPhoto(env, url, env.CHANNEL); }
+  catch { return say(`Avval botni ${env.CHANNEL} kanaliga admin qiling: "Post messages" va "Pin messages" huquqlari bilan. Keyin tugmani yana bosing.`, true); }
+  let pinned = true;
+  try { await tg(env.BOT_TOKEN, "pinChatMessage", JSON.stringify({ chat_id: env.CHANNEL, message_id: msg.message_id, disable_notification: false })); } catch { pinned = false; }
+  // the publish button goes away, so the post is not placed twice
+  if (q.message) await tg(env.BOT_TOKEN, "editMessageReplyMarkup", JSON.stringify({ chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [[POST1.button]] } })).catch(() => {});
+  await say(pinned ? "Post kanalga joylandi va pin qilindi." : `Post kanalga joylandi, lekin pin qilinmadi: botga "Pin messages" huquqini bering.`, true);
+}
 async function botHook(req, env, url) {
   const key = await hookKey(env.BOT_TOKEN || "");
   if (url.pathname !== "/tg/" + key || req.headers.get("X-Telegram-Bot-Api-Secret-Token") !== key) return new Response("no", { status: 403 });
   try {
     const up = await req.json(), m = up.message;
     if (up.inline_query) { await inlineAnswer(env, url, up.inline_query); return new Response("ok"); }
+    if (up.callback_query) { await kanalTap(env, url, up.callback_query); return new Response("ok"); }
+    if (m && m.chat && m.chat.type === "private" && /^\/kanal(@\w+)?$/.test(String(m.text || "").trim())) { await kanalCmd(env, url, m); return new Response("ok"); }
     if (m && m.chat && m.chat.type === "private" && typeof m.text === "string" && m.text.startsWith("/start")) {
       const payload = (m.text.split(" ")[1] || "").trim();
       const l = String((m.from && m.from.language_code) || "uz").slice(0, 2), tx = BOT_TEXT[l === "ru" ? "ru" : l === "en" ? "en" : "uz"];
