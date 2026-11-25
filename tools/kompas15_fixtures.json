@@ -1,0 +1,675 @@
+{
+ "fixtures": [
+  {
+   "name": "media",
+   "input": {
+    "answers": {
+     "Q01": "F",
+     "Q02": "F",
+     "Q03": "C",
+     "Q04": "C",
+     "Q05": "A",
+     "Q06": "A",
+     "Q07": "C",
+     "Q08": "C",
+     "Q09": "B",
+     "Q10": "B",
+     "Q11": "E",
+     "Q12": "E",
+     "Q13": "B",
+     "Q14": "B",
+     "Q15": "A"
+    },
+    "budget_uzs": null,
+    "topic": null
+   },
+   "expected": {
+    "status": "ok",
+    "guide_nos": [
+     45,
+     33,
+     28
+    ],
+    "course_ids": [
+     "74d258a2-2d27-448f-95ed-61a4ed19f09a",
+     "1161d601-23b8-4142-a064-8d56bb7ba6a6",
+     "900d9c88-5861-4651-ad13-fcee8fbc5c97"
+    ],
+    "scores": [
+     100.0,
+     83.8,
+     100.0
+    ]
+   }
+  },
+  {
+   "name": "finance",
+   "input": {
+    "answers": {
+     "Q01": "E",
+     "Q02": "E",
+     "Q03": "E",
+     "Q04": "E",
+     "Q05": "E",
+     "Q06": "E",
+     "Q07": "E",
+     "Q08": "E",
+     "Q09": "E",
+     "Q10": "E",
+     "Q11": "A",
+     "Q12": "B",
+     "Q13": "B",
+     "Q14": "A",
+     "Q15": "A"
+    },
+    "budget_uzs": null,
+    "topic": null
+   },
+   "expected": {
+    "status": "ok",
+    "guide_nos": [
+     16,
+     15
+    ],
+    "course_ids": [
+     "b823ca6b-f680-451d-9d37-eb3f4bef3bf3",
+     "d69e211c-7054-4397-8517-86b0d333f548"
+    ],
+    "scores": [
+     87.8,
+     59.4
+    ]
+   }
+  },
+  {
+   "name": "flat",
+   "input": {
+    "answers": {
+     "Q01": "C",
+     "Q02": "C",
+     "Q03": "C",
+     "Q04": "C",
+     "Q05": "C",
+     "Q06": "C",
+     "Q07": "C",
+     "Q08": "C",
+     "Q09": "C",
+     "Q10": "C",
+     "Q11": "C",
+     "Q12": "C",
+     "Q13": "H",
+     "Q14": "A",
+     "Q15": "C"
+    },
+    "budget_uzs": null,
+    "topic": null
+   },
+   "expected": {
+    "status": "explore",
+    "guide_nos": [],
+    "course_ids": [],
+    "scores": []
+   }
+  },
+  {
+   "name": "unknown",
+   "input": {
+    "answers": {
+     "Q01": "F",
+     "Q02": "F",
+     "Q03": "F",
+     "Q04": "F",
+     "Q05": "F",
+     "Q06": "F",
+     "Q07": "F",
+     "Q08": "F",
+     "Q09": "F",
+     "Q10": "F",
+     "Q11": "F",
+     "Q12": "F",
+     "Q13": "H",
+     "Q14": "E",
+     "Q15": "D"
+    },
+    "budget_uzs": null,
+    "topic": null
+   },
+   "expected": {
+    "status": "explore",
+    "guide_nos": [],
+    "course_ids": [],
+    "scores": []
+   }
+  },
+  {
+   "name": "career",
+   "input": {
+    "answers": {
+     "Q01": "F",
+     "Q02": "F",
+     "Q03": "F",
+     "Q04": "F",
+     "Q05": "F",
+     "Q06": "F",
+     "Q07": "F",
+     "Q08": "F",
+     "Q09": "F",
+     "Q10": "F",
+     "Q11": "F",
+     "Q12": "F",
+     "Q13": "C",
+     "Q14": "B",
+     "Q15": "A"
+    },
+    "budget_uzs": null,
+    "topic": null
+   },
+   "expected": {
+    "status": "ok",
+    "guide_nos": [
+     64,
+     63
+    ],
+    "course_ids": [
+     "313ad6c5-c7b7-4b58-8515-bc05d22baa39",
+     "dda7a222-7d81-428a-822c-75511440e96d"
+    ],
+    "scores": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "name": "ielts",
+   "input": {
+    "answers": {
+     "Q01": "F",
+     "Q02": "F",
+     "Q03": "F",
+     "Q04": "F",
+     "Q05": "F",
+     "Q06": "F",
+     "Q07": "F",
+     "Q08": "F",
+     "Q09": "F",
+     "Q10": "F",
+     "Q11": "F",
+     "Q12": "F",
+     "Q13": "F",
+     "Q14": "B",
+     "Q15": "B"
+    },
+    "budget_uzs": 97000,
+    "topic": {
+     "course_id": "a997dfe8-1a1e-4593-8915-05bdae7db482"
+    }
+   },
+   "expected": {
+    "status": "ok",
+    "guide_nos": [
+     19
+    ],
+    "course_ids": [
+     "a997dfe8-1a1e-4593-8915-05bdae7db482"
+    ],
+    "scores": [
+     null
+    ]
+   }
+  },
+  {
+   "name": "capped",
+   "input": {
+    "answers": {
+     "Q01": "F",
+     "Q02": "F",
+     "Q03": "F",
+     "Q04": "F",
+     "Q05": "F",
+     "Q06": "F",
+     "Q07": "F",
+     "Q08": "F",
+     "Q09": "F",
+     "Q10": "F",
+     "Q11": "F",
+     "Q12": "F",
+     "Q13": "F",
+     "Q14": "B",
+     "Q15": "B"
+    },
+    "budget_uzs": 96999,
+    "topic": {
+     "course_id": "a997dfe8-1a1e-4593-8915-05bdae7db482"
+    }
+   },
+   "expected": {
+    "status": "no_match",
+    "guide_nos": [],
+    "course_ids": [],
+    "scores": []
+   }
+  },
+  {
+   "name": "language",
+   "input": {
+    "answers": {
+     "Q01": "F",
+     "Q02": "F",
+     "Q03": "F",
+     "Q04": "F",
+     "Q05": "F",
+     "Q06": "F",
+     "Q07": "F",
+     "Q08": "F",
+     "Q09": "F",
+     "Q10": "F",
+     "Q11": "F",
+     "Q12": "F",
+     "Q13": "F",
+     "Q14": "A",
+     "Q15": "C"
+    },
+    "budget_uzs": null,
+    "topic": null
+   },
+   "expected": {
+    "status": "choose_topic",
+    "guide_nos": [],
+    "course_ids": [],
+    "scores": []
+   }
+  },
+  {
+   "name": "no_device",
+   "input": {
+    "answers": {
+     "Q01": "A",
+     "Q02": "A",
+     "Q03": "A",
+     "Q04": "A",
+     "Q05": "A",
+     "Q06": "A",
+     "Q07": "A",
+     "Q08": "A",
+     "Q09": "A",
+     "Q10": "A",
+     "Q11": "A",
+     "Q12": "A",
+     "Q13": "B",
+     "Q14": "D",
+     "Q15": "C"
+    },
+    "budget_uzs": null,
+    "topic": null
+   },
+   "expected": {
+    "status": "save_for_later",
+    "guide_nos": [],
+    "course_ids": [],
+    "scores": []
+   }
+  },
+  {
+   "name": "missing_price",
+   "input": {
+    "answers": {
+     "Q01": "F",
+     "Q02": "F",
+     "Q03": "F",
+     "Q04": "F",
+     "Q05": "F",
+     "Q06": "F",
+     "Q07": "F",
+     "Q08": "F",
+     "Q09": "F",
+     "Q10": "F",
+     "Q11": "F",
+     "Q12": "F",
+     "Q13": "G",
+     "Q14": "A",
+     "Q15": "A"
+    },
+    "budget_uzs": null,
+    "topic": {
+     "course_id": "5820fbd1-19bc-4f89-99ae-0f3c1420bb03"
+    }
+   },
+   "expected": {
+    "status": "no_match",
+    "guide_nos": [],
+    "course_ids": [],
+    "scores": []
+   }
+  },
+  {
+   "name": "empty_course",
+   "input": {
+    "answers": {
+     "Q01": "A",
+     "Q02": "A",
+     "Q03": "A",
+     "Q04": "A",
+     "Q05": "A",
+     "Q06": "A",
+     "Q07": "A",
+     "Q08": "A",
+     "Q09": "A",
+     "Q10": "A",
+     "Q11": "A",
+     "Q12": "A",
+     "Q13": "B",
+     "Q14": "A",
+     "Q15": "C"
+    },
+    "budget_uzs": null,
+    "topic": {
+     "course_id": "b539bdbf-48cd-4e78-8154-c1ff5315dee8"
+    }
+   },
+   "expected": {
+    "status": "no_match",
+    "guide_nos": [],
+    "course_ids": [],
+    "scores": []
+   }
+  },
+  {
+   "name": "phone_sql",
+   "input": {
+    "answers": {
+     "Q01": "A",
+     "Q02": "A",
+     "Q03": "A",
+     "Q04": "A",
+     "Q05": "A",
+     "Q06": "A",
+     "Q07": "A",
+     "Q08": "A",
+     "Q09": "A",
+     "Q10": "A",
+     "Q11": "A",
+     "Q12": "A",
+     "Q13": "B",
+     "Q14": "B",
+     "Q15": "C"
+    },
+    "budget_uzs": null,
+    "topic": {
+     "course_id": "edcebb29-5320-4d29-a89c-59d20c9a0e6f"
+    }
+   },
+   "expected": {
+    "status": "no_match",
+    "guide_nos": [],
+    "course_ids": [],
+    "scores": []
+   }
+  },
+  {
+   "name": "one_rating",
+   "input": {
+    "answers": {
+     "Q01": "F",
+     "Q02": "F",
+     "Q03": "F",
+     "Q04": "F",
+     "Q05": "F",
+     "Q06": "F",
+     "Q07": "F",
+     "Q08": "F",
+     "Q09": "E",
+     "Q10": "E",
+     "Q11": "A",
+     "Q12": "F",
+     "Q13": "B",
+     "Q14": "A",
+     "Q15": "A"
+    },
+    "budget_uzs": null,
+    "topic": null
+   },
+   "expected": {
+    "status": "explore",
+    "guide_nos": [],
+    "course_ids": [],
+    "scores": []
+   }
+  },
+  {
+   "name": "no_cap",
+   "input": {
+    "answers": {
+     "Q01": "E",
+     "Q02": "E",
+     "Q03": "E",
+     "Q04": "E",
+     "Q05": "E",
+     "Q06": "E",
+     "Q07": "E",
+     "Q08": "E",
+     "Q09": "E",
+     "Q10": "E",
+     "Q11": "A",
+     "Q12": "B",
+     "Q13": "B",
+     "Q14": "A",
+     "Q15": "B"
+    },
+    "budget_uzs": null,
+    "topic": null
+   },
+   "expected": {
+    "status": "invalid_budget",
+    "guide_nos": [],
+    "course_ids": [],
+    "scores": []
+   }
+  },
+  {
+   "name": "equipment",
+   "input": {
+    "answers": {
+     "Q01": "A",
+     "Q02": "A",
+     "Q03": "F",
+     "Q04": "F",
+     "Q05": "F",
+     "Q06": "F",
+     "Q07": "F",
+     "Q08": "F",
+     "Q09": "F",
+     "Q10": "F",
+     "Q11": "F",
+     "Q12": "F",
+     "Q13": "G",
+     "Q14": "B",
+     "Q15": "C"
+    },
+    "budget_uzs": null,
+    "topic": {
+     "course_id": "1b050b55-51cf-4336-b472-9fe8553d1b8a"
+    }
+   },
+   "expected": {
+    "status": "ok",
+    "guide_nos": [
+     96
+    ],
+    "course_ids": [
+     "1b050b55-51cf-4336-b472-9fe8553d1b8a"
+    ],
+    "scores": [
+     100.0
+    ]
+   }
+  },
+  {
+   "name": "specific_group",
+   "input": {
+    "answers": {
+     "Q01": "F",
+     "Q02": "F",
+     "Q03": "F",
+     "Q04": "F",
+     "Q05": "F",
+     "Q06": "F",
+     "Q07": "F",
+     "Q08": "F",
+     "Q09": "F",
+     "Q10": "F",
+     "Q11": "F",
+     "Q12": "F",
+     "Q13": "H",
+     "Q14": "B",
+     "Q15": "C"
+    },
+    "budget_uzs": null,
+    "topic": {
+     "route_id": "hr"
+    }
+   },
+   "expected": {
+    "status": "ok",
+    "guide_nos": [
+     4
+    ],
+    "course_ids": [
+     "deb7f407-0aa5-472e-bcee-2a160afdbb63"
+    ],
+    "scores": [
+     null
+    ]
+   }
+  },
+  {
+   "name": "unfinished",
+   "input": {
+    "answers": {
+     "Q01": "F",
+     "Q02": "F",
+     "Q03": "F",
+     "Q04": "F",
+     "Q05": "F",
+     "Q07": "F",
+     "Q08": "F",
+     "Q09": "F",
+     "Q10": "F",
+     "Q11": "F",
+     "Q12": "F",
+     "Q13": "G",
+     "Q14": "A",
+     "Q15": "D"
+    },
+    "budget_uzs": null,
+    "topic": null
+   },
+   "expected": {
+    "status": "incomplete",
+    "guide_nos": [],
+    "course_ids": [],
+    "scores": []
+   }
+  },
+  {
+   "name": "bad_option",
+   "input": {
+    "answers": {
+     "Q01": "Z",
+     "Q02": "F",
+     "Q03": "F",
+     "Q04": "F",
+     "Q05": "F",
+     "Q06": "F",
+     "Q07": "F",
+     "Q08": "F",
+     "Q09": "F",
+     "Q10": "F",
+     "Q11": "F",
+     "Q12": "F",
+     "Q13": "G",
+     "Q14": "A",
+     "Q15": "D"
+    },
+    "budget_uzs": null,
+    "topic": null
+   },
+   "expected": {
+    "status": "invalid_answer",
+    "guide_nos": [],
+    "course_ids": [],
+    "scores": []
+   }
+  },
+  {
+   "name": "bad_topic",
+   "input": {
+    "answers": {
+     "Q01": "F",
+     "Q02": "F",
+     "Q03": "F",
+     "Q04": "F",
+     "Q05": "F",
+     "Q06": "F",
+     "Q07": "F",
+     "Q08": "F",
+     "Q09": "F",
+     "Q10": "F",
+     "Q11": "F",
+     "Q12": "F",
+     "Q13": "G",
+     "Q14": "A",
+     "Q15": "D"
+    },
+    "budget_uzs": null,
+    "topic": {
+     "course_id": "missing"
+    }
+   },
+   "expected": {
+    "status": "invalid_topic",
+    "guide_nos": [],
+    "course_ids": [],
+    "scores": []
+   }
+  },
+  {
+   "name": "unknown_price_open",
+   "input": {
+    "answers": {
+     "Q01": "F",
+     "Q02": "F",
+     "Q03": "F",
+     "Q04": "F",
+     "Q05": "F",
+     "Q06": "F",
+     "Q07": "F",
+     "Q08": "F",
+     "Q09": "F",
+     "Q10": "F",
+     "Q11": "F",
+     "Q12": "F",
+     "Q13": "G",
+     "Q14": "A",
+     "Q15": "D"
+    },
+    "budget_uzs": null,
+    "topic": {
+     "course_id": "5820fbd1-19bc-4f89-99ae-0f3c1420bb03"
+    }
+   },
+   "expected": {
+    "status": "ok",
+    "guide_nos": [
+     109
+    ],
+    "course_ids": [
+     "5820fbd1-19bc-4f89-99ae-0f3c1420bb03"
+    ],
+    "scores": [
+     null
+    ]
+   }
+  }
+ ]
+}

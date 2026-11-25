@@ -1181,3 +1181,9 @@ html { -webkit-tap-highlight-color: transparent; }
 .adm-pic.busy img { opacity: .5; }
 .adm-pic-x { position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; border-radius: 50%; border: 0; display: grid; place-items: center; background: rgba(0,0,0,.55); color: #fff; }
 .adm-pic-x svg { width: 16px; height: 16px; }
+/* Kasb Kompasi: the optional topic (one course group or one course) */
+.kp-topic { display: block; margin: 12px 0 4px; }
+.kp-topic small { display: block; margin: 0 2px 6px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.kp-topic select { width: 100%; box-sizing: border-box; padding: 13px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 15px; }
+.kp-retopic { padding: 14px 16px; }
+.kp-retopic .kp-topic { margin: 0; }

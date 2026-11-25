@@ -648,7 +648,7 @@ function glow(el) {
 window.kpSheet = (e) => {
   if (e) e.preventDefault(); haptic("light");
   // a test left half way: the panel offers to go on from the same question
-  const st = store.get("kp_state", null), going = st && st.v === 3 && st.step >= 0 && st.num;
+  const st = store.get("kp_state", null), going = st && st.v === 4 && st.step >= 0 && st.num;
   sheet(`<div class="kp-sheet"><img src="img/kompas-start.webp" alt="" decoding="async">
     <h3>${T("Kasb Kompasi")}</h3>
     ${going ? `<p>${T("Siz {n}-savolda to'xtagan edingiz. Javoblaringiz saqlangan.", { n: st.num })}</p>` : `<p>${T("Test taxminan 5 daqiqa davom etadi.")}</p>
