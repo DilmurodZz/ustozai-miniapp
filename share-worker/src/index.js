@@ -531,7 +531,7 @@ Garvard qabul bo‘limi vakili Stanislav Rivkinning maslahatlari sizga dastur ta
 🏆 <b>Zamonaviy kasblar tanlovi natijalari</b>
 Grafik dizayn, mobilografiya va veb-sayt yaratiş bo‘yiça tanlov g‘oliblari bilan tanişib boring.
 
-👇 <b>Boşlaş uçun quyidagi tugmani bosing!</b>`, button: { text: "Ilovani ochish", url: "https://t.me/ustozaiminibot?startapp", style: "primary" } };
+👇 <b><a href="https://t.me/ustozaiminibot?startapp">Boşlaş uçun quyidagi tugmani bosing!</a></b>`, button: { text: "Ilovani ochish", url: "https://t.me/ustozaiminibot?startapp", style: "primary" } };
 async function inlineAnswer(env, url, q) {
   const r = { type: "photo", id: "post1", photo_url: url.origin + "/p/post1.jpg", thumbnail_url: url.origin + "/p/post1.jpg", photo_width: 2560, photo_height: 1440,
     title: "Ustoz AI mini ilovasi", description: "Post: rasm, matn va tugma", caption: POST1.caption, parse_mode: "HTML", reply_markup: { inline_keyboard: [[POST1.button]] } };
