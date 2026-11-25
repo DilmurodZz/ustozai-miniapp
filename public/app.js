@@ -358,10 +358,8 @@ if (tg) {
   try { const top = tg.contentSafeAreaInset?.top + tg.safeAreaInset?.top; if (top) document.documentElement.style.setProperty("--tg-safe-top", top + "px"); } catch {}
 }
 // The intro: a 6-second cinematic rocket launch video (img/intro/launch.mp4, 1080x1920, silent, 1.6 MB).
-// On top of the video, a canvas layer follows the engines during lift-off with fire glow and thick, flame-lit exhaust smoke,
-// so the engine bottoms are wrapped in smoke as in a real launch, and a smoke trail stays behind.
-// The title is laid over the video by the app (sharp at any size); after the video ends it holds 1.5 s, then a white
-// flash opens the app. The phone vibrates with the launch (Telegram haptics, synced to the video's clock).
+// The title is laid over the video by the app (sharp at any size), the phone vibrates with the launch
+// (Telegram haptics, synced to the video's own clock), and a white flash at the end opens the app.
 // The poster (first frame) shows at once; if the video cannot start within 2.5 s (slow network), the intro is skipped.
 // A tap skips it. Reduced-motion users skip it too.
 // For now it plays on every open of the app. Set INTRO_DAILY to true to show it only on the first open of each day again.
@@ -374,98 +372,36 @@ const INTRO_DAILY = false;
   const el = document.createElement("div");
   el.className = "lv";
   el.innerHTML = `<video class="lv-vid" src="img/intro/launch.mp4?v=1" poster="img/intro/launch.jpg" muted playsinline webkit-playsinline preload="auto" disablepictureinpicture></video>
-    <canvas class="lv-fx"></canvas>
     <div class="lv-title"><p class="l1">${T("Oyga parvoz Yerdan boshlanadi.")}</p><p class="l2">${T("Marsga esa: Ustoz AI’dan.")}</p></div>
     <i class="lv-flash"></i>`;
   document.body.appendChild(el);
-  const v = el.querySelector("video"), cv = el.querySelector("canvas"), g = cv.getContext("2d");
+  const v = el.querySelector("video");
   v.muted = true;
-  let finished = false, started = false, ended = false;
+  let finished = false, started = false;
   const done = () => {
     if (finished) return; finished = true;
     el.classList.add("out"); setTimeout(() => { try { v.pause(); v.removeAttribute("src"); v.load(); } catch {} el.remove(); }, 600);
   };
   el.onclick = done;
-
-  // ---- the smoke and fire layer ----
-  const DPR = Math.min(window.devicePixelRatio || 1, 2);
-  let W = 0, H = 0, S = 1, OX = 0, OY = 0;
-  const fit = () => { W = innerWidth; H = innerHeight; cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); S = Math.max(W / 1080, H / 1920); OX = (W - 1080 * S) / 2; OY = (H - 1920 * S) / 2; };
-  fit();
-  const R = (a, b) => a + Math.random() * (b - a);
-  const sprite = (stops) => { const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d"), gr = x.createRadialGradient(64, 64, 0, 64, 64, 64); stops.forEach(([o, col]) => gr.addColorStop(o, col)); x.fillStyle = gr; x.fillRect(0, 0, 128, 128); return c; };
-  const SP = {
-    hot: sprite([[0, "rgba(255,252,235,1)"], [.3, "rgba(255,225,160,.85)"], [1, "rgba(255,170,80,0)"]]),
-    amber: sprite([[0, "rgba(255,190,90,.9)"], [.45, "rgba(255,130,40,.45)"], [1, "rgba(255,90,20,0)"]]),
-    smoke: sprite([[0, "rgba(214,218,230,.85)"], [.5, "rgba(170,178,198,.5)"], [1, "rgba(130,138,160,0)"]]),
-    dark: sprite([[0, "rgba(120,126,142,.75)"], [.55, "rgba(86,92,108,.4)"], [1, "rgba(60,66,80,0)"]]),
-    lit: sprite([[0, "rgba(255,175,100,.85)"], [.5, "rgba(235,135,80,.4)"], [1, "rgba(200,100,60,0)"]]),
-  };
-  const stamp = (s, x, y, r, a) => { if (a <= 0) return; g.globalAlpha = Math.min(1, a); g.drawImage(s, x - r, y - r, r * 2, r * 2); };
-  // where the engines are in the video (fraction of the 1920 px height), measured from the frames
-  const KEY = [[2.2, .82], [2.8, .80], [3.0, .73], [3.2, .60], [3.4, .47], [3.6, .32], [3.8, .13], [4.0, -.06], [4.3, -.3]];
-  const engineY = (t) => { if (t <= KEY[0][0]) return KEY[0][1]; for (let i = 1; i < KEY.length; i++) if (t <= KEY[i][0]) { const [a, ya] = KEY[i - 1], [b, yb] = KEY[i]; return ya + (yb - ya) * (t - a) / (b - a); } return KEY[KEY.length - 1][1]; };
-  const toX = (fx) => OX + fx * 1080 * S, toY = (fy) => OY + fy * 1920 * S;
-  const smoke = [], fire = [];
-  let lastT = 0;
-  function fx(t) {
-    const dt = Math.min(.05, Math.max(0, t - lastT)); lastT = t;
-    g.setTransform(DPR, 0, 0, DPR, 0, 0); g.clearRect(0, 0, W, H);
-    const on = t > 2.45 && t < 4.05, ey = engineY(t), nx = toX(.47), ny = toY(ey), u = 1080 * S;   // u: video width on screen
-    const vRocket = (engineY(t + .05) - ey) / .05 * 1920 * S;   // the rocket's speed on screen (px/s, negative = up)
-    if (on && dt > 0) {
-      // exhaust smoke: starts around the engine bells (hiding their bare edges) and pours down and out, never up the hull
-      for (let k = 0, n = Math.round(dt * 240); k < n; k++) {
-        const wrap = Math.random() < .55;
-        // the smoke round the bells rides up with the rocket for a moment (its speed), then falls behind
-        smoke.push({ x: nx + (wrap ? R(-.11, .11) : R(-.08, .08)) * u, y: ny + (wrap ? R(-.07, .01) : R(0, .05)) * u,
-          vx: (wrap ? R(-.12, .12) : R(-.2, .2)) * u, vy: wrap ? vRocket * R(.6, .9) + R(0, .06) * u : R(.1, .3) * u, life: wrap ? R(.45, .8) : R(1.3, 2.4), age: 0,
-          s: (wrap ? R(.07, .11) : R(.03, .055)) * u, grow: (wrap ? R(.05, .09) : R(.07, .14)) * u, dark: !wrap && Math.random() < .3, fast: wrap });
-      }
-      for (let k = 0, n = Math.round(dt * 200); k < n; k++) fire.push({ x: nx + R(-.025, .025) * u, y: ny + R(0, .015) * u, vx: R(-.04, .04) * u, vy: R(.35, .65) * u, life: R(.1, .22), age: 0, s: R(.014, .03) * u });
-    }
-    g.globalCompositeOperation = "source-over";
-    for (let i = smoke.length - 1; i >= 0; i--) {
-      const p = smoke[i]; p.age += dt; if (p.age > p.life) { smoke.splice(i, 1); continue; }
-      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .97; p.vy *= .965;
-      const k = p.age / p.life, r = p.s + p.grow * p.age, a = (p.fast ? .72 : .5) * (1 - k * k) * Math.min(1, p.age * (p.fast ? 30 : 5));
-      stamp(p.dark ? SP.dark : SP.smoke, p.x, p.y, r, a);
-      const near = Math.max(0, 1 - Math.hypot(p.x - nx, p.y - ny) / (u * .3));
-      if (on && near > 0) stamp(SP.lit, p.x, p.y, r * .85, a * near * .95);
-    }
-    g.globalCompositeOperation = "lighter";
-    for (let i = fire.length - 1; i >= 0; i--) {
-      const f = fire[i]; f.age += dt; if (f.age > f.life) { fire.splice(i, 1); continue; }
-      f.x += f.vx * dt; f.y += f.vy * dt;
-      const k = f.age / f.life; stamp(k < .35 ? SP.hot : SP.amber, f.x, f.y, f.s * (1 + k * 1.8), (1 - k) * .8);
-    }
-    if (on) {   // the glow around the engines, flickering
-      const fl = .85 + Math.random() * .3;
-      stamp(SP.amber, nx, ny + u * .05, u * .2 * fl, .32); stamp(SP.hot, nx, ny + u * .02, u * .055 * fl, .55);
-    }
-    g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
-  }
-
-  // ---- timing: haptics, title, layer ----
-  const hap = (k) => { try { tg.HapticFeedback.impactOccurred(k); } catch {} };
-  let lastBeat = -1, hitIgn = false;
+  // haptics: a heavy hit at ignition, a rumble while the smoke billows, lighter pulses as it climbs, a sharp hit at the flash
+  const hap = (k) => { try { k === "rigid" || k === "heavy" || k === "medium" || k === "light" ? tg.HapticFeedback.impactOccurred(k) : 0; } catch {} };
+  let lastBeat = -1, hitIgn = false, hitFlash = false;
   const tick = () => {
     if (finished) return;
-    const t = ended ? 6 : v.currentTime;
+    const t = v.currentTime;
     if (t >= 1.0 && !hitIgn) { hitIgn = true; hap("heavy"); }
     if (t > 1.05 && t < 2.6) { const b = Math.floor(t / .12); if (b !== lastBeat) { lastBeat = b; hap("medium"); } }
     else if (t >= 2.6 && t < 3.9) { const b = Math.floor(t / .2); if (b !== lastBeat) { lastBeat = b; hap("light"); } }
     if (t >= 3.6) el.classList.add("t1");
     if (t >= 4.2) el.classList.add("t2");
+    if (t >= 5.55 && !hitFlash) { hitFlash = true; el.classList.add("flash"); hap("rigid"); setTimeout(done, 420); }
   };
-  // after the video: the title stays on the last frame for 1.5 s, then the flash opens the app
-  const finish = () => { if (ended) return; ended = true; tick(); setTimeout(() => { if (finished) return; el.classList.add("flash"); hap("rigid"); setTimeout(done, 450); }, 1500); };
-  const loop = () => { if (finished) return; tick(); fx(ended ? lastT + .016 : v.currentTime); requestAnimationFrame(loop); };
+  // driven by every frame for smooth haptics, and by the video's own time updates as a backup (a paused frame loop never stalls the title)
+  const loop = () => { if (finished) return; tick(); requestAnimationFrame(loop); };
   v.addEventListener("timeupdate", tick);
   v.addEventListener("playing", () => { if (!started) { started = true; el.classList.add("on"); requestAnimationFrame(loop); } });
-  v.addEventListener("ended", finish);
+  v.addEventListener("ended", () => { if (!hitFlash) { el.classList.add("flash"); setTimeout(done, 420); } });
   v.addEventListener("error", done);
-  addEventListener("resize", fit);
   const go = () => { const p = v.play(); if (p && p.catch) p.catch(done); };
   if (v.readyState >= 3) go(); else v.addEventListener("canplay", go, { once: true });
   setTimeout(() => { if (!started) done(); }, 2500);
