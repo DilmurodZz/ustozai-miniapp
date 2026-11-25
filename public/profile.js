@@ -112,7 +112,9 @@ function AdminScreen(sec) {
     ${extra || ""}
     <textarea id="${id}-text" rows="5" maxlength="4000" placeholder="${T("Xabar matni")}"></textarea>
     <div class="adm-row"><input id="${id}-bt" maxlength="60" placeholder="${T("Tugma matni (ixtiyoriy)")}"><input id="${id}-bu" placeholder="https://… ${T("havola")}"></div>
-    <input id="${id}-im" class="adm-im" placeholder="${T("Rasm havolasi (ixtiyoriy), matn ustida katta ko'rinadi")}">
+    <label class="adm-pic" id="${id}-pic"><input type="file" accept="image/*" onchange="admPic('${id}', this)" hidden>
+      <span class="adm-pic-add">${ic("image")}<b>${T("Rasm yuklash")}</b><small>${T("Ixtiyoriy. Matn ustida katta ko'rinadi")}</small></span>
+      <span class="adm-pic-on"><img alt=""><button type="button" class="adm-pic-x" onclick="event.preventDefault();admPicClear('${id}')">${ic("x")}</button></span></label>
     <div class="adm-row"><button class="btn-ghost" onclick="admSend('${id}', 'test')">${T("Avval o'zimga sinash")}</button>
     <button class="btn-primary" onclick="admSend('${id}', '${id === "bc" ? "broadcast" : "channel"}')">${ic("send")} ${id === "bc" ? T("Hammaga yuborish") : T("Kanalga yuborish")}</button></div>
     <div class="adm-st" id="${id}-st"></div>
@@ -127,11 +129,7 @@ function AdminScreen(sec) {
     <p class="st-note">${T("Bot faqat u bilan suhbatni boshlagan va botni bloklamagan foydalanuvchilarga xabar yubora oladi.")}</p>
   </div>`],
   bc: [T("Barcha foydalanuvchilarga xabar"), box("bc", T("Barcha foydalanuvchilarga xabar"), T("Xabar bot orqali har bir foydalanuvchining shaxsiy chatiga boradi."))],
-  ch: [T("Kanalga post"), box("ch", T("Kanalga post: {c}", { c: (adminInfo && adminInfo.channel) || "@ustozai" }), T("Bot kanalda admin bo'lishi kerak (Post messages huquqi bilan)."),
-    `<div class="adm-tpl"><small>${T("Tayyor matnlar:")}</small>
-      <button onclick="admTpl('app')">${T("Mini ilova")}</button><button onclick="admTpl('cv')">${T("CV yaratish")}</button><button onclick="admTpl('kompas')">${T("Kasb Kompasi")}</button>
-      <select class="notr" onchange="admTpl('course', this.value)"><option value="">${T("Kursni ulashish…")}</option>${courses.slice().sort((a, b) => (b.students || 0) - (a.students || 0)).map((c) => `<option value="${c.id}">${esc(c.title.slice(0, 60))}</option>`).join("")}</select>
-    </div>`)],
+  ch: [T("Kanalga post"), box("ch", T("Kanalga post: {c}", { c: (adminInfo && adminInfo.channel) || "@ustozai" }), T("Bot kanalda admin bo'lishi kerak (Post messages huquqi bilan)."))],
   links: [T("Havolalar"), `<div class="card box">
     <h4>${ic("send")} ${T("Havolalar")}</h4><p>${T("Nusxa olish yoki do'stlarga ulashish")}</p>
     <div class="adm-sub">${T("Ilova va kanal")}</div>
@@ -148,49 +146,28 @@ function AdminScreen(sec) {
 }
 window.admCopy = (u) => { try { navigator.clipboard.writeText(u); toast(T("Nusxa olindi")); } catch { toast(u); } };
 window.admShare = (u) => { const url = `https://t.me/share/url?url=${encodeURIComponent(u)}`; if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank"); };
-// the channel post about the app (Uzbek, for @ustozai)
-const APP_POST = `Ustoz AI: kelajak kasbingiz uchun hammasi bitta ilovada
-
-Telegram ichida, bepul va ro'yxatdan o'tmasdan:
-
-1. Kurslar va ish bozori tahlili
-hh.uz va OLX.uz dagi 12 mingga yaqin vakansiyani tahlil qildik. Har bir kurs qaysi kasbga olib borishini, unga qancha ish o'rni borligini va qancha maosh taklif qilinayotganini ko'rasiz.
-
-2. Garvardga qabul bo'yicha maxsus maslahatlar
-Harvard qabul bo'limining Senior Associate Director'i Stanislav Rivkin seminari asosida: dasturni tanlash, maqsadni to'g'ri ko'rsatish, tavsiyanomalar, testlar va moliyaviy yordam. O'zbek va ingliz tilida.
-
-3. CV va rezyume 5 daqiqada, bepul
-CV, rezyume yoki obyektivkani 3 tilda tayyorlang va o'zingizga mos ishlarga ariza topshiring.
-
-4. Zamonaviy kasblar tanlovi natijalari
-Grafik dizayn, mobilografiya va veb-sayt yo'nalishlari bo'yicha g'oliblar ro'yxati, viloyat va tuman bo'yicha qidiruv.
-
-5. Va yana
-Kasb Kompasi, AI xavfsizligi bo'yicha Garvard kurslari, DTM ball kalkulyatori, chegirmalar va boshqa foydali vositalar.
-
-Pastdagi tugmani bosing va hoziroq boshlang.`;
-window.admTpl = (k, id) => {
-  const $ = (x) => document.getElementById(x);
-  let text = "", bt = T("Ochish"), bu = APP_LINK;
-  let im = "";
-  // the channel post about the whole app, with its poster (img/post/ustozai-1.jpg) shown large above the text
-  if (k === "app") { text = APP_POST; bt = "Ilovani ochish"; im = "https://dilmurodzz.github.io/ustozai-miniapp/img/post/ustozai-1.jpg"; }
-  if (k === "cv") { text = T("Professional CV va rezyumeni 5 daqiqada bepul tayyorlang: tayyor namunalar, rasmli CV, PDF, Word yoki PNG formatida. Ustoz AI mini ilovasida."); bt = T("CV yaratish"); }
-  if (k === "kompas") { text = T("90 soniyada o'zingizga mos kasbni toping: Ustoz AI Kasb Kompasi sizga mos kasb va kurslarni tavsiya qiladi."); bt = T("Kompasni boshlash"); }
-  if (k === "course") {
-    const c = ((Kurslar.data() || {}).courses || []).find((x) => x.id === id); if (!c) return;
-    const g = Kurslar.data().groups[c.g];
-    text = `${c.title}\n${T("Ustoz: {t}", { t: c.teacher || "Ustoz AI" })}${c.rating ? `\n${T("Reyting: {r}", { r: String(c.rating).replace(".", ",") })}` : ""}${c.students ? `, ${T("{n} o'quvchi", { n: fmtN(c.students) })}` : ""}${g && g.kind === "job" ? `\n${T("hh.uz'da bu yo'nalishda {n} ta ish o'rni", { n: fmtN(g.related) })}` : ""}\n\n${(c.about || "").slice(0, 400)}`;
-    bt = T("Kursni ochish"); bu = c.url;
-  }
-  $("ch-text").value = text; $("ch-bt").value = bt; $("ch-bu").value = bu; $("ch-im").value = im;
-  haptic("light");
+// the post picture: made smaller on the phone (at most 2560 px, JPEG), kept by the share server, shown large above the post text
+const admImg = {};
+window.admPic = async (id, inp) => {
+  const f = inp.files && inp.files[0]; inp.value = ""; if (!f) return;
+  const box = document.getElementById(id + "-pic");
+  admImg[id] = "busy"; box.classList.add("on", "busy"); box.querySelector("img").src = URL.createObjectURL(f);
+  try {
+    const bmp = await createImageBitmap(f), k = Math.min(1, 2560 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", .9));
+    const r = await fetch(SHARE_API + "/admin/upload", { method: "POST", headers: { "X-Init-Data": (tg && tg.initData) || "", "Content-Type": "image/jpeg" }, body: blob });
+    const j = await r.json().catch(() => ({})); if (!r.ok || !j.url) throw new Error(j.error || r.status);
+    admImg[id] = j.url; box.classList.remove("busy"); haptic("light");
+  } catch (e) { admPicClear(id); toast(T("Rasm yuklanmadi: {e}", { e: e.message })); }
 };
+window.admPicClear = (id) => { delete admImg[id]; const box = document.getElementById(id + "-pic"); if (box) { box.classList.remove("on", "busy"); box.querySelector("img").removeAttribute("src"); } };
 window.admSend = async (id, route) => {
   const $ = (x) => document.getElementById(x), st = $(id + "-st");
-  const body = { text: $(id + "-text").value.trim(), btnText: $(id + "-bt").value.trim(), btnUrl: $(id + "-bu").value.trim(), image: $(id + "-im").value.trim() };
+  const body = { text: $(id + "-text").value.trim(), btnText: $(id + "-bt").value.trim(), btnUrl: $(id + "-bu").value.trim(), image: admImg[id] || "" };
   if (!body.text) return toast(T("Xabar matnini yozing"));
-  if (body.image && !/^https:\/\//.test(body.image)) return toast(T("Rasm uchun https:// bilan boshlanadigan havola kiriting"));
+  if (admImg[id] === "busy") return toast(T("Rasm hali yuklanmoqda"));
   if (body.btnText && !/^https:\/\//.test(body.btnUrl)) return toast(T("Tugma uchun https:// bilan boshlanadigan havola kiriting"));
   if (route === "broadcast" && !(await confirmAsk(T("Xabar {n} ta foydalanuvchiga yuboriladi. Davom etasizmi?", { n: fmtN((adminInfo && adminInfo.reachable) || 0) })))) return;
   if (route === "channel" && !(await confirmAsk(T("Post {c} kanaliga joylanadi. Davom etasizmi?", { c: (adminInfo && adminInfo.channel) || "@ustozai" })))) return;

@@ -1495,4 +1495,8 @@ Object.assign(I18N.en, {
 "Marsga esa: Ustoz AI’dan.": "And to Mars: from Ustoz AI.",
 "Rasm havolasi (ixtiyoriy), matn ustida katta ko'rinadi": "Image link (optional), shown large above the text",
 "Rasm uchun https:// bilan boshlanadigan havola kiriting": "Enter an image link starting with https://",
+"Rasm yuklash": "Upload image",
+"Ixtiyoriy. Matn ustida katta ko\'rinadi": "Optional. Shown large above the text",
+"Rasm hali yuklanmoqda": "The image is still uploading",
+"Rasm yuklanmadi: {e}": "Image not uploaded: {e}",
 });

@@ -32,10 +32,6 @@
 .adm-row > * { flex: 1; min-width: 0; margin-top: 0; }
 .adm-row .btn-primary, .adm-row .btn-ghost { padding: 13px 8px; font-size: 14px; }
 .adm-st { margin-top: 8px; font-size: 13px; font-weight: 600; color: var(--p1); min-height: 1em; }
-.adm-tpl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 10px; }
-.adm-tpl small { width: 100%; color: var(--muted); font-size: 12px; }
-.adm-tpl button { padding: 7px 11px; border-radius: 999px; background: var(--p-soft); color: var(--p-text); font-weight: 600; font-size: 12.5px; }
-.adm-tpl select { flex: 1 1 100%; padding: 9px 10px; }
 .adm-link { display: flex; align-items: center; gap: 4px; padding: 8px 0; border-top: 1px solid var(--line); }
 .adm-link span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .adm-link b { font-size: 14px; }
@@ -1175,4 +1171,13 @@ html { -webkit-tap-highlight-color: transparent; }
 .pf-list { grid-template-columns: minmax(0, 1fr); }
 .pf-list > * { min-width: 0; max-width: 100%; }
 .kd-hero img { background: #EEF1F8; }
-.adm-im { margin-top: 8px; }
+.adm-pic { display: block; margin-top: 8px; cursor: pointer; }
+.adm-pic-add { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: center; padding: 12px; border: 1.5px dashed var(--line); border-radius: 12px; background: var(--bg); }
+.adm-pic-add svg { grid-row: span 2; width: 22px; height: 22px; color: var(--p1); }
+.adm-pic-add b { font-size: 14.5px; } .adm-pic-add small { color: var(--muted); font-size: 12px; }
+.adm-pic-on { display: none; position: relative; }
+.adm-pic.on .adm-pic-add { display: none; } .adm-pic.on .adm-pic-on { display: block; }
+.adm-pic-on img { display: block; width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; background: var(--bg); }
+.adm-pic.busy img { opacity: .5; }
+.adm-pic-x { position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; border-radius: 50%; border: 0; display: grid; place-items: center; background: rgba(0,0,0,.55); color: #fff; }
+.adm-pic-x svg { width: 16px; height: 16px; }

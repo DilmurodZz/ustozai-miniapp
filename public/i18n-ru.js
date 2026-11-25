@@ -1495,4 +1495,8 @@ Object.assign(I18N.ru, {
 "Marsga esa: Ustoz AI’dan.": "А на Марс: с Ustoz AI.",
 "Rasm havolasi (ixtiyoriy), matn ustida katta ko'rinadi": "Ссылка на картинку (необязательно), крупно над текстом",
 "Rasm uchun https:// bilan boshlanadigan havola kiriting": "Введите ссылку на картинку, начинающуюся с https://",
+"Rasm yuklash": "Загрузить картинку",
+"Ixtiyoriy. Matn ustida katta ko\'rinadi": "Необязательно. Крупно над текстом",
+"Rasm hali yuklanmoqda": "Картинка ещё загружается",
+"Rasm yuklanmadi: {e}": "Картинка не загрузилась: {e}",
 });

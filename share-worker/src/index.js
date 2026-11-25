@@ -97,6 +97,11 @@ export default {
       if (!f.value) return new Response("expired", { status: 404 });
       return new Response(f.value, { headers: { "Content-Type": f.metadata.type, "Content-Disposition": `attachment; filename*=UTF-8''${name}`, ...cors(origin) } });
     }
+    if (url.pathname.startsWith("/p/") && req.method === "GET") {
+      const f = await env.COLORS.getWithMetadata("pimg:" + url.pathname.slice(3).split(".")[0], "arrayBuffer");
+      if (!f.value) return new Response("not found", { status: 404 });
+      return new Response(f.value, { headers: { "Content-Type": (f.metadata && f.metadata.type) || "image/jpeg", "Cache-Control": "public, max-age=31536000, immutable" } });
+    }
     if (url.pathname.startsWith("/admin/")) return admin(req, env, url, origin);
     if (req.method !== "POST" || url.pathname !== "/share") return json({ error: "not found" }, 404, origin);
 
@@ -220,6 +225,16 @@ async function admin(req, env, url, origin) {
     const n = (sql) => env.DB.prepare(sql).first("n");
     return json({ users: await n("SELECT COUNT(*) n FROM users"), reachable: await n("SELECT COUNT(*) n FROM users WHERE blocked = 0"),
       blocked: await n("SELECT COUNT(*) n FROM users WHERE blocked = 1"), channel: env.CHANNEL }, 200, origin);
+  }
+  // a post picture from the admin: kept in KV and served at /p/<id>.jpg, so Telegram can show it above the post text
+  if (route === "upload" && req.method === "POST") {
+    const type = (req.headers.get("Content-Type") || "").split(";")[0];
+    if (!/^image\/(jpeg|png|webp)$/.test(type)) return json({ error: "image only" }, 400, origin);
+    const buf = await req.arrayBuffer();
+    if (!buf.byteLength || buf.byteLength > 8e6) return json({ error: "too large" }, 400, origin);
+    const id = crypto.randomUUID().replace(/-/g, "").slice(0, 16), ext = type === "image/jpeg" ? "jpg" : type.slice(6);
+    await env.COLORS.put("pimg:" + id, buf, { metadata: { type } });
+    return json({ url: `${url.origin}/p/${id}.${ext}` }, 200, origin);
   }
   if (req.method !== "POST") return json({ error: "not found" }, 404, origin);
   const b = await req.json().catch(() => ({}));
