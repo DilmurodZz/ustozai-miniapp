@@ -1503,4 +1503,5 @@ Object.assign(I18N.ru, {
 "Har kuni avtomatik almashadi": "Меняется автоматически каждый день",
 "Bordo": "Бордовый",
 "Test taxminan 5 daqiqa davom etadi.": "Тест занимает примерно 5 минут.",
+"Binafsha": "Фиолетовый",
 });

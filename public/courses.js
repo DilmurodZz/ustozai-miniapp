@@ -6,11 +6,13 @@ const Kurslar = (() => {
 
   function load() {
     if (data || loading) return loading;
-    loading = fetch("data/kurslar.json").then((r) => r.json()).then((d) => { data = d; if (location.hash.startsWith("#/kurs")) render(); }).catch(() => { loading = null; });
+    loading = fetch("data/kurslar.json?v=" + APP_V).then((r) => r.json()).then((d) => { data = d; if (location.hash.startsWith("#/kurs")) render(); }).catch(() => { loading = null; });
     return loading;
   }
   const fmt = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   const n1 = (x) => String(x).replace(".", ",");
+  // the data file goes with the app version (the ?v= of this script), so new links and numbers show on the first open after an update
+  const APP_V = ((document.querySelector('script[src*="courses.js"]') || {}).src || "").split("v=")[1] || "0";
   const hrs = (s) => (s >= 3600 ? `${n1(Math.round(s / 360) / 10)} soat` : `${Math.max(1, Math.round(s / 60))} daqiqa`);
   const money = (lo, hi) => (lo && hi && hi !== lo ? `${n1(lo)}-${n1(hi)} mln so'm` : lo ? `${n1(lo)} mln so'mdan` : hi ? `${n1(hi)} mln so'mgacha` : "Maosh kelishiladi");
   // demand by the number of matching vacancies in 30 days (see tools/build_kurslar.py)

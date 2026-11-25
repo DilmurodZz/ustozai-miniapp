@@ -67,13 +67,13 @@ export default {
     // colour choice counts: each Telegram user is counted once, with their latest colour
     if (url.pathname === "/colors" && req.method === "GET") {
       const c = (await env.COLORS.get("counts", "json")) || {};
-      return json({ blue: c.blue || 0, orange: c.orange || 0, green: c.green || 0, bordo: c.bordo || 0 }, 200, origin);
+      return json({ blue: c.blue || 0, purple: c.purple || 0, orange: c.orange || 0, green: c.green || 0, bordo: c.bordo || 0 }, 200, origin);
     }
     if (url.pathname === "/color" && req.method === "POST") {
       const user = await verifyInitData(req.headers.get("X-Init-Data"), env.BOT_TOKEN, 30 * 86400);
       if (!user || !user.id) return json({ error: "unauthorised" }, 401, origin);
       const pick = url.searchParams.get("c");
-      if (!["blue", "orange", "green", "bordo"].includes(pick)) return json({ error: "bad colour" }, 400, origin);
+      if (!["blue", "purple", "orange", "green", "bordo"].includes(pick)) return json({ error: "bad colour" }, 400, origin);
       const key = "u:" + user.id, old = await env.COLORS.get(key);
       const c = (await env.COLORS.get("counts", "json")) || {};
       if (old !== pick) {
@@ -82,7 +82,7 @@ export default {
         await env.COLORS.put(key, pick);
         await env.COLORS.put("counts", JSON.stringify(c));
       }
-      return json({ blue: c.blue || 0, orange: c.orange || 0, green: c.green || 0, bordo: c.bordo || 0 }, 200, origin);
+      return json({ blue: c.blue || 0, purple: c.purple || 0, orange: c.orange || 0, green: c.green || 0, bordo: c.bordo || 0 }, 200, origin);
     }
     if (url.pathname === "/track" && req.method === "POST") return track(req, env, url, origin);
     if (url.pathname === "/stats" && req.method === "GET") return json(await stats(env), 200, origin);

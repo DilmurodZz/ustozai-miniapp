@@ -29,13 +29,13 @@ function toast(msg) {
 }
 
 /* ---------- theme ---------- */
-const THEMES = { blue: ["Ko'k", "#2748F5", "#6C95FF"], orange: ["To'q sariq", "#F2600C", "#FFB066"], green: ["Yashil", "#0B8F6A", "#5FD3AE"], bordo: ["Bordo", "#8B0920", "#D0475E"] };
+const THEMES = { blue: ["Ko'k", "#2748F5", "#1733B8"], purple: ["Binafsha", "#4C1D95", "#2E1065"], orange: ["To'q sariq", "#E8590C", "#B3420A"], green: ["Yashil", "#0B8F6A", "#076A4E"], bordo: ["Bordo", "#8B0920", "#650514"] };
 function applyTheme(name) {
   // another app on the same site address (dilmurodzz.github.io) once wrote its own colour name here: only known colours are used
   if (!THEMES[name]) name = "blue";
   document.body.dataset.theme = name;
   store.set("theme", name);
-  try { tg.setHeaderColor("#F5F6FA"); tg.setBackgroundColor("#F5F6FA"); } catch {}
+  try { tg.setHeaderColor("#F7F3EE"); tg.setBackgroundColor("#F7F3EE"); } catch {}
 }
 // By default the colour changes every day (Tashkent date), so the app never feels the same; a colour the user picks
 // in Profil stays fixed until they choose "Har kuni yangi rang" again.

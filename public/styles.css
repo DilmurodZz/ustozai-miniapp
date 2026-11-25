@@ -1,36 +1,24 @@
+/* Colours follow the colour guide (alumni-mentor-colors): each theme is 5 values, main, dark, sec, ink and soft.
+   Panels, buttons and the bottom bar are gradients from main to dark, shadows are tinted with dark,
+   and the page background stays warm ivory in every theme. */
 :root {
-  /* theme colours: p1 deep, p3 mid, p2 light (one hue family per theme) */
-  --p1: #2748F5; --p3: #4A6DFA; --p2: #6C95FF;
-  --p-soft: #EDF1FF; --p-text: #2140DB;
-  --bg: #F5F6FA; --card: #FFFFFF;
-  --text: #121829; --muted: #6B7385; --line: #E9ECF3;
-  --up: #12995B; --down: #E5484D;
+  --bg: #F7F3EE; --card: #FFFFFF; --card2: #F5EDE4;
+  --text: #111111; --muted: #777777; --line: #EAE3DA;
+  --up: #16A34A; --down: #EF2B2D; --gold: #E3B866;
   --radius: 20px;
   --shadow-card: 0 1px 2px rgba(18,24,41,.04), 0 8px 24px -12px rgba(18,24,41,.12);
-  --shadow: 0 14px 30px -14px rgba(39, 72, 245, .55);
-  --bar1: #1E62FF; --bar2: #0B4DF0; --hero1: #1E66FF; --hero2: #0050FA; --hero3: #0346F0; --hero-glow: rgba(0,70,240,.65); --art-tint: none;
 }
-body[data-theme="orange"] {
-  --p1: #F2600C; --p3: #F97F2E; --p2: #FFB066;
-  --p-soft: #FFF2E8; --p-text: #D24F05;
-  --shadow: 0 14px 30px -14px rgba(242, 96, 12, .55);
-  --bar1: #FF7A2B; --bar2: #E85A08; --hero1: #FF8A3D; --hero2: #F2600C; --hero3: #D9520A; --hero-glow: rgba(242,96,12,.6); --art-tint: hue-rotate(178deg) saturate(1.15);
-}
-body[data-theme="green"] {
-  --p1: #0B8F6A; --p3: #16AC82; --p2: #5FD3AE;
-  --p-soft: #E6F6F0; --p-text: #087555;
-  --shadow: 0 14px 30px -14px rgba(11, 143, 106, .55);
-  --bar1: #16B183; --bar2: #0B8F6A; --hero1: #1BBF8E; --hero2: #0B8F6A; --hero3: #087555; --hero-glow: rgba(11,143,106,.6); --art-tint: hue-rotate(-62deg) saturate(.95);
-}
-body[data-theme="bordo"] {
-  --p1: #8B0920; --p3: #A3112B; --p2: #D0475E;
-  --p-soft: #F8E9EC; --p-text: #7A0A1E;
-  --shadow: 0 14px 30px -14px rgba(139, 9, 32, .55);
-  --bar1: #A3112B; --bar2: #8B0920; --hero1: #B0182F; --hero2: #8B0920; --hero3: #6E0618; --hero-glow: rgba(139,9,32,.6); --art-tint: hue-rotate(128deg) saturate(1.05);
-}
-/* declared on body so the gradients pick up the theme colours set on body */
+body[data-theme="blue"], body:not([data-theme]) { --c-main: #2748F5; --c-dark: #1733B8; --c-sec: #4F74FA; --c-ink: #1B2F99; --c-soft: #E3EAFE; --c-glow: rgba(23,51,184,.6); --art-tint: none; }
+body[data-theme="purple"] { --c-main: #4C1D95; --c-dark: #2E1065; --c-sec: #6D28D9; --c-ink: #3B0F7A; --c-soft: #EEE6F7; --c-glow: rgba(46,16,101,.6); --art-tint: hue-rotate(38deg) saturate(1.05) brightness(.9); }
+body[data-theme="orange"] { --c-main: #E8590C; --c-dark: #B3420A; --c-sec: #F57C2B; --c-ink: #9A3A08; --c-soft: #FDE9DC; --c-glow: rgba(179,66,10,.6); --art-tint: hue-rotate(178deg) saturate(1.15); }
+body[data-theme="green"] { --c-main: #0B8F6A; --c-dark: #076A4E; --c-sec: #19AE85; --c-ink: #075E46; --c-soft: #DDF3EB; --c-glow: rgba(7,106,78,.6); --art-tint: hue-rotate(-62deg) saturate(.95); }
+body[data-theme="bordo"] { --c-main: #8B0920; --c-dark: #650514; --c-sec: #B51F3A; --c-ink: #720D20; --c-soft: #F6E3E1; --c-glow: rgba(101,5,20,.6); --art-tint: hue-rotate(128deg) saturate(1.05); }
+/* the names the rest of the styles use, taken from the 5 theme values */
 body {
-  --grad: linear-gradient(135deg, var(--p1) 0%, var(--p3) 55%, var(--p2) 100%);
+  --p1: var(--c-main); --p3: var(--c-sec); --p2: var(--c-sec); --p-soft: var(--c-soft); --p-text: var(--c-ink);
+  --bar1: var(--c-main); --bar2: var(--c-dark); --hero1: var(--c-main); --hero2: var(--c-main); --hero3: var(--c-dark); --hero-glow: var(--c-glow);
+  --shadow: 0 14px 30px -14px var(--c-dark);
+  --grad: linear-gradient(135deg, var(--c-main) 0%, var(--c-dark) 100%);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -38,8 +26,6 @@ html, body { margin: 0; padding: 0; }
 body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
   background: var(--bg); color: var(--text);
-  background-image: radial-gradient(520px 340px at 0% 0%, var(--p-soft), transparent 70%), radial-gradient(420px 320px at 100% 16%, rgba(255,143,171,.20), transparent 70%), radial-gradient(520px 420px at 60% 100%, rgba(95,224,181,.20), transparent 70%);
-  background-attachment: fixed;
   min-height: 100vh; overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
 }
@@ -568,7 +554,7 @@ a { color: inherit; text-decoration: none; }
 /* Tanlov: the competition logo */
 .zkt-logo { display: block; width: 78%; max-width: 300px; margin: 6px auto 8px; }
 /* ---------- the first-time intro ---------- */
-.intro { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: #F5F6FA; transition: opacity .3s ease; }
+.intro { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: #F7F3EE; transition: opacity .3s ease; }
 .intro.out { opacity: 0; pointer-events: none; }
 .intro-in { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .intro img { width: 78px; height: 78px; border-radius: 22px; box-shadow: 0 18px 40px -18px rgba(20,40,160,.45); animation: introLogo .9s cubic-bezier(.2,.8,.2,1) both; }

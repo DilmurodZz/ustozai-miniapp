@@ -1503,4 +1503,5 @@ Object.assign(I18N.en, {
 "Har kuni avtomatik almashadi": "Changes automatically every day",
 "Bordo": "Burgundy",
 "Test taxminan 5 daqiqa davom etadi.": "The test takes about 5 minutes.",
+"Binafsha": "Purple",
 });
