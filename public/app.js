@@ -17,10 +17,10 @@ const startParam = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
 const PLAY_URL = "https://play.google.com/store/apps/details?id=uz.uztozedu.ustozai";
 const STORE_URL = "https://apps.apple.com/uz/app/ustoz-ai/id6504815934";
 // Telegram opens links in its own browser, where the Ustoz AI app does not take over its links, so ustoz.ai links
-// go through the share server's /open page, which asks the phone to open the app (the website is the fallback)
+// go through our open.html page (on this site: the workers.dev address fails on some Uzbek mobile networks), which asks the phone to open the app (the website is the fallback)
 window.openApp = (url) => {
   haptic("medium");
-  const go = /^https:\/\/(www\.)?ustoz\.ai\//.test(url) && tg && tg.platform !== "unknown" ? SHARE_API + "/open?u=" + encodeURIComponent(url) : url;
+  const go = /^https:\/\/(www\.)?ustoz\.ai\//.test(url) && tg && tg.platform !== "unknown" ? new URL("open.html?u=" + encodeURIComponent(url), location.href).href : url;
   if (tg && tg.openLink) tg.openLink(go); else window.open(go, "_blank");
 };
 window.openStore = () => { const u = tg && tg.platform === "ios" ? STORE_URL : PLAY_URL; if (tg && tg.openLink) tg.openLink(u); else window.open(u, "_blank"); };

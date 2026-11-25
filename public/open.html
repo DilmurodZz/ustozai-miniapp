@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Ustoz AI</title>
+<!-- Opens a course in the Ustoz AI phone app. Telegram opens links in its own browser, where the app does not take over
+     its links, so this page asks the phone directly: Android gets an intent for the app (uz.uztozedu.ustozai) with the
+     course page on ustoz.ai as the fallback; iPhone gets a button, because iOS opens an app only from a tap on its link.
+     Only ustoz.ai links are accepted (open.html?u=<course link>). -->
+<style>
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #F7F3EE;
+    font-family: Inter, system-ui, -apple-system, Arial, sans-serif; color: #111; }
+  .b { width: 100%; max-width: 380px; padding: 28px 22px; text-align: center; }
+  .b img { width: 64px; height: 64px; border-radius: 18px; }
+  h1 { font-size: 20px; margin: 18px 0 6px; }
+  p { color: #777; font-size: 14px; line-height: 1.45; margin: 0 0 22px; }
+  a { display: block; padding: 15px; border-radius: 16px; font-weight: 700; text-decoration: none; margin-top: 10px; }
+  .p { background: linear-gradient(135deg, #2748F5, #1733B8); color: #fff; }
+  .g { background: #fff; color: #111; border: 1px solid #EAE3DA; }
+</style>
+</head>
+<body>
+<div class="b">
+  <img src="logo.png" alt="">
+  <h1>Ustoz AI ilovasida ochilmoqda</h1>
+  <p>Ilova o'rnatilgan bo'lsa, kurs ilovada ochiladi. Aks holda kurs sahifasi saytda ochiladi.</p>
+  <a class="p" id="go" href="https://www.ustoz.ai/">Ilovada ochish</a>
+  <a class="g" id="web" href="https://www.ustoz.ai/" rel="noopener">Saytda ochish</a>
+</div>
+<script>
+  var u = new URLSearchParams(location.search).get("u") || "";
+  if (!/^https:\/\/(www\.)?ustoz\.ai\/[\w\/.-]*$/.test(u)) u = "https://www.ustoz.ai/";
+  document.getElementById("go").href = u; document.getElementById("web").href = u;
+  if (/Android/i.test(navigator.userAgent || "")) {
+    var intent = "intent://" + u.slice(8) + "#Intent;scheme=https;package=uz.uztozedu.ustozai;S.browser_fallback_url=" + encodeURIComponent(u) + ";end";
+    document.getElementById("go").href = intent;
+    location.href = intent;
+  }
+</script>
+</body>
+</html>
