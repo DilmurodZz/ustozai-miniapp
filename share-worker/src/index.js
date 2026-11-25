@@ -584,11 +584,11 @@ async function tahrirCmd(env, m) {
   if (!ok) return say(env, m.chat.id, `Bu buyruq faqat ${env.CHANNEL} kanali adminlari uchun.`);
   if (!(await env.COLORS.get("post1:msg"))) return say(env, m.chat.id, "Kanalda hali bot joylagan post yo'q. Avval /kanal orqali postni joylang.");
   await env.COLORS.put("edit:" + m.from.id, "1", { expirationTtl: 900 });
-  return say(env, m.chat.id, "Kanaldagi post uchun yangi matnni yuboring. Qalin yozuv, havolalar va boshqa formatlash saqlanadi, tugma joyida qoladi.
+  return say(env, m.chat.id, `Kanaldagi post uchun yangi matnni yuboring. Qalin yozuv, havolalar va boshqa formatlash saqlanadi, tugma joyida qoladi.
 
 Rasmni ham almashtirmoqchi bo'lsangiz, yangi rasmni matn bilan birga (rasm izohi sifatida) yuboring.
 
-Matn 1024 belgidan oshmasin. Bekor qilish: /bekor");
+Matn 1024 belgidan oshmasin. Bekor qilish: /bekor`);
 }
 async function tahrirApply(env, m) {
   await env.COLORS.delete("edit:" + m.from.id);
