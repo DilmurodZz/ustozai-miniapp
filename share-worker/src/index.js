@@ -207,7 +207,10 @@ async function sendFile(req, env, url, origin) {
 }
 
 /* ---------- admin: only the Telegram ids in ADMIN_IDS ---------- */
-const sendText = (env, chat, text, btn) => tg(env.BOT_TOKEN, "sendMessage", JSON.stringify({ chat_id: chat, text, disable_web_page_preview: false, ...(btn ? { reply_markup: { inline_keyboard: [[btn]] } } : {}) }));
+// with an image link, the picture shows large above the text (a link preview, so the text can be up to 4000 characters, unlike a photo caption)
+const sendText = (env, chat, text, btn, image) => tg(env.BOT_TOKEN, "sendMessage", JSON.stringify({ chat_id: chat, text,
+  link_preview_options: image ? { url: image, prefer_large_media: true, show_above_text: true } : { is_disabled: false },
+  ...(btn ? { reply_markup: { inline_keyboard: [[btn]] } } : {}) }));
 async function admin(req, env, url, origin) {
   const user = await verifyInitData(req.headers.get("X-Init-Data"), env.BOT_TOKEN);
   const admins = String(env.ADMIN_IDS || "").split(",").map((s) => Number(s.trim()));
@@ -224,12 +227,13 @@ async function admin(req, env, url, origin) {
   if (!text) return json({ error: "empty text" }, 400, origin);
   let btn = null;
   if (b.btnText && /^https:\/\//.test(b.btnUrl || "")) btn = { text: String(b.btnText).slice(0, 60), url: String(b.btnUrl) };
+  const image = /^https:\/\/\S+$/.test(b.image || "") ? String(b.image).slice(0, 500) : "";
   // a copy to the admin themself, to check how it looks
   if (route === "test") {
-    try { await sendText(env, user.id, text, btn); return json({ ok: true }, 200, origin); } catch (e) { return json({ error: String(e.message || e) }, 502, origin); }
+    try { await sendText(env, user.id, text, btn, image); return json({ ok: true }, 200, origin); } catch (e) { return json({ error: String(e.message || e) }, 502, origin); }
   }
   if (route === "channel") {
-    try { await sendText(env, env.CHANNEL, text, btn); return json({ ok: true }, 200, origin); } catch (e) { return json({ error: String(e.message || e) }, 502, origin); }
+    try { await sendText(env, env.CHANNEL, text, btn, image); return json({ ok: true }, 200, origin); } catch (e) { return json({ error: String(e.message || e) }, 502, origin); }
   }
   // message to every user, 25 per request (the Mini App calls again with the next offset)
   if (route === "broadcast") {
@@ -237,7 +241,7 @@ async function admin(req, env, url, origin) {
     const rows = (await env.DB.prepare("SELECT id FROM users WHERE blocked = 0 AND id > ?1 ORDER BY id LIMIT ?2").bind(after, BATCH).all()).results;
     let sent = 0, failed = 0;
     for (const r of rows) {
-      try { await sendText(env, r.id, text, btn); sent++; }
+      try { await sendText(env, r.id, text, btn, image); sent++; }
       catch (e) { failed++; if (/blocked|deactivated|chat not found|can't initiate/i.test(String(e.message))) await env.DB.prepare("UPDATE users SET blocked = 1 WHERE id = ?1").bind(r.id).run(); }
     }
     return json({ sent, failed, next: rows.length === BATCH ? rows[rows.length - 1].id : null }, 200, origin);

@@ -1493,4 +1493,6 @@ Object.assign(I18N.en, {
 "Biz bilan bilim va ko'nikmalaringizni Oyga uchiring": "Take your knowledge and skills to the Moon with us",
 "Oyga parvoz Yerdan boshlanadi.": "The flight to the Moon starts on Earth.",
 "Marsga esa: Ustoz AI’dan.": "And to Mars: from Ustoz AI.",
+"Rasm havolasi (ixtiyoriy), matn ustida katta ko'rinadi": "Image link (optional), shown large above the text",
+"Rasm uchun https:// bilan boshlanadigan havola kiriting": "Enter an image link starting with https://",
 });

@@ -1493,4 +1493,6 @@ Object.assign(I18N.ru, {
 "Biz bilan bilim va ko'nikmalaringizni Oyga uchiring": "Поднимите свои знания и навыки до Луны вместе с нами",
 "Oyga parvoz Yerdan boshlanadi.": "Полёт на Луну начинается с Земли.",
 "Marsga esa: Ustoz AI’dan.": "А на Марс: с Ustoz AI.",
+"Rasm havolasi (ixtiyoriy), matn ustida katta ko'rinadi": "Ссылка на картинку (необязательно), крупно над текстом",
+"Rasm uchun https:// bilan boshlanadigan havola kiriting": "Введите ссылку на картинку, начинающуюся с https://",
 });

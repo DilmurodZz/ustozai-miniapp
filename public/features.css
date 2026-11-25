@@ -1175,3 +1175,4 @@ html { -webkit-tap-highlight-color: transparent; }
 .pf-list { grid-template-columns: minmax(0, 1fr); }
 .pf-list > * { min-width: 0; max-width: 100%; }
 .kd-hero img { background: #EEF1F8; }
+.adm-im { margin-top: 8px; }

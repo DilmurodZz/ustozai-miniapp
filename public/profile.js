@@ -112,6 +112,7 @@ function AdminScreen(sec) {
     ${extra || ""}
     <textarea id="${id}-text" rows="5" maxlength="4000" placeholder="${T("Xabar matni")}"></textarea>
     <div class="adm-row"><input id="${id}-bt" maxlength="60" placeholder="${T("Tugma matni (ixtiyoriy)")}"><input id="${id}-bu" placeholder="https://… ${T("havola")}"></div>
+    <input id="${id}-im" class="adm-im" placeholder="${T("Rasm havolasi (ixtiyoriy), matn ustida katta ko'rinadi")}">
     <div class="adm-row"><button class="btn-ghost" onclick="admSend('${id}', 'test')">${T("Avval o'zimga sinash")}</button>
     <button class="btn-primary" onclick="admSend('${id}', '${id === "bc" ? "broadcast" : "channel"}')">${ic("send")} ${id === "bc" ? T("Hammaga yuborish") : T("Kanalga yuborish")}</button></div>
     <div class="adm-st" id="${id}-st"></div>
@@ -147,10 +148,33 @@ function AdminScreen(sec) {
 }
 window.admCopy = (u) => { try { navigator.clipboard.writeText(u); toast(T("Nusxa olindi")); } catch { toast(u); } };
 window.admShare = (u) => { const url = `https://t.me/share/url?url=${encodeURIComponent(u)}`; if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank"); };
+// the channel post about the app (Uzbek, for @ustozai)
+const APP_POST = `Ustoz AI: kelajak kasbingiz uchun hammasi bitta ilovada
+
+Telegram ichida, bepul va ro'yxatdan o'tmasdan:
+
+1. Kurslar va ish bozori tahlili
+hh.uz va OLX.uz dagi 12 mingga yaqin vakansiyani tahlil qildik. Har bir kurs qaysi kasbga olib borishini, unga qancha ish o'rni borligini va qancha maosh taklif qilinayotganini ko'rasiz.
+
+2. Garvardga qabul bo'yicha maxsus maslahatlar
+Harvard qabul bo'limining Senior Associate Director'i Stanislav Rivkin seminari asosida: dasturni tanlash, maqsadni to'g'ri ko'rsatish, tavsiyanomalar, testlar va moliyaviy yordam. O'zbek va ingliz tilida.
+
+3. CV va rezyume 5 daqiqada, bepul
+CV, rezyume yoki obyektivkani 3 tilda tayyorlang va o'zingizga mos ishlarga ariza topshiring.
+
+4. Zamonaviy kasblar tanlovi natijalari
+Grafik dizayn, mobilografiya va veb-sayt yo'nalishlari bo'yicha g'oliblar ro'yxati, viloyat va tuman bo'yicha qidiruv.
+
+5. Va yana
+Kasb Kompasi, AI xavfsizligi bo'yicha Garvard kurslari, DTM ball kalkulyatori, chegirmalar va boshqa foydali vositalar.
+
+Pastdagi tugmani bosing va hoziroq boshlang.`;
 window.admTpl = (k, id) => {
   const $ = (x) => document.getElementById(x);
   let text = "", bt = T("Ochish"), bu = APP_LINK;
-  if (k === "app") text = T("Ustoz AI mini ilovasi: Kasb Kompasi, 119 ta kurs va mehnat bozori tahlili, bepul CV yaratish va qiziqarli o'yin. Hammasi Telegram ichida, bepul.");
+  let im = "";
+  // the channel post about the whole app, with its poster (img/post/ustozai-1.jpg) shown large above the text
+  if (k === "app") { text = APP_POST; bt = "Ilovani ochish"; im = "https://dilmurodzz.github.io/ustozai-miniapp/img/post/ustozai-1.jpg"; }
   if (k === "cv") { text = T("Professional CV va rezyumeni 5 daqiqada bepul tayyorlang: tayyor namunalar, rasmli CV, PDF, Word yoki PNG formatida. Ustoz AI mini ilovasida."); bt = T("CV yaratish"); }
   if (k === "kompas") { text = T("90 soniyada o'zingizga mos kasbni toping: Ustoz AI Kasb Kompasi sizga mos kasb va kurslarni tavsiya qiladi."); bt = T("Kompasni boshlash"); }
   if (k === "course") {
@@ -159,13 +183,14 @@ window.admTpl = (k, id) => {
     text = `${c.title}\n${T("Ustoz: {t}", { t: c.teacher || "Ustoz AI" })}${c.rating ? `\n${T("Reyting: {r}", { r: String(c.rating).replace(".", ",") })}` : ""}${c.students ? `, ${T("{n} o'quvchi", { n: fmtN(c.students) })}` : ""}${g && g.kind === "job" ? `\n${T("hh.uz'da bu yo'nalishda {n} ta ish o'rni", { n: fmtN(g.related) })}` : ""}\n\n${(c.about || "").slice(0, 400)}`;
     bt = T("Kursni ochish"); bu = c.url;
   }
-  $("ch-text").value = text; $("ch-bt").value = bt; $("ch-bu").value = bu;
+  $("ch-text").value = text; $("ch-bt").value = bt; $("ch-bu").value = bu; $("ch-im").value = im;
   haptic("light");
 };
 window.admSend = async (id, route) => {
   const $ = (x) => document.getElementById(x), st = $(id + "-st");
-  const body = { text: $(id + "-text").value.trim(), btnText: $(id + "-bt").value.trim(), btnUrl: $(id + "-bu").value.trim() };
+  const body = { text: $(id + "-text").value.trim(), btnText: $(id + "-bt").value.trim(), btnUrl: $(id + "-bu").value.trim(), image: $(id + "-im").value.trim() };
   if (!body.text) return toast(T("Xabar matnini yozing"));
+  if (body.image && !/^https:\/\//.test(body.image)) return toast(T("Rasm uchun https:// bilan boshlanadigan havola kiriting"));
   if (body.btnText && !/^https:\/\//.test(body.btnUrl)) return toast(T("Tugma uchun https:// bilan boshlanadigan havola kiriting"));
   if (route === "broadcast" && !(await confirmAsk(T("Xabar {n} ta foydalanuvchiga yuboriladi. Davom etasizmi?", { n: fmtN((adminInfo && adminInfo.reachable) || 0) })))) return;
   if (route === "channel" && !(await confirmAsk(T("Post {c} kanaliga joylanadi. Davom etasizmi?", { c: (adminInfo && adminInfo.channel) || "@ustozai" })))) return;
