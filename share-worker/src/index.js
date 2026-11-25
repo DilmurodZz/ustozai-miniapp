@@ -512,11 +512,37 @@ const BOT_TEXT = {
   ru: { shared: "Друг поделился с вами полезным разделом в Ustoz AI. Нажмите кнопку, чтобы открыть.", open: "Открыть раздел", hello: "Добро пожаловать в мини-приложение Ustoz AI! Профессия, бесплатные курсы, создание CV и полезные инструменты в одном месте.", app: "Открыть Ustoz AI" },
   en: { shared: "A friend shared a useful section of Ustoz AI with you. Tap the button to open it.", open: "Open the section", hello: "Welcome to the Ustoz AI mini app! Find your career, free courses, a CV maker and useful tools in one place.", app: "Open Ustoz AI" },
 };
+// The channel post, shareable anywhere through the bot's inline mode: typing @ustozaiminibot in any chat (a friend's chat,
+// or the channel itself) offers this post with its picture and the "Ilovani ochish" button, which stays on the sent message.
+// The picture is kept in KV as pimg:post1 (served at /p/post1.jpg).
+const POST1 = { caption: `⚡ <b>Endi Ustoz AI mini ilovasi bor!</b>
+Telegramning o‘zida kasb tanlang, o‘zingizga mos kursni toping va işga ariza topşiriş uçun CV tayyorlang.
+✅ <b>Barçasi bepul. Ro‘yxatdan o‘tiş ham şart emas!</b>
+
+📊 <b>Qaysi kasbga talab yuqori?</b>
+Biz hh.uz saytidagi qariyb 12 ming vakansiyani tahlil qildik. Har bir kurs sizni qaysi kasbga tayyorlaşi, neçta iş e’loni bor, va boşqa savollaringizga javob tayyorladik. Ilovada ko‘ring 😉
+
+🧭 <b>Qaysi kasb sizga mos?</b>
+«Kasb kompasi»dan boşlang. <b>5 daqiqa içida</b> qiziqişlaringiz va ko‘nikmalaringizga mos <b>3 ta kursni</b> tavsiya qilamiz.
+
+🎓 <b>Biz sizga Top 10 oliygohlarga hujjat topşirişda yordam beramiz.</b>
+Garvard qabul bo‘limi vakili Stanislav Rivkinning maslahatlari sizga dastur tanlaş, maqsadingizni aniq ifodalaş, va moliyaviy yordam masalalarida yo‘l ko‘rsatadi. «<b>Application Studio</b>»da esa hujjatlaringizni mukammal tayyorlang.
+
+🏆 <b>Zamonaviy kasblar tanlovi natijalari</b>
+Grafik dizayn, mobilografiya va veb-sayt yaratiş bo‘yiça tanlov g‘oliblari bilan tanişib boring.
+
+👇 <b>Boşlaş uçun quyidagi tugmani bosing!</b>`, button: { text: "Ilovani ochish", url: "https://t.me/ustozaiminibot?startapp", style: "primary" } };
+async function inlineAnswer(env, url, q) {
+  const r = { type: "photo", id: "post1", photo_url: url.origin + "/p/post1.jpg", thumbnail_url: url.origin + "/p/post1.jpg", photo_width: 2560, photo_height: 1440,
+    title: "Ustoz AI mini ilovasi", description: "Post: rasm, matn va tugma", caption: POST1.caption, parse_mode: "HTML", reply_markup: { inline_keyboard: [[POST1.button]] } };
+  await tg(env.BOT_TOKEN, "answerInlineQuery", JSON.stringify({ inline_query_id: q.id, results: [r], cache_time: 300, is_personal: false }));
+}
 async function botHook(req, env, url) {
   const key = await hookKey(env.BOT_TOKEN || "");
   if (url.pathname !== "/tg/" + key || req.headers.get("X-Telegram-Bot-Api-Secret-Token") !== key) return new Response("no", { status: 403 });
   try {
     const up = await req.json(), m = up.message;
+    if (up.inline_query) { await inlineAnswer(env, url, up.inline_query); return new Response("ok"); }
     if (m && m.chat && m.chat.type === "private" && typeof m.text === "string" && m.text.startsWith("/start")) {
       const payload = (m.text.split(" ")[1] || "").trim();
       const l = String((m.from && m.from.language_code) || "uz").slice(0, 2), tx = BOT_TEXT[l === "ru" ? "ru" : l === "en" ? "en" : "uz"];
