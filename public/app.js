@@ -357,54 +357,20 @@ if (tg) {
   try { tg.BackButton.onClick(goBack); } catch {}
   try { const top = tg.contentSafeAreaInset?.top + tg.safeAreaInset?.top; if (top) document.documentElement.style.setProperty("--tg-safe-top", top + "px"); } catch {}
 }
-// The intro: a 6-second cinematic rocket launch video (img/intro/launch.mp4, 1080x1920, silent, 1.6 MB).
-// The title is laid over the video by the app (sharp at any size), the phone vibrates with the launch
-// (Telegram haptics, synced to the video's own clock), and a white flash at the end opens the app.
-// The poster (first frame) shows at once; if the video cannot start within 2.5 s (slow network), the intro is skipped.
-// A tap skips it. Reduced-motion users skip it too.
-// For now it plays on every open of the app. Set INTRO_DAILY to true to show it only on the first open of each day again.
+// A short, calm intro: the Ustoz AI logo, name and line, with a filling bar (about 1 second).
+// For now it plays on every open of the app. Set INTRO_DAILY to true to show it only on the first open of each day (Tashkent date).
 const INTRO_DAILY = false;
 (function intro() {
   const today = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
   if (INTRO_DAILY && store.get("intro_day", "") === today) return;
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   store.set("intro_day", today);
   const el = document.createElement("div");
-  el.className = "lv";
-  el.innerHTML = `<video class="lv-vid" src="img/intro/launch.mp4?v=1" poster="img/intro/launch.jpg" muted playsinline webkit-playsinline preload="auto" disablepictureinpicture></video>
-    <div class="lv-title"><p class="l1">${T("Oyga parvoz Yerdan boshlanadi.")}</p><p class="l2">${T("Marsga esa: Ustoz AI’dan.")}</p></div>
-    <i class="lv-flash"></i>`;
+  el.className = "intro";
+  el.innerHTML = `<div class="intro-in"><img src="logo.png" alt=""><b>USTOZ AI</b><span>${T("Kelajak kasbingizni toping")}</span><i><em></em></i></div>`;
   document.body.appendChild(el);
-  const v = el.querySelector("video");
-  v.muted = true;
-  let finished = false, started = false;
-  const done = () => {
-    if (finished) return; finished = true;
-    el.classList.add("out"); setTimeout(() => { try { v.pause(); v.removeAttribute("src"); v.load(); } catch {} el.remove(); }, 600);
-  };
+  const done = () => { if (el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => el.remove(), 600); };
   el.onclick = done;
-  // haptics: a heavy hit at ignition, a rumble while the smoke billows, lighter pulses as it climbs, a sharp hit at the flash
-  const hap = (k) => { try { k === "rigid" || k === "heavy" || k === "medium" || k === "light" ? tg.HapticFeedback.impactOccurred(k) : 0; } catch {} };
-  let lastBeat = -1, hitIgn = false, hitFlash = false;
-  const tick = () => {
-    if (finished) return;
-    const t = v.currentTime;
-    if (t >= 1.0 && !hitIgn) { hitIgn = true; hap("heavy"); }
-    if (t > 1.05 && t < 2.6) { const b = Math.floor(t / .12); if (b !== lastBeat) { lastBeat = b; hap("medium"); } }
-    else if (t >= 2.6 && t < 3.9) { const b = Math.floor(t / .2); if (b !== lastBeat) { lastBeat = b; hap("light"); } }
-    if (t >= 3.6) el.classList.add("t1");
-    if (t >= 4.2) el.classList.add("t2");
-    if (t >= 5.55 && !hitFlash) { hitFlash = true; el.classList.add("flash"); hap("rigid"); setTimeout(done, 420); }
-  };
-  // driven by every frame for smooth haptics, and by the video's own time updates as a backup (a paused frame loop never stalls the title)
-  const loop = () => { if (finished) return; tick(); requestAnimationFrame(loop); };
-  v.addEventListener("timeupdate", tick);
-  v.addEventListener("playing", () => { if (!started) { started = true; el.classList.add("on"); requestAnimationFrame(loop); } });
-  v.addEventListener("ended", () => { if (!hitFlash) { el.classList.add("flash"); setTimeout(done, 420); } });
-  v.addEventListener("error", done);
-  const go = () => { const p = v.play(); if (p && p.catch) p.catch(done); };
-  if (v.readyState >= 3) go(); else v.addEventListener("canplay", go, { once: true });
-  setTimeout(() => { if (!started) done(); }, 2500);
+  setTimeout(done, 1100);
 })();
 if ("serviceWorker" in navigator) {
   // app files are always fetched fresh (network first), so a new version shows without any reload
