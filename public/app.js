@@ -37,7 +37,11 @@ function applyTheme(name) {
   store.set("theme", name);
   try { tg.setHeaderColor("#F5F6FA"); tg.setBackgroundColor("#F5F6FA"); } catch {}
 }
-applyTheme(store.get("theme", "blue"));
+// By default the colour changes every day (Tashkent date), so the app never feels the same; a colour the user picks
+// in Profil stays fixed until they choose "Har kuni yangi rang" again.
+const themeAuto = () => store.get("theme_mode", "auto") !== "fixed";
+const dayTheme = () => { const k = Object.keys(THEMES), d = Math.floor((Date.now() + 5 * 3600e3) / 864e5); return k[d % k.length]; };
+applyTheme(themeAuto() ? dayTheme() : store.get("theme", "blue"));
 
 /* ---------- icons: one consistent outline set, 24x24, drawn with currentColor ---------- */
 const ICONS = {
@@ -191,18 +195,22 @@ function Profil() {
   <div class="pf-list">
   ${statsCard()}
   ${adminCard()}
-  ${pfRow("palette", "#7C3AED", T("Ilova rangi"), (THEMES[theme] || THEMES.blue)[0] + (colorCounts ? " · " + T("{n} kishi", { n: fmtN(colorCounts[theme] || 0) }) : ""), "pfColor()")}
+  ${pfRow("palette", "#7C3AED", T("Ilova rangi"), (themeAuto() ? T("Har kuni yangi rang") + " · " + T((THEMES[theme] || THEMES.blue)[0]) : (THEMES[theme] || THEMES.blue)[0] + (colorCounts ? " · " + T("{n} kishi", { n: fmtN(colorCounts[theme] || 0) }) : "")), "pfColor()")}
   ${langCard()}
   </div>
   ${startParam ? `<p class="note">Kirish manbasi: ${esc(startParam)}</p>` : ""}
   <p class="credit">O'yin 3D modellari (CC BY 4.0): own.guest, Nicholas-3D, Dimiter, Tom (trbaker), te1ko</p>`;
 }
-window.pickTheme = (k) => { applyTheme(k); haptic("medium"); closeSheet(); render(); sendColor(); };
+window.pickTheme = (k) => {
+  if (k === "auto") { store.set("theme_mode", "auto"); applyTheme(dayTheme()); haptic("medium"); closeSheet(); render(); return; }
+  store.set("theme_mode", "fixed"); applyTheme(k); haptic("medium"); closeSheet(); render(); sendColor();
+};
 window.pfColor = () => {
   const theme = THEMES[store.get("theme", "blue")] ? store.get("theme", "blue") : "blue";
   haptic("light");
+  const auto = themeAuto();
   sheet(`<h3>${T("Ilova rangi")}</h3><p>${T("O'zingizga yoqqan rangni tanlang")}</p>
-    <div class="pf-pick">${Object.entries(THEMES).map(([k, [l, a, b]]) => `<button class="${k === theme ? "on" : ""}" onclick="pickTheme('${k}')"><i class="dd-sw" style="background:linear-gradient(135deg,${a},${b})"></i><b>${l}</b><small>${colorCounts ? T("{n} kishi", { n: fmtN(colorCounts[k] || 0) }) : ""}</small>${k === theme ? ic("check") : ""}</button>`).join("")}</div>`);
+    <div class="pf-pick"><button class="${auto ? "on" : ""}" onclick="pickTheme('auto')"><i class="dd-sw" style="background:conic-gradient(${Object.values(THEMES).map((t) => t[1]).join(",")},${Object.values(THEMES)[0][1]})"></i><b>${T("Har kuni yangi rang")}</b><small></small>${auto ? ic("check") : ""}</button>${Object.entries(THEMES).map(([k, [l, a, b]]) => `<button class="${!auto && k === theme ? "on" : ""}" onclick="pickTheme('${k}')"><i class="dd-sw" style="background:linear-gradient(135deg,${a},${b})"></i><b>${l}</b><small>${colorCounts ? T("{n} kishi", { n: fmtN(colorCounts[k] || 0) }) : ""}</small>${!auto && k === theme ? ic("check") : ""}</button>`).join("")}</div>`);
 };
 // how many people chose each colour: real counts kept by the share server, one vote per Telegram user
 const fmtN = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -215,7 +223,7 @@ function sendColor() {
     .then((r) => r.ok ? r.json() : null).then((c) => { if (c) { store.set("color_sent", t); gotCounts(c); } }).catch(() => {});
 }
 function loadColors() { fetch(SHARE_API + "/colors").then((r) => r.json()).then(gotCounts).catch(() => {}); }
-setTimeout(() => { if (store.get("color_sent", "") !== store.get("theme", "blue")) sendColor(); else loadColors(); }, 1500);
+setTimeout(() => { if (!themeAuto() && store.get("color_sent", "") !== store.get("theme", "blue")) sendColor(); else loadColors(); }, 1500);
 window.invite = (link) => {
   const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(T("Ustoz AI: kasbingizni toping va bepul o'rganing"))}`;
   if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");

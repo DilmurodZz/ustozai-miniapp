@@ -1499,4 +1499,7 @@ Object.assign(I18N.ru, {
 "Ixtiyoriy. Matn ustida katta ko\'rinadi": "Необязательно. Крупно над текстом",
 "Rasm hali yuklanmoqda": "Картинка ещё загружается",
 "Rasm yuklanmadi: {e}": "Картинка не загрузилась: {e}",
+"Har kuni yangi rang": "Новый цвет каждый день",
+"Har kuni avtomatik almashadi": "Меняется автоматически каждый день",
+"Bordo": "Бордовый",
 });

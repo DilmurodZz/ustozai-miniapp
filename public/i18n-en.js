@@ -1499,4 +1499,7 @@ Object.assign(I18N.en, {
 "Ixtiyoriy. Matn ustida katta ko\'rinadi": "Optional. Shown large above the text",
 "Rasm hali yuklanmoqda": "The image is still uploading",
 "Rasm yuklanmadi: {e}": "Image not uploaded: {e}",
+"Har kuni yangi rang": "A new colour every day",
+"Har kuni avtomatik almashadi": "Changes automatically every day",
+"Bordo": "Burgundy",
 });
