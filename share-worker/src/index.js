@@ -97,6 +97,7 @@ export default {
       if (!f.value) return new Response("expired", { status: 404 });
       return new Response(f.value, { headers: { "Content-Type": f.metadata.type, "Content-Disposition": `attachment; filename*=UTF-8''${name}`, ...cors(origin) } });
     }
+    if (url.pathname === "/open" && req.method === "GET") return openInApp(url);
     if (url.pathname.startsWith("/p/") && req.method === "GET") {
       const f = await env.COLORS.getWithMetadata("pimg:" + url.pathname.slice(3).split(".")[0], "arrayBuffer");
       if (!f.value) return new Response("not found", { status: 404 });
@@ -505,6 +506,34 @@ async function newsRead(url, env, origin) {
 
 
 /* ---------- the bot answers /start: a shared section link (t.me/<bot>?start=g_cefr) gets a button that opens the app right there ---------- */
+// /open?u=<course link>: opens a course in the Ustoz AI phone app. Telegram opens links in its own browser, where the
+// app does not take over its links, so this page asks the phone directly: on Android an intent for the app
+// (uz.uztozedu.ustozai) with the course page on ustoz.ai as the fallback; on iPhone a button, because iOS opens the app
+// only from a tap on its link. Only ustoz.ai links are accepted.
+const APP_PKG = "uz.uztozedu.ustozai";
+function openInApp(url) {
+  const u = url.searchParams.get("u") || "";
+  if (!/^https:\/\/(www\.)?ustoz\.ai\/[\w\/.-]*$/.test(u)) return new Response("bad link", { status: 400 });
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  const intent = `intent://${u.slice(8)}#Intent;scheme=https;package=${APP_PKG};S.browser_fallback_url=${encodeURIComponent(u)};end`;
+  const html = `<!doctype html><html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ustoz AI</title><style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F7F3EE;font-family:Inter,system-ui,-apple-system,Arial,sans-serif;color:#111}
+.b{width:100%;max-width:380px;padding:28px 22px;text-align:center}
+.l{width:64px;height:64px;border-radius:18px;background:#111;color:#fff;display:inline-grid;place-items:center;font-weight:800;font-size:30px}
+h1{font-size:20px;margin:18px 0 6px}p{color:#777;font-size:14px;line-height:1.45;margin:0 0 22px}
+a{display:block;padding:15px;border-radius:16px;font-weight:700;text-decoration:none;margin-top:10px}
+.p{background:linear-gradient(135deg,#2748F5,#1733B8);color:#fff}.g{background:#fff;color:#111;border:1px solid #EAE3DA}
+</style></head><body><div class="b"><div class="l">U</div><h1>Ustoz AI ilovasida ochilmoqda</h1>
+<p>Ilova o'rnatilgan bo'lsa, kurs ilovada ochiladi. Aks holda kurs sahifasi saytda ochiladi.</p>
+<a class="p" id="go" href="${esc(u)}">Ilovada ochish</a><a class="g" href="${esc(u)}" rel="noopener">Saytda ochish</a></div>
+<script>
+var ua=navigator.userAgent||"";
+if(/Android/i.test(ua)){var i=${JSON.stringify(intent)};document.getElementById("go").href=i;location.href=i;}
+</script></body></html>`;
+  return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
+}
+
 const APP_URL = "https://dilmurodzz.github.io/ustozai-miniapp/";
 const hookKey = async (token) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("hook:" + token)))].slice(0, 16).map((b) => b.toString(16).padStart(2, "0")).join("");
 const BOT_TEXT = {

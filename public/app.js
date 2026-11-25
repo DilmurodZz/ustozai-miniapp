@@ -16,7 +16,13 @@ const startParam = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
 // so a course link opened outside Telegram opens that course in the app when it is installed, otherwise the website.
 const PLAY_URL = "https://play.google.com/store/apps/details?id=uz.uztozedu.ustozai";
 const STORE_URL = "https://apps.apple.com/uz/app/ustoz-ai/id6504815934";
-window.openApp = (url) => { haptic("medium"); if (tg && tg.openLink) tg.openLink(url); else window.open(url, "_blank"); };
+// Telegram opens links in its own browser, where the Ustoz AI app does not take over its links, so ustoz.ai links
+// go through the share server's /open page, which asks the phone to open the app (the website is the fallback)
+window.openApp = (url) => {
+  haptic("medium");
+  const go = /^https:\/\/(www\.)?ustoz\.ai\//.test(url) && tg && tg.platform !== "unknown" ? SHARE_API + "/open?u=" + encodeURIComponent(url) : url;
+  if (tg && tg.openLink) tg.openLink(go); else window.open(go, "_blank");
+};
 window.openStore = () => { const u = tg && tg.platform === "ios" ? STORE_URL : PLAY_URL; if (tg && tg.openLink) tg.openLink(u); else window.open(u, "_blank"); };
 
 const haptic = (type = "light") => { try { tg.HapticFeedback.impactOccurred(type); } catch {} };
