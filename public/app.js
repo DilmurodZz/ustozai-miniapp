@@ -160,7 +160,7 @@ function Home() {
   <div class="topbar"><div class="brand"><img class="logo" src="logo.png" alt="">USTOZ AI</div><img class="partner" src="img/turonbank.png" alt="Turon Bank"></div>
   <a class="hero2" href="#/kompas" onclick="return kpSheet(event)">
     <img class="hero2-art" src="img/hero-compass.webp" alt="" decoding="async">
-    <span class="hero2-tag">${T("6-7 daqiqa")}</span>
+    <span class="hero2-tag">${T("5 daqiqa")}</span>
     <h3>Kasb Kompasi</h3>
     <p>O'zingizga mos kasb va kurslarni toping</p>
     <span class="btn-orange">Boshlash ${ic("chev")}</span>
@@ -642,12 +642,12 @@ function glow(el) {
 window.kpSheet = (e) => {
   if (e) e.preventDefault(); haptic("light");
   // a test left half way: the panel offers to go on from the same question
-  const st = store.get("kp_state", null), going = st && st.v === 2 && st.step >= 0 && st.num;
+  const st = store.get("kp_state", null), going = st && st.v === 3 && st.step >= 0 && st.num;
   sheet(`<div class="kp-sheet"><img src="img/kompas-start.webp" alt="" decoding="async">
     <h3>${T("Kasb Kompasi")}</h3>
-    ${going ? `<p>${T("Siz {n}-savolda to'xtagan edingiz. Javoblaringiz saqlangan.", { n: st.num })}</p>` : `<p>${T("Test taxminan 6-7 daqiqa davom etadi.")}</p>
+    ${going ? `<p>${T("Siz {n}-savolda to'xtagan edingiz. Javoblaringiz saqlangan.", { n: st.num })}</p>` : `<p>${T("Test taxminan 5 daqiqa davom etadi.")}</p>
     <p>${T("Testni tugatishingiz bilan qiziqishlaringiz va ko'nikmalaringizga mos 3 ta kursni tavsiya qilamiz.")}</p>`}
-    <button class="btn-primary" onclick="kpGo(1)">${going ? T("Davom etish ({a} / {b})", { a: st.num, b: 29 }) : T("Boshlash")}</button>
+    <button class="btn-primary" onclick="kpGo(1)">${going ? T("Davom etish ({a} / {b})", { a: st.num, b: 15 }) : T("Boshlash")}</button>
     ${going ? `<button class="kp-restart" onclick="kpGo(2)">${T("Boshidan boshlash")}</button>` : ""}</div>`);
   return false;
 };

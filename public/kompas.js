@@ -1,5 +1,6 @@
 // "Kasb Kompasi": a picture questionnaire that finds Ustoz AI courses ("Kasb Kompasi savolnomasi" and
 // "Kasb Kompasi kurs tanlash qo'llanmasi", Nov 2026).
+// The test asks 15 questions (see ASK below): 12 of the 24 situations and the goal, device and budget.
 // 24 everyday situations with a photo (1-4 hands-on work, 5-8 analysis, 9-12 creative work, 13-16 people,
 // 17-20 initiative and business, 21-24 records and planning). Answers A-E give 4-0 points; F ("not tried yet") is not scored.
 // Then the goal (25, with the way of earning when it is "money" and the topic the student has in mind), the level (26),
@@ -7,7 +8,7 @@
 // Course score = interest 65 + goal 25 + readiness 10, divided by the maximum of the parts that could be counted.
 // Courses of a "Tanlov" row (languages, school subjects, sport...) get no number: they are shown when the topic fits.
 const Compass = (() => {
-  const VER = 2;
+  const VER = 3;
   const THEMES = {
     R: { name: "Qo'l bilan bajariladigan ishlar", icon: "tool", c: "#F2600C" },
     I: { name: "Tahlil va izlanish", icon: "chart", c: "#2748F5" },
@@ -51,22 +52,28 @@ const Compass = (() => {
     "yetkazib berishni rejalash", "xarajatlarni hisoblash"];
   const themeOf = (i) => "RIASEC"[Math.floor(i / 4)];
   const NQ = QS.length;   // 24
+  // The test asks 15 questions: 12 situations (the 2 per theme that most course types lean on) and 3 practical ones
+  // (goal, device, budget). The other situations stay in QS for the scoring code but are not asked.
+  // Asked (1-based): 1 robot, 3 bilaguzuk, 6 xato sababi, 8 telefon o'yini, 9 video, 12 kitob qahramoni, 13 hisobni tushuntirish,
+  // 16 sayohat tanlash, 18 birinchi xaridor, 19 reklama auditoriyasi, 21 buyurtmalar jadvali, 24 xarajatlar hisobi.
+  const ASK = [0, 2, 5, 7, 8, 11, 12, 15, 17, 18, 20, 23];
+  const qNum = (i) => ASK.indexOf(i) + 1;   // the number the student sees
 
   // the practical steps; "sub" steps belong to the question number before them
   const FIT = [
-    { k: "goal", n: 25, img: 25, q: "Kursdan keyin birinchi navbatda qanday natijaga erishmoqchisiz?", o: ["Biror kasb o'rganib, o'zim pul topishni boshlamoqchiman.", "Tanlagan kasbim uchun aniq bir ko'nikma o'rganmoqchiman.", "Ishga kirish uchun rezyume yozish va suhbatga tayyorlanishni mashq qilmoqchiman.", "O'z biznesimni boshlamoqchiman yoki uni rivojlantirmoqchiman.", "Hozirgi ishimda murakkabroq vazifalarni bajara olmoqchiman.", "Til o'rganmoqchiman yoki imtihonga tayyorlanmoqchiman.", "Bo'sh vaqtimda o'zimga yoqadigan mashg'ulot bilan shug'ullanmoqchiman.", "Hali aniq maqsad tanlamadim."], v: "ABCDEFGH", icons: ["coin", "zap", "briefcase", "rocket", "trend", "cap", "palette", "compass"] },
-    { k: "earn", n: 25, sub: 1, when: (f) => f.goal === "A", q: "Qaysi yo'l bilan pul topishni xohlaysiz?",
+    { k: "goal", n: 13, img: 25, q: "Kursdan keyin birinchi navbatda qanday natijaga erishmoqchisiz?", o: ["Biror kasb o'rganib, o'zim pul topishni boshlamoqchiman.", "Tanlagan kasbim uchun aniq bir ko'nikma o'rganmoqchiman.", "Ishga kirish uchun rezyume yozish va suhbatga tayyorlanishni mashq qilmoqchiman.", "O'z biznesimni boshlamoqchiman yoki uni rivojlantirmoqchiman.", "Hozirgi ishimda murakkabroq vazifalarni bajara olmoqchiman.", "Til o'rganmoqchiman yoki imtihonga tayyorlanmoqchiman.", "Bo'sh vaqtimda o'zimga yoqadigan mashg'ulot bilan shug'ullanmoqchiman.", "Hali aniq maqsad tanlamadim."], v: "ABCDEFGH", icons: ["coin", "zap", "briefcase", "rocket", "trend", "cap", "palette", "compass"] },
+    { k: "earn", skip: 1, n: 13, sub: 1, when: (f) => f.goal === "A", q: "Qaysi yo'l bilan pul topishni xohlaysiz?",
       o: ["Buyurtma olib, mijozga xizmat ko'rsatish.", "Ishga kirib, maosh olish.", "Mahsulot sotish.", "Hali qaysi yo'lni tanlashni bilmayman."], v: "ABCD", icons: ["users", "briefcase", "coin", "compass"] },
-    { k: "topic", n: 25, sub: 1, input: 1, q: "Qaysi mavzuni o'rganmoqchisiz?", hint: "Masalan, \"telefonda video olish\", \"IELTS Reading\" yoki \"7-sinf algebra\" deb yozishingiz mumkin." },
-    { k: "cert", n: 25, sub: 1, q: "Kursni tugatganlik sertifikati sizga kerakmi?", o: ["Kerak", "Shart emas", "Hali bilmayman"], v: "ABC", icons: ["star", "check", "compass"] },
-    { k: "level", n: 26, img: 26, q: "Siz tanlagan ishni hozir qay darajada mustaqil bajara olasiz?", hint: "Javobni o'rganmoqchi bo'lgan mavzu uchun bering. Mavzu hali aniq bo'lmasa, E ni belgilang.", o: ["Murakkab vazifani ham o'zim bajara olaman. Chuqurroq o'rganmoqchiman.", "Oddiy vazifani o'zim bajaraman. Murakkabida yordam kerak.", "Kimdir ko'rsatsa, oddiy mashqni takrorlay olaman.", "Endi boshlayman. Hali sinab ko'rmaganman.", "Darajamni hozircha ayta olmayman."], v: "ABCDE", icons: ["star", "check", "book", "play", "compass"] },
-    { k: "time", n: 27, img: 27, q: "Bir haftada dars va mashqlarga qancha vaqt ajrata olasiz?", o: ["8 soat yoki undan ko'p.", "Kamida 5 soat, lekin 8 soatdan kam.", "Kamida 2 soat, lekin 5 soatdan kam.", "Ozgina vaqt topaman, lekin haftasiga 2 soatga yetmaydi.", "Hozircha o'qishga vaqt ajrata olmayman.", "Haftadan haftaga o'zgaradi. Hali aniq ayta olmayman."], v: "ABCDEF", icons: ["clock", "clock", "clock", "clock", "x", "compass"] },
-    { k: "device", n: 28, img: 28, q: "Darsni ko'rish va mashq qilish uchun qaysi qurilmadan foydalana olasiz?", hint: "Maktabda, ishda yoki kutubxonada muntazam foydalana oladigan qurilmangizni ham hisobga oling.", o: ["Mobil qurilmadan ham, kompyuterdan ham.", "Faqat telefon yoki planshetdan.", "Faqat kompyuter yoki noutbukdan.", "Hozircha bu qurilmalarning hech biridan foydalana olmayman.", "Qaysi qurilmadan foydalana olishimni hali bilmayman."], v: "ABCDE", icons: ["layers", "phone", "laptop", "x", "compass"] },
-    { k: "kit", n: 28, sub: 1, q: "Mashq uchun alohida jihoz kerak bo'lsa, undan foydalana olasizmi?", hint: "Masalan, limon ko'chati, robot qismlari yoki 3D printer.",
+    { k: "topic", skip: 1, n: 13, sub: 1, input: 1, q: "Qaysi mavzuni o'rganmoqchisiz?", hint: "Masalan, \"telefonda video olish\", \"IELTS Reading\" yoki \"7-sinf algebra\" deb yozishingiz mumkin." },
+    { k: "cert", skip: 1, n: 13, sub: 1, q: "Kursni tugatganlik sertifikati sizga kerakmi?", o: ["Kerak", "Shart emas", "Hali bilmayman"], v: "ABC", icons: ["star", "check", "compass"] },
+    { k: "level", skip: 1, n: 0, img: 26, q: "Siz tanlagan ishni hozir qay darajada mustaqil bajara olasiz?", hint: "Javobni o'rganmoqchi bo'lgan mavzu uchun bering. Mavzu hali aniq bo'lmasa, E ni belgilang.", o: ["Murakkab vazifani ham o'zim bajara olaman. Chuqurroq o'rganmoqchiman.", "Oddiy vazifani o'zim bajaraman. Murakkabida yordam kerak.", "Kimdir ko'rsatsa, oddiy mashqni takrorlay olaman.", "Endi boshlayman. Hali sinab ko'rmaganman.", "Darajamni hozircha ayta olmayman."], v: "ABCDE", icons: ["star", "check", "book", "play", "compass"] },
+    { k: "time", skip: 1, n: 0, img: 27, q: "Bir haftada dars va mashqlarga qancha vaqt ajrata olasiz?", o: ["8 soat yoki undan ko'p.", "Kamida 5 soat, lekin 8 soatdan kam.", "Kamida 2 soat, lekin 5 soatdan kam.", "Ozgina vaqt topaman, lekin haftasiga 2 soatga yetmaydi.", "Hozircha o'qishga vaqt ajrata olmayman.", "Haftadan haftaga o'zgaradi. Hali aniq ayta olmayman."], v: "ABCDEF", icons: ["clock", "clock", "clock", "clock", "x", "compass"] },
+    { k: "device", n: 14, img: 28, q: "Darsni ko'rish va mashq qilish uchun qaysi qurilmadan foydalana olasiz?", hint: "Maktabda, ishda yoki kutubxonada muntazam foydalana oladigan qurilmangizni ham hisobga oling.", o: ["Mobil qurilmadan ham, kompyuterdan ham.", "Faqat telefon yoki planshetdan.", "Faqat kompyuter yoki noutbukdan.", "Hozircha bu qurilmalarning hech biridan foydalana olmayman.", "Qaysi qurilmadan foydalana olishimni hali bilmayman."], v: "ABCDE", icons: ["layers", "phone", "laptop", "x", "compass"] },
+    { k: "kit", skip: 1, n: 14, sub: 1, q: "Mashq uchun alohida jihoz kerak bo'lsa, undan foydalana olasizmi?", hint: "Masalan, limon ko'chati, robot qismlari yoki 3D printer.",
       o: ["Bor yoki olib tura olaman", "Hozircha yo'q", "Hali bilmayman"], v: "ABC", icons: ["tool", "x", "compass"] },
-    { k: "budget", n: 29, img: 29, q: "Bitta kurs uchun eng ko'pi qancha to'lay olasiz?", o: ["Hozir faqat bepul kurs tanlayman.", "Eng ko'pi ma'lum summagacha to'lay olaman.", "Hozircha narx bo'yicha chegara qo'ymayman.", "Hali bilmayman. Avval kurslarning narxini ko'rmoqchiman."], v: "ABCD", icons: ["gift", "coin", "check", "compass"] },
+    { k: "budget", n: 15, img: 29, q: "Bitta kurs uchun eng ko'pi qancha to'lay olasiz?", o: ["Hozir faqat bepul kurs tanlayman.", "Eng ko'pi ma'lum summagacha to'lay olaman.", "Hozircha narx bo'yicha chegara qo'ymayman.", "Hali bilmayman. Avval kurslarning narxini ko'rmoqchiman."], v: "ABCD", icons: ["gift", "coin", "check", "compass"] },
   ];
-  const NSHOW = 29;
+  const NSHOW = 15;
 
   /* ---------- the courses: one row of the guide per course type ---------- */
   // th: the theme of the row and its two anchor questions (1-based); "T" = Tanlov (shown only for a matching topic)
@@ -159,7 +166,7 @@ const Compass = (() => {
   // the goal letter a course row must carry; null = this part is not counted
   function goalLetter(f) {
     if ("BCDEFG".includes(f.goal || "x")) return f.goal;
-    if (f.goal === "A") return f.earn === "A" || f.earn === "B" ? "B" : f.earn === "C" ? "D" : null;
+    if (f.goal === "A") return f.earn === "C" ? "D" : "B";   // the way of earning is no longer asked: work or services
     return null;
   }
   const LV = { A: 2, B: 1, C: 0, D: 0 };
@@ -219,7 +226,7 @@ const Compass = (() => {
     const best = all.filter((r) => r.score !== null && solid(r.c)).sort((x, y) => y.score - x.score)[0];
     const hidden = !skip && best && !budgetOk(best.c, f) && (!picks[0] || picks[0].score === null || best.score - picks[0].score > 6) ? best : null;
     const prof = profile(st.a), top = Object.entries(prof.p).sort((x, y) => y[1] - x[1]);
-    return { picks, prof, top, hidden, weak: prof.answered < 12 || !ranked.length };
+    return { picks, prof, top, hidden, weak: prof.answered < 8 || !ranked.length };
   }
   const pct = (r) => Math.round(r.score);
 
@@ -229,7 +236,7 @@ const Compass = (() => {
   if (!st || st.v !== VER) st = fresh();
   const save = () => store.set("kp_state", st);
   // the steps: 24 situations, then the practical questions that apply to this student
-  const steps = () => [...QS.map((_, i) => ({ t: "q", i })), ...FIT.filter((x) => !x.when || x.when(st.f)).map((x) => ({ t: "f", x }))];
+  const steps = () => [...ASK.map((i) => ({ t: "q", i })), ...FIT.filter((x) => !x.skip && (!x.when || x.when(st.f))).map((x) => ({ t: "f", x }))];
 
   /* ---------- screens ---------- */
   function Intro() {
@@ -240,7 +247,7 @@ const Compass = (() => {
       <h2>${T("Sizga qaysi kurs mos?")}</h2>
       <p>${T("Har bir rasmda bir vaziyat tasvirlangan. Savolni o'qib, o'zingizga eng yaqin bitta javobni belgilang. Ishni hali qilmagan bo'lsangiz ham, uni sinab ko'rish istagingizga qarab javob bering.")}</p>
       <div class="kp-meta">
-        <span>${ic("clock")}<b>${T("6-7 daqiqa")}</b><small>${T("taxminiy vaqt")}</small></span>
+        <span>${ic("clock")}<b>${T("5 daqiqa")}</b><small>${T("taxminiy vaqt")}</small></span>
         <span>${ic("check")}<b>${NSHOW}</b><small>${T("rasmli savol")}</small></span>
         <span>${ic("target")}<b>3</b><small>${T("mos kurs")}</small></span>
       </div>
@@ -255,7 +262,7 @@ const Compass = (() => {
   const pic = (n) => `<div class="kp-pic"><img src="img/kp/${String(n).padStart(2, "0")}.webp" alt="" decoding="async"></div>`;
   function Question() {
     const list = steps(), s = list[st.step], last = st.step + 1 >= list.length;
-    const num = s.t === "q" ? s.i + 1 : s.x.n;
+    const num = s.t === "q" ? qNum(s.i) : s.x.n;
     if (st.num !== num) { st.num = num; save(); }
     const head = `${navbar(T("Kasb Kompasi"))}
       <div class="kp-top"><span>${s.t === "q" ? T(THEMES[themeOf(s.i)].name) : T("Kurs tanlash shartlari")}</span><em>${num} / ${NSHOW}</em></div>
@@ -348,7 +355,7 @@ const Compass = (() => {
       </div>
       ${m === null ? "" : `<details class="kp-more"><summary>${T("Nega bu kurs?")}</summary>
         <ul>
-          <li><b>${Math.round(r.interest * 10) / 10} / 65</b> ${T("qiziqish")}: ${T(THEMES[row.th].name)}, ${T("tayanch savollar")} ${row.q.join(` ${T("va")} `)}</li>
+          <li><b>${Math.round(r.interest * 10) / 10} / 65</b> ${T("qiziqish")}: ${T(THEMES[row.th].name)}, ${T("tayanch savollar")} ${row.q.filter((n) => ASK.includes(n - 1)).map((n) => qNum(n - 1)).join(` ${T("va")} `)}</li>
           ${r.goal === null ? "" : `<li><b>${r.goal} / 25</b> ${T("maqsad mosligi")}</li>`}
           ${r.ready === null ? "" : `<li><b>${Math.round(r.ready * 10) / 10} / 10</b> ${T("tayyorgarlik: daraja va qurilma")}</li>`}
         </ul>
@@ -397,7 +404,7 @@ const Compass = (() => {
     const done = store.get("kp_done2", null); if (!done) return;
     const lead = Object.entries(profile(done.a).p).sort((x, y) => y[1] - x[1])[0][0];
     const link = `https://t.me/${BOT}?start=ref_${user.id}`;
-    const text = T("Mening yetakchi yo'nalishim: {p}. Sizga qaysi kurs mos? Kasb Kompasida 7 daqiqada bilib oling.", { p: T(THEMES[lead].name) });
+    const text = T("Mening yetakchi yo'nalishim: {p}. Sizga qaysi kurs mos? Kasb Kompasida 5 daqiqada bilib oling.", { p: T(THEMES[lead].name) });
     haptic(); openTg(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
   };
   return { Screen, Result, _test: { QS, FIT, ROWS, recommend, profile, scoreCourse, catalog } };
