@@ -548,14 +548,14 @@ const POST1 = { caption: `⚡ <b>Endi Ustoz AI da Mini ilova bor!</b>
 
 Ilovada:
 🎯 O‘zingizga mos kasb va kursni topa olasiz
-📊 Talab yuqori kasblar bilan tanishishingiz
-📝 Bepul CV tayyorlashingiz va hatto
-🎓 Top 10 oliygohga mukammal hujjat tayyorlashingiz mumkin
+📊 Talab yuqori kasblar bilan tanişişingiz
+📝 Bepul CV tayyorlaşingiz va hatto
+🎓 Top 10 oliygohga mukammal hujjat tayyorlaşingiz mumkin
 🏆 Tanlov g‘oliblarini ham ilovada ko‘ring
 
-✅ <b>Bepul va ro‘yxatdan o‘tish shart emas.</b>
+✅ <b>Bepul va ro‘yxatdan o‘tiş şart emas.</b>
 
-👇 <b><a href="https://t.me/ustozaiminibot?startapp">Mini ilovani oching!</a></b>`, button: { text: "Ilovani ochish", url: "https://t.me/ustozaiminibot?startapp", style: "primary" } };
+👇 <b><a href="https://t.me/ustozaiminibot?startapp">Mini ilovani oçing!</a></b>`, button: { text: "Ilovani oçiş", url: "https://t.me/ustozaiminibot?startapp", style: "primary" } };
 // after an edit (/tahrir) the post's current text, formatting and picture are kept in KV post1:data
 const getPost = async (env) => { try { return (await env.COLORS.get("post1:data", "json")) || null; } catch { return null; } };
 const capOf = (p) => (p ? { caption: p.caption, caption_entities: p.entities || [] } : { caption: POST1.caption, parse_mode: "HTML" });
