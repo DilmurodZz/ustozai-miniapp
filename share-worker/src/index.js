@@ -544,23 +544,18 @@ const BOT_TEXT = {
 // The channel post, shareable anywhere through the bot's inline mode: typing @ustozaiminibot in any chat (a friend's chat,
 // or the channel itself) offers this post with its picture and the "Ilovani ochish" button, which stays on the sent message.
 // The picture is kept in KV as pimg:post1 (served at /p/post1.jpg).
-const POST1 = { caption: `⚡ <b>Endi Ustoz AI mini ilovasi bor!</b>
-Telegramning o‘zida kasb tanlang, o‘zingizga mos kursni toping va işga ariza topşiriş uçun CV tayyorlang.
-✅ <b>Barçasi bepul. Ro‘yxatdan o‘tiş ham şart emas!</b>
+const POST1 = { caption: `⚡ <b>Endi Ustoz AI da Mini ilova bor!</b>
 
-📊 <b>Qaysi kasbga talab yuqori?</b>
-Biz hh.uz saytidagi qariyb 12 ming vakansiyani tahlil qildik. Har bir kurs sizni qaysi kasbga tayyorlaşi, neçta iş e’loni bor, va boşqa savollaringizga javob tayyorladik. Ilovada ko‘ring 😉
+Ilovada:
+🎯 O‘zingizga mos kasb va kursni topa olasiz
+📊 Talab yuqori kasblar bilan tanishishingiz
+📝 Bepul CV tayyorlashingiz va hatto
+🎓 Top 10 oliygohga mukammal hujjat tayyorlashingiz mumkin
+🏆 Tanlov g‘oliblarini ham ilovada ko‘ring
 
-🧭 <b>Qaysi kasb sizga mos?</b>
-«Kasb kompasi»dan boşlang. <b>5 daqiqa içida</b> qiziqişlaringiz va ko‘nikmalaringizga mos <b>3 ta kursni</b> tavsiya qilamiz.
+✅ <b>Bepul va ro‘yxatdan o‘tish shart emas.</b>
 
-🎓 <b>Biz sizga Top 10 oliygohlarga hujjat topşirişda yordam beramiz.</b>
-Garvard qabul bo‘limi vakili Stanislav Rivkinning maslahatlari sizga dastur tanlaş, maqsadingizni aniq ifodalaş, va moliyaviy yordam masalalarida yo‘l ko‘rsatadi. «<b>Application Studio</b>»da esa hujjatlaringizni mukammal tayyorlang.
-
-🏆 <b>Zamonaviy kasblar tanlovi natijalari</b>
-Grafik dizayn, mobilografiya va veb-sayt yaratiş bo‘yiça tanlov g‘oliblari bilan tanişib boring.
-
-👇 <b><a href="https://t.me/ustozaiminibot?startapp">Boşlaş uçun quyidagi tugmani bosing!</a></b>`, button: { text: "Ilovani ochish", url: "https://t.me/ustozaiminibot?startapp", style: "primary" } };
+👇 <b><a href="https://t.me/ustozaiminibot?startapp">Mini ilovani oching!</a></b>`, button: { text: "Ilovani ochish", url: "https://t.me/ustozaiminibot?startapp", style: "primary" } };
 // after an edit (/tahrir) the post's current text, formatting and picture are kept in KV post1:data
 const getPost = async (env) => { try { return (await env.COLORS.get("post1:data", "json")) || null; } catch { return null; } };
 const capOf = (p) => (p ? { caption: p.caption, caption_entities: p.entities || [] } : { caption: POST1.caption, parse_mode: "HTML" });
