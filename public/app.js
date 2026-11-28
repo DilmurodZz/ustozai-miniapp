@@ -10,6 +10,16 @@ const store = {
   set(k, v) { try { localStorage.setItem("uz_" + k, JSON.stringify(v)); } catch {} },
 };
 
+// Embedded in the Ustoz AI phone app (a page opened in its WebView with ?embed=1): the phone app has its own bottom bar,
+// so the Mini App's bottom bar, intro, "install the app" panel and the back button of the first page are hidden,
+// and course links are handed to the phone app directly. The flag stays for the whole visit.
+const EMBED = (() => {
+  try {
+    if (new URLSearchParams(location.search).get("embed") === "1") sessionStorage.setItem("uz_embed", location.hash || "#/");
+    return sessionStorage.getItem("uz_embed");
+  } catch { return null; }
+})();
+if (EMBED) document.documentElement.classList.add("embed");
 const user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || { id: 0, first_name: "Aziz" };
 const startParam = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
 // the Ustoz AI phone app. ustoz.ai links are registered app links (Android assetlinks, iOS apple-app-site-association),
@@ -20,6 +30,7 @@ const STORE_URL = "https://apps.apple.com/uz/app/ustoz-ai/id6504815934";
 // go through our open.html page (on this site: the workers.dev address fails on some Uzbek mobile networks), which asks the phone to open the app (the website is the fallback)
 window.openApp = (url) => {
   haptic("medium");
+  if (EMBED) { location.href = url; return; }
   const go = /^https:\/\/(www\.)?ustoz\.ai\//.test(url) && tg && tg.platform !== "unknown" ? new URL("open.html?u=" + encodeURIComponent(url), location.href).href : url;
   if (tg && tg.openLink) tg.openLink(go); else window.open(go, "_blank");
 };
@@ -156,7 +167,7 @@ function renderTabs(route) {
   tabbar.innerHTML = TABS.map(([h, l, i]) => `<a href="${h}" class="${h === route ? "on" : ""}">${ic(i)}<span>${l}</span></a>`).join("");
 }
 
-const navbar = (title) => `<div class="navbar"><button class="icon-btn" onclick="goBack()">${ic("back")}</button><h1>${title}</h1><span></span></div>`;
+const navbar = (title) => `<div class="navbar">${EMBED && location.hash === EMBED ? `<span class="icon-btn"></span>` : `<button class="icon-btn" onclick="goBack()">${ic("back")}</button>`}<h1>${title}</h1><span></span></div>`;
 window.goBack = () => { if (document.getElementById("sheet")) return closeSheet(); if (typeof Game !== "undefined" && gameOn && Game.onBack()) return; history.length > 1 ? history.back() : (location.hash = "#/"); };
 
 /* ---------- screens ---------- */
@@ -290,7 +301,7 @@ function bindDuo() {
 
 /* ---------- router ---------- */
 const ROUTES = {
-  "#/": Home, "#/kompas": () => needScript("kompas.js", "Compass", "Screen", T("Kasb Kompasi")), "#/natija": () => needScript("kompas.js", "Compass", "Result", T("Kasb Kompasi")), "#/tanlov": () => needScript("tanlov.js", "Contest", "Screen", T("Tanlov")), "#/profil": Profil,
+  "#/": Home, "#/kompas": () => needScript("kompas.js", "Compass", "Screen", T("Kasb Kompasi")), "#/yangiliklar": () => News.Screen(), "#/natija": () => needScript("kompas.js", "Compass", "Result", T("Kasb Kompasi")), "#/tanlov": () => needScript("tanlov.js", "Contest", "Screen", T("Tanlov")), "#/profil": Profil,
   "#/kurslar": () => Kurslar.List(), "#/kurs": () => Kurslar.Detail(location.hash.slice(7)), "#/oyin": () => "", "#/mutolaa": () => Soon("mutolaa"),
   "#/duo": DuoScreen, "#/chegirma": () => needScript("deals.js", "Deals", "Screen", T("Top 20 chegirmalar")), "#/vositalar": () => needTools("Screen"), "#/cv": () => needTools("CV"), "#/dtm": () => needScript("study.js", "Study", "DTM", T("DTM ball kalkulyatori")), "#/ielts": () => needScript("study.js", "Study", "IELTS", T("IELTS ball kalkulyatori")), "#/unis": () => needScript("study.js", "Study", "Unis", T("Top 300 universitet va grantlar")), "#/admin": () => AdminScreen(), "#/admin/users": () => AdminScreen("users"), "#/admin/bc": () => AdminScreen("bc"), "#/admin/ch": () => AdminScreen("ch"), "#/admin/links": () => AdminScreen("links"), "#/workshop": () => needScript("workshop.js", "Workshop", "Screen", "Admission tips from Harvard"), "#/harvard": () => needScript("harvard.js", "Harvard", "Screen", "Harvard Admission tips"), "#/ariza": () => needScript("ariza.js", "Ariza", "Screen", "Application Studio"), "#/aisafety": () => needScript("aisafety.js", "AiSafety", "Screen", T("AI xavfsizligi · Garvard")), "#/muddatlar": () => needScript("ariza.js", "Ariza", "Deadlines", T("Muddatlar")), "#/kashf": () => Soon("kashf"),
 };
@@ -389,7 +400,7 @@ window.installApp = () => {
 };
 // the clock starts when the first feature opens
 let askStarted = false;
-function askWatch() { if (!askStarted && location.hash && location.hash !== "#/") { askStarted = true; askLater(ASK_FIRST); } }
+function askWatch() { if (EMBED) return; if (!askStarted && location.hash && location.hash !== "#/") { askStarted = true; askLater(ASK_FIRST); } }
 window.addEventListener("hashchange", askWatch);
 setTimeout(askWatch, 0);
 
@@ -406,6 +417,7 @@ if (tg) {
 // For now it plays on every open of the app. Set INTRO_DAILY to true to show it only on the first open of each day (Tashkent date).
 const INTRO_DAILY = false;
 (function intro() {
+  if (EMBED) return;
   const today = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
   if (INTRO_DAILY && store.get("intro_day", "") === today) return;
   store.set("intro_day", today);

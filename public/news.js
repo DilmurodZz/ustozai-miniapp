@@ -24,6 +24,7 @@ const News = (() => {
       if (!Array.isArray(d.items)) return;
       const changed = !data || JSON.stringify(d.items.map((x) => x.u)) !== JSON.stringify(items().map((x) => x.u));
       data = d; store.set(key, d); paint();
+      if (changed && location.hash === "#/yangiliklar") render();
       if (changed && location.hash === "#/vositalar") { const el = document.getElementById("nw"); if (el) { el.outerHTML = ribbon(); bind(); } }
     }).catch(() => {}).finally(() => { loading = false; });
   }
@@ -103,9 +104,18 @@ const News = (() => {
     const em = document.querySelector(".nw-head em"); if (em && !n) em.remove();
   }
   const app = document.getElementById("app");
-  if (app) new MutationObserver(() => { paint(); if (location.hash === "#/vositalar") bind(); }).observe(app, { childList: true });
+  if (app) new MutationObserver(() => { paint(); if (location.hash === "#/vositalar" || location.hash === "#/yangiliklar") bind(); }).observe(app, { childList: true });
   setTimeout(load, 1200);
   setInterval(() => { if (!document.hidden) load(); }, 15 * 60000);
-  return { ribbon, load, paint };
+  // the news on a page of its own (#/yangiliklar): the sliding ribbon and every headline under it.
+  // The Ustoz AI phone app can open it in its "Lenta" (…/#/yangiliklar?embed=1 style links, see the handoff PDF).
+  function Screen() {
+    if (!data) load();
+    const rows = items().map((x, i) => `<button class="nw-row" onclick="newsOpen(${i},'page')"><b class="notr">${esc(x.t)}</b><small>${esc(x.s)} · ${ago(x.at)}</small></button>`).join("");
+    setTimeout(() => { store.set("news_seen", Date.now()); paint(); }, 1500);
+    return `${navbar(T("Yangiliklar"))}${items().length ? ribbon() : spinner()}
+      ${rows ? `<div class="section-title">${T("Barcha yangiliklar")}</div><div class="nw-list nw-page">${rows}</div>` : ""}`;
+  }
+  return { ribbon, load, paint, Screen };
 })();
 window.News = News;

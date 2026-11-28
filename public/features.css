@@ -1207,3 +1207,8 @@ body:has(.tabbar.hide) .inst { bottom: calc(14px + env(safe-area-inset-bottom));
 .inst-go { grid-column: 1 / -1; grid-row: 2; padding: 12px; border-radius: 14px; background: var(--grad); color: #fff; font-weight: 700; font-size: 15px; box-shadow: var(--shadow); }
 .inst-x { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); background: var(--bg); align-self: start; }
 .inst-x .ic { width: 16px; height: 16px; }
+/* inside the Ustoz AI phone app (?embed=1): its own bottom bar is used, so ours is hidden and the page ends lower */
+html.embed .tabbar, html.embed .inst { display: none !important; }
+html.embed #app { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+/* the news page */
+.nw-list.nw-page { margin-bottom: 16px; max-height: none; overflow: visible; }

@@ -4,6 +4,9 @@
 const LANGS = { uz: "O'zbekcha", ru: "Русский", en: "English" };
 const LANG = (() => {
   try {
+    // a page opened from the Ustoz AI phone app can carry its language: ?lang=uz|ru|en
+    const fromLink = new URLSearchParams(location.search).get("lang");
+    if (LANGS[fromLink]) { try { localStorage.setItem("uz_lang", JSON.stringify(fromLink)); } catch {} return fromLink; }
     const saved = JSON.parse(localStorage.getItem("uz_lang"));
     if (LANGS[saved]) return saved;
     const tgl = window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user && Telegram.WebApp.initDataUnsafe.user.language_code;
