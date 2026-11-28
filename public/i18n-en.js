@@ -1699,4 +1699,8 @@ Object.assign(I18N.en, {
 "Kurs uçun budjet": "course budget",
 "Maktabda, işda yoki kutubxonada muntazam foydalana oladigan qurilmangizni ham hisobga oling.": "Also count a device you can use regularly at school, at work or in a library.",
 "Tanlanmagan": "Not chosen",
+"Ustoz AI ilovasini o'rnating": "Install the Ustoz AI app",
+"Davom etish uchun ilovani o'rnating: kurslar va darslar ilovada to'liq ochiladi.": "To continue, install the app: courses and lessons open fully there.",
+"O'rnatish": "Install",
+"Ilovani o'rnatish": "Install the app",
 });

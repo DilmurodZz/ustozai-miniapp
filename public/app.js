@@ -362,6 +362,37 @@ function render() {
 }
 window.addEventListener("hashchange", () => { const nh = location.hash; const cur = nh; location.hash; pageState[lastHash] = Object.assign(pageState[lastHash] || {}, { y: window.scrollY }); store.set("page_state", pageState); lastHash = cur; window.scrollTo(0, 0); render(); restorePage(); });
 
+/* ---------- "install the app" panel ---------- */
+// 15 seconds after the student opens a feature (any page other than Home), a panel above the bottom bar asks them to
+// install the Ustoz AI phone app. Its button goes through open.html: the app opens when it is installed, otherwise
+// Play Market (Android) or the App Store page (iPhone). Closing it only hides it: it comes back 45 seconds later,
+// and again on every open of the Mini App.
+const ASK_FIRST = 15e3, ASK_AGAIN = 45e3;
+let askTimer = null;
+function askLater(ms) { clearTimeout(askTimer); askTimer = setTimeout(showAsk, ms); }
+function showAsk() {
+  if (document.querySelector(".inst") || document.querySelector(".lv, .intro")) return askLater(5e3);
+  const el = document.createElement("div");
+  el.className = "inst";
+  el.innerHTML = `<img src="logo.png" alt=""><span><b>${T("Ustoz AI ilovasini o'rnating")}</b><small>${T("Davom etish uchun ilovani o'rnating: kurslar va darslar ilovada to'liq ochiladi.")}</small></span>
+    <button class="inst-x" onclick="closeAsk()" aria-label="${T("Yopish")}">${ic("x")}</button>
+    <button class="inst-go" onclick="installApp()">${T("Ilovani o'rnatish")}</button>`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("on"));
+  haptic("light");
+}
+window.closeAsk = () => { const el = document.querySelector(".inst"); if (el) { el.classList.remove("on"); setTimeout(() => el.remove(), 300); } haptic("light"); askLater(ASK_AGAIN); };
+window.installApp = () => {
+  haptic("medium");
+  const u = new URL("open.html", location.href).href;
+  if (tg && tg.openLink) tg.openLink(u); else window.open(u, "_blank");
+};
+// the clock starts when the first feature opens
+let askStarted = false;
+function askWatch() { if (!askStarted && location.hash && location.hash !== "#/") { askStarted = true; askLater(ASK_FIRST); } }
+window.addEventListener("hashchange", askWatch);
+setTimeout(askWatch, 0);
+
 function esc(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
 

@@ -1699,4 +1699,8 @@ Object.assign(I18N.ru, {
 "Kurs uçun budjet": "бюджет на курс",
 "Maktabda, işda yoki kutubxonada muntazam foydalana oladigan qurilmangizni ham hisobga oling.": "Учитывайте и устройство, которым вы регулярно пользуетесь в школе, на работе или в библиотеке.",
 "Tanlanmagan": "Не выбрано",
+"Ustoz AI ilovasini o'rnating": "Установите приложение Ustoz AI",
+"Davom etish uchun ilovani o'rnating: kurslar va darslar ilovada to'liq ochiladi.": "Чтобы продолжить, установите приложение: курсы и уроки полностью открываются в нём.",
+"O'rnatish": "Установить",
+"Ilovani o'rnatish": "Установить приложение",
 });

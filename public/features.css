@@ -1193,3 +1193,17 @@ html { -webkit-tap-highlight-color: transparent; }
 .km-logo.hh { border-radius: 50%; }
 /* home top bar: the Youth Affairs Agency logo between the Ustoz AI name and the Turon Bank logo */
 .topbar .org { height: 40px; width: auto; flex: none; margin: -6px auto; }
+/* the "install the app" panel, above the bottom bar: logo, text and close on top, a full-width install button below */
+.inst { position: fixed; left: 12px; right: 12px; bottom: calc(104px + env(safe-area-inset-bottom)); z-index: 60; max-width: 456px; margin: 0 auto;
+  display: grid; grid-template-columns: 44px minmax(0, 1fr) 30px; gap: 10px 12px; align-items: center; padding: 14px; border-radius: 22px;
+  background: #fff; color: var(--text); box-shadow: 0 18px 40px -16px rgba(18,24,41,.45), 0 2px 8px rgba(18,24,41,.08); border: 1px solid var(--line);
+  transform: translateY(24px); opacity: 0; transition: transform .3s cubic-bezier(.2,.8,.2,1), opacity .3s; }
+.inst.on { transform: none; opacity: 1; }
+body:has(.tabbar.hide) .inst { bottom: calc(14px + env(safe-area-inset-bottom)); }
+.inst > img { width: 44px; height: 44px; border-radius: 12px; }
+.inst > span { display: flex; flex-direction: column; gap: 2px; }
+.inst b { font-size: 15px; font-weight: 800; }
+.inst small { font-size: 12.5px; line-height: 1.35; color: var(--muted); }
+.inst-go { grid-column: 1 / -1; grid-row: 2; padding: 12px; border-radius: 14px; background: var(--grad); color: #fff; font-weight: 700; font-size: 15px; box-shadow: var(--shadow); }
+.inst-x { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); background: var(--bg); align-self: start; }
+.inst-x .ic { width: 16px; height: 16px; }
