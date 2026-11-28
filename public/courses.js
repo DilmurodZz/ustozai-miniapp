@@ -67,7 +67,6 @@ const Kurslar = (() => {
     const s = data && data.summary;
     const head = `${navbar(T("Kurslar"))}
       <div class="km-panel">
-        <span class="km-org"><img src="img/yoshlar-agentligi.webp" alt="Yoshlar ishlari agentligi" decoding="async"></span>
         <div class="km-top"><span class="km-ic">${ic("chart")}</span><span>Mehnat bozori tahlili</span></div>
         <b class="km-big">${T("{n} ta vakansiya tahlil qilindi", { n: s ? fmt(s.analyzed) : "11,088" })}</b>
         <div class="km-stats">

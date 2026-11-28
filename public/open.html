@@ -6,9 +6,11 @@
 <meta name="robots" content="noindex">
 <title>Ustoz AI</title>
 <!-- Opens a course in the Ustoz AI phone app. Telegram opens links in its own browser, where the app does not take over
-     its links, so this page asks the phone directly: Android gets an intent for the app (uz.uztozedu.ustozai) with the
-     course page on ustoz.ai as the fallback; iPhone gets a button, because iOS opens an app only from a tap on its link.
-     Only ustoz.ai links are accepted (open.html?u=<course link>). -->
+     its links, so this page asks the phone directly: Android gets an intent for the app (uz.uztozedu.ustozai); when the
+     app is not installed, Play Market opens on the app's page. iPhone gets buttons, because iOS opens an app only from a
+     tap on its link: "Ilovada ochish" and "App Store'dan o'rnatish".
+     open.html?u=<ustoz.ai link> opens that course; open.html alone opens the app (or its store page).
+     Only ustoz.ai links are accepted. -->
 <style>
   body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #F7F3EE;
     font-family: Inter, system-ui, -apple-system, Arial, sans-serif; color: #111; }
@@ -25,16 +27,21 @@
 <div class="b">
   <img src="logo.png" alt="">
   <h1>Ustoz AI ilovasida ochilmoqda</h1>
-  <p>Ilova o'rnatilgan bo'lsa, kurs ilovada ochiladi. Aks holda kurs sahifasi saytda ochiladi.</p>
+  <p>Ilova o'rnatilgan bo'lsa, u darhol ochiladi. O'rnatilmagan bo'lsa, ilovani yuklab olish sahifasi ochiladi.</p>
   <a class="p" id="go" href="https://www.ustoz.ai/">Ilovada ochish</a>
-  <a class="g" id="web" href="https://www.ustoz.ai/" rel="noopener">Saytda ochish</a>
+  <a class="g" id="store" href="https://play.google.com/store/apps/details?id=uz.uztozedu.ustozai">Ilovani o'rnatish</a>
 </div>
 <script>
   var u = new URLSearchParams(location.search).get("u") || "";
   if (!/^https:\/\/(www\.)?ustoz\.ai\/[\w\/.-]*$/.test(u)) u = "https://www.ustoz.ai/";
-  document.getElementById("go").href = u; document.getElementById("web").href = u;
+  var PLAY = "https://play.google.com/store/apps/details?id=uz.uztozedu.ustozai", STORE = "https://apps.apple.com/uz/app/ustoz-ai/id6504815934";
+  var ios = /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+  document.getElementById("go").href = u;
+  document.getElementById("store").href = ios ? STORE : PLAY;
+  document.getElementById("store").textContent = ios ? "App Store'dan o'rnatish" : "Play Market'dan o'rnatish";
   if (/Android/i.test(navigator.userAgent || "")) {
-    var intent = "intent://" + u.slice(8) + "#Intent;scheme=https;package=uz.uztozedu.ustozai;S.browser_fallback_url=" + encodeURIComponent(u) + ";end";
+    // the app opens the link; without the app, Play Market opens on the app's page
+    var intent = "intent://" + u.slice(8) + "#Intent;scheme=https;package=uz.uztozedu.ustozai;S.browser_fallback_url=" + encodeURIComponent(PLAY) + ";end";
     document.getElementById("go").href = intent;
     location.href = intent;
   }

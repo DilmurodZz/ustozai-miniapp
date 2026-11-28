@@ -380,7 +380,7 @@ const INTRO_DAILY = false;
   store.set("intro_day", today);
   const el = document.createElement("div");
   el.className = "intro";
-  el.innerHTML = `<div class="intro-in"><img src="logo.png" alt=""><b>USTOZ AI</b><span>${T("Kelajak kasbingizni toping")}</span><i><em></em></i></div>`;
+  el.innerHTML = `<div class="intro-org"><img src="img/yoshlar-agentligi.webp" alt="Yoshlar ishlari agentligi"></div><div class="intro-in"><img src="logo.png" alt=""><b>USTOZ AI</b><span>${T("Kelajak kasbingizni toping")}</span><i><em></em></i></div>`;
   document.body.appendChild(el);
   const done = () => { if (el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => el.remove(), 600); };
   el.onclick = done;
