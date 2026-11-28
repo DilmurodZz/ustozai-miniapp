@@ -1191,6 +1191,5 @@ html { -webkit-tap-highlight-color: transparent; }
 .km-src i { display: inline-flex; align-items: center; gap: 6px; }
 .km-logo { width: 18px; height: 18px; border-radius: 5px; flex: none; }
 .km-logo.hh { border-radius: 50%; }
-/* the intro: the Youth Affairs Agency logo at the top */
-.intro-org { position: absolute; top: calc(28px + env(safe-area-inset-top)); left: 0; right: 0; display: flex; justify-content: center; animation: introUp .7s .1s cubic-bezier(.2,.8,.2,1) both; }
-.intro-org img { height: 92px; width: auto; }
+/* home top bar: the Youth Affairs Agency logo between the Ustoz AI name and the Turon Bank logo */
+.topbar .org { height: 40px; width: auto; flex: none; margin: -6px auto; }

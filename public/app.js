@@ -163,7 +163,7 @@ window.goBack = () => { if (document.getElementById("sheet")) return closeSheet(
 function Home() {
   const tiles = [["zkt", "Tanlov", "#/tanlov", "k2"], ["harvard", "Harvard Admission tips", "#/harvard", "k3"], ["game", "O'yin", "#/oyin", "k1"], ["tools", "Foydali vositalar", "#/vositalar", "k4"]];
   return `
-  <div class="topbar"><div class="brand"><img class="logo" src="logo.png" alt="">USTOZ AI</div><img class="partner" src="img/turonbank.png" alt="Turon Bank"></div>
+  <div class="topbar"><div class="brand"><img class="logo" src="logo.png" alt="">USTOZ AI</div><img class="org" src="img/yoshlar-agentligi.webp" alt="Yoshlar ishlari agentligi"><img class="partner" src="img/turonbank.png" alt="Turon Bank"></div>
   <a class="hero2" href="#/kompas" onclick="return kpSheet(event)">
     <img class="hero2-art" src="img/hero-compass.webp" alt="" decoding="async">
     <span class="hero2-tag">${T("5 daqiqa")}</span>
@@ -380,7 +380,7 @@ const INTRO_DAILY = false;
   store.set("intro_day", today);
   const el = document.createElement("div");
   el.className = "intro";
-  el.innerHTML = `<div class="intro-org"><img src="img/yoshlar-agentligi.webp" alt="Yoshlar ishlari agentligi"></div><div class="intro-in"><img src="logo.png" alt=""><b>USTOZ AI</b><span>${T("Kelajak kasbingizni toping")}</span><i><em></em></i></div>`;
+  el.innerHTML = `<div class="intro-in"><img src="logo.png" alt=""><b>USTOZ AI</b><span>${T("Kelajak kasbingizni toping")}</span><i><em></em></i></div>`;
   document.body.appendChild(el);
   const done = () => { if (el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => el.remove(), 600); };
   el.onclick = done;
