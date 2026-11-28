@@ -67,13 +67,14 @@ const Kurslar = (() => {
     const s = data && data.summary;
     const head = `${navbar(T("Kurslar"))}
       <div class="km-panel">
+        <span class="km-org"><img src="img/yoshlar-agentligi.webp" alt="Yoshlar ishlari agentligi" decoding="async"></span>
         <div class="km-top"><span class="km-ic">${ic("chart")}</span><span>Mehnat bozori tahlili</span></div>
         <b class="km-big">${T("{n} ta vakansiya tahlil qilindi", { n: s ? fmt(s.analyzed) : "11,088" })}</b>
         <div class="km-stats">
           <span><i class="km-si">${ic("users")}</i><em><b>${data ? fmt(topStudents()) : "…"}</b><small>${T("o'quvchi hozirda eng talabgir kurslarimizda o'qiydi")}</small></em></span>
           <span><i class="km-si">${ic("briefcase")}</i><em><b>${s ? s.courses : "119"}</b><small>kurs tahlil qilindi</small></em></span>
         </div>
-        <div class="km-src"><small>Manbalar:</small><i>${ic("globe")}hh.uz</i><i>${ic("globe")}OLX.uz</i></div>
+        <div class="km-src"><small>Manbalar:</small><i><img class="km-logo hh" src="img/hh-logo.webp" alt="" decoding="async">hh.uz</i><i><img class="km-logo" src="img/olx-logo.webp" alt="" decoding="async">OLX.uz</i></div>
       </div>
       <div class="km-tools">
         <label class="km-search">${ic("search")}<input id="km-q" placeholder="${T("Kurs yoki ustoz nomi")}" value="${esc(query)}" autocomplete="off"></label>
